@@ -49,12 +49,19 @@
                         <div class="d-none">
                         {% else %}
                         <div>
+                        <hr>
                         <h6 class="dropdown-header">Información del usuario</h6>
                         <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Perfil_revisar' usuario_fijo.id %}">Perfil</a>
-                            <a class="dropdown-item" href="{% url 'Status_revisar' status_fijo.id %}">Status</a>
-                            <a class="dropdown-item" href="{% url 'Vacaciones_revisar' status_fijo.id %}">Vacaciones</a>
-                            <a class="dropdown-item" href="{% url 'Economicos_revisar' status_fijo.id %}">Economicos</a>
+                            {% if usuario_fijo.complete_status == True %}
+                                <a class="dropdown-item" href="{% url 'Status_revisar' status_fijo.id %}">Status</a>
+                            {% endif %}
+                            {% if status_fijo.complete_vacaciones == True %}
+                                <a class="dropdown-item" href="{% url 'Vacaciones_revisar' status_fijo.id %}">Vacaciones</a>
+                            {% endif %}
+                            {% if status_fijo.complete_economicos == True %}
+                                <a class="dropdown-item" href="{% url 'Economicos_revisar' status_fijo.id %}">Economicos</a>
+                            {% endif %} 
                             {% if status_fijo.complete_bancarios == True %}
                                 <a class="dropdown-item" href="{% url 'Empleado_bancarios' status_fijo.id %}">Datos bancarios</a>
                             {% endif %}
@@ -62,7 +69,7 @@
                             <a class="dropdown-item" href="{% url 'Empleado_costo' status_fijo.id %}">Costo</a>
                             <a class="dropdown-item" href="{% url 'Empleado_bonos' status_fijo.id %}">Bonos</a>
                             {% endif %}
-                            {% if status_fijo.complete_vacaciones == True %}
+                            {% if status_fijo.complete_uniformes == True %}
                             <a class="dropdown-item" href="{% url 'Uniformes_completados_revisar' status_fijo.id %}">Uniformes</a
                             {% endif %}
                             <div class="dropdown-divider"></div>
@@ -75,8 +82,9 @@
                         {% endif %}
                         <h6 class="dropdown-header">Información de los empleados</h6>
                         <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="{% url 'Perfil' %}">Perfiles</a>
-                            <a class="dropdown-item" href="{% url 'Status' %}">Status</a>
+                            <a class="dropdown-item" href="{% url 'Perfil' %}">Tabla Perfiles</a>
+                            <a class="dropdown-item" href="{% url 'Status' %}">Tabla Status</a>
+                            <hr>
                             <h6 class="dropdown-header">Autorización de solicitudes</h6>
                             <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="{% url 'Solicitudes_vacaciones' %}">
@@ -108,10 +116,11 @@
                             <a class="dropdown-item" href="{% url 'Tabla_economicos' %}">Días económicos</a>
                             <div class="dropdown-divider"></div>
                             <h6 class="dropdown-header">Información general del sistema</h6>
+                            <hr>
                             <a class="dropdown-item" href="{% url 'Administrar_tablas' %}">Datos generales</a>
                             <div class="dropdown-divider"></div>
                         </div>
-                            {% if usuario_fijo.numero_de_trabajador == None %}
+                            {% if usuario_fijo.numero_de_trabajador == None or usuario_fijo.baja == True %}
                             <div>
                             {% else %}
                             <h6 class="dropdown-header">Solicitudes</h6>

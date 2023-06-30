@@ -12,7 +12,7 @@ from reportlab.lib.colors import Color, black, blue, red, white
 from reportlab.platypus import BaseDocTemplate, Frame, Paragraph, NextPageTemplate, PageBreak, PageTemplate,Table, SimpleDocTemplate,TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 import os
-from proyecto.models import Perfil, Vacaciones, Economicos, UserDatos, Uniforme, DatosBancarios
+from proyecto.models import Perfil, Vacaciones, Economicos, UserDatos, Uniforme, DatosBancarios, Catorcenas
 #from django.contrib.auth.decorators import login_required
 #from .filters import ArticulosparaSurtirFilter
 from django.http import HttpResponse
@@ -28,7 +28,7 @@ from openpyxl.drawing.image import Image
 from openpyxl.chart import PieChart, LineChart, Reference
 from openpyxl.chart.axis import DateAxis
 from collections import Counter
-from proyecto.models import Costo, Bonos, Status
+from proyecto.models import Costo, Bonos, Status, DatosBancarios
 from django.db.models import Sum
 from django.core.mail import send_mail
 from django.conf import settings
@@ -36,20 +36,24 @@ import locale
 locale.setlocale( locale.LC_ALL, '' )
 
 @login_required(login_url='user-login')
-def index(request):
+def index(request):#Por si se hace una carga de json y no se activan ciertos boleanos
+    #for dato in DatosBancarios.objects.filter(complete=True):
+    #    dato.status.complete_bancarios = True
+    #    dato.status.save()
     usuario = UserDatos.objects.get(user__id=request.user.id)
+    periodo = str(datetime.date.today().year)
     if usuario.distrito.distrito == 'Matriz':
-        perfiles = Perfil.objects.filter(complete = True)
+        perfiles = Perfil.objects.filter(complete = True, baja=False)
         cantidad = perfiles.count()
-        status = Status.objects.filter(complete = True)
+        status = Status.objects.filter(complete = True, perfil__baja=False)
         cantidad2 = status.count()
-        costo = Costo.objects.filter(complete = True)
+        costo = Costo.objects.filter(complete = True, status__perfil__baja=False)
         cantidad3 = costo.count()
-        vacacion = Vacaciones.objects.filter(complete = True)
+        vacacion = Vacaciones.objects.filter(complete = True, periodo = periodo, status__perfil__baja=False)
         cantidad4 = vacacion.count()
-        economico = Economicos.objects.filter(complete = True)
+        economico = Economicos.objects.filter(complete = True, periodo = periodo, status__perfil__baja=False)
         cantidad5 = economico.count()
-        bancario = DatosBancarios.objects.filter(complete = True)
+        bancario = DatosBancarios.objects.filter(complete = True, status__perfil__baja=False)
         cantidad6 = bancario.count()
         vacaciones = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
         economicos = Economicos.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
@@ -59,16 +63,18 @@ def index(request):
         #    cantidad_ = uniforme.cantidad
         #    cantidad_uniformes = cantidad_uniformes+cantidad
     else:
-        perfiles= Perfil.objects.filter(distrito=usuario.distrito,complete=True)
+        perfiles= Perfil.objects.filter(distrito=usuario.distrito,complete=True, baja=False)
         cantidad = perfiles.count()
-        status = Status.objects.filter(perfil__distrito=usuario.distrito,complete = True)
+        status = Status.objects.filter(perfil__distrito=usuario.distrito,complete = True, perfil__baja=False)
         cantidad2 = status.count()
-        costo = Costo.objects.filter(status__perfil__distrito=usuario.distrito,complete = True)
+        costo = Costo.objects.filter(status__perfil__distrito=usuario.distrito,complete = True, status__perfil__baja=False)
         cantidad3 = costo.count()
-        vacacion = Vacaciones.objects.filter(status__perfil__distrito=usuario.distrito,complete = True)
+        vacacion = Vacaciones.objects.filter(status__perfil__distrito=usuario.distrito,complete = True,periodo = periodo, status__perfil__baja=False)
         cantidad4 = vacacion.count()
-        economico = Economicos.objects.filter(status__perfil__distrito=usuario.distrito,complete = True)
+        economico = Economicos.objects.filter(status__perfil__distrito=usuario.distrito,complete = True,periodo = periodo, status__perfil__baja=False)
         cantidad5 = economico.count()
+        bancario = DatosBancarios.objects.filter(status__perfil__distrito=usuario.distrito,complete = True, status__perfil__baja=False)
+        cantidad6 = bancario.count()
         vacaciones = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
         economicos = Economicos.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
         uniformes = Uniforme.objects.filter(orden__status__perfil__numero_de_trabajador=usuario.numero_de_trabajador)
@@ -104,30 +110,51 @@ def mensaje(request):
     return render(request, 'dashboard/Mensaje.html')
 
 @login_required(login_url='user-login')
-def render_report(request,pk):
-    costo_ver = Costo.objects.get(id = pk)
-    costo = Costo.history.filter(~Q(sueldo_mensual_neto=None)|~Q(sueldo_mensual_neto=0), id=pk)
-    bonos = (Bonos.objects.filter(costo=costo_ver).annotate(month=Extract('mes_bono','month')).values('month')
-                        .annotate(total=Sum('monto')).order_by("month"))
+def render_report(request, pk):
+    catorcena = Catorcenas.objects.filter(catorcena=1).last()
+    if catorcena:
+        fecha_inicial = catorcena.fecha_inicial
+        fecha_final = catorcena.fecha_final
 
-    meses =  datetime.date.today().month
+        catorcenas = Catorcenas.objects.filter(Q(catorcena__lte=26) & Q(fecha_inicial__gte=fecha_inicial)).order_by('catorcena')
+    else:
+        catorcenas = Catorcenas.objects.none()
 
-    meses_cost={}
+    costo_ver = Costo.objects.get(id=pk)
+    costo = Costo.history.filter((~Q(sueldo_mensual_neto=None) | ~Q(sueldo_mensual_neto=0)), id=pk)
+    
+    bonos = []
+    for catorcena in catorcenas:
+        bono = Bonos.objects.filter(costo=costo_ver, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final]).aggregate(total=Sum('monto'))
+        bonos.append({
+            'catorcena': catorcena.catorcena,
+            'total': bono['total'] if bono['total'] else 0
+        })
 
+    meses_cost = {}
+    previous_cost = None
 
+    for catorcena in catorcenas:
+        if previous_cost is None:
+            cost = Costo.history.filter((~Q(sueldo_mensual_neto=None) | ~Q(sueldo_mensual_neto=0)), id=pk, updated_at__range=[catorcena.fecha_inicial, catorcena.fecha_final]).first()
+        else:
+            cost = previous_cost
 
-    for mes in range(1,meses+1):
-        cost = Costo.history.filter(~Q(sueldo_mensual_neto = None)|~Q(sueldo_mensual_neto = 0),id=pk, updated_at__month__gte= mes).first()
-        if cost:
-            meses_cost[mes] = cost.total_costo_empresa
-
+        catorcena_number = catorcena.catorcena
+        meses_cost[catorcena_number] = cost.total_costo_empresa if cost else 0
+        previous_cost = cost
+    
+    datos_tabla = [{'catorcena': catorcena.catorcena, 'costo': costo, 'bono': bono['total'] if bono else Decimal('0.00')} 
+                   for catorcena, costo, bono in zip(catorcenas, meses_cost.values(), bonos)]
     context = {
-        'bonos':bonos,
-        'registros':costo,
-        'meses':meses,
-        'meses_cost':meses_cost,
-        'costo_ver':costo_ver,
-        }
+        'bonos': bonos,
+        'registros': costo,
+        'meses_cost': meses_cost,
+        'costo_ver': costo_ver,
+        'catorcenas':catorcenas,
+        'catorcena': catorcena,  
+        'costo':costo,
+        'datos_tabla':datos_tabla
+    }
 
-
-    return render(request, 'dashboard/optional_report.html',context)
+    return render(request, 'dashboard/optional_report.html', context)

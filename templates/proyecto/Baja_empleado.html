@@ -1,0 +1,70 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}Empleado modificar{% endblock %}
+
+{% block content %}
+    <div class="row my-4">
+        <div class="col-md-4">
+            <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            {% if messages %}
+                {% for message in messages %}
+                    {% if message.tags == "error" %}
+                        <script>
+                            Swal.fire({
+                                "title":"Error",
+                                "text":"{{message}}",
+                                "icon":"error",
+                            })
+                        </script>
+                    {% else %}
+                        <script>
+                            Swal.fire({
+                                "title":"Excelente",
+                                "text":"{{message}}",
+                                "icon":"success",
+                            })
+                        </script>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    <hr>
+    <div class="modal-dialog-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dar de baja empleado</h5>
+                <a href="{% url 'Perfil' %}"><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></a>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'Baja_empleado' empleado.id %}" class="modal-content" style="background-color: gray; color: white;" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <label style="color: black;" for="form.nombre" class="col-auto col-form-label">
+                        <div style="margin-left: 20px;">Empleado # {{empleado.numero_de_trabajador}}</div>
+                        <div style="margin-left: 20px;">Empleado: {{empleado.nombres}} {{empleado.apellidos}}</div>
+                        <div style="margin-left: 20px;">Distrito actual: {{empleado.distrito}}</div>
+                    </label>
+                    <div class="mb-3">
+                        <hr>
+                        <h6 style="color: blue; margin-left: 20px;">Dar de baja al empleado</h6>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-auto my-2 .mr-1" style="margin-left: 20px;">
+                            <input type="hidden" name="btnSend" id="btnSend" value="0">
+                            <button type="submit" class="btn btn-outline-light " data-bs-dismiss="modal" onclick="confirmAction(event)"><i class="fa-solid fa-cloud-arrow-up"></i> Confirmar</button>
+                        </div>
+                        <div class="col-auto my-2">
+                            <a href="#" hx-trigger="click" data-bs-dismiss="modal"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button></a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+{% endblock %}

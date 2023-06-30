@@ -76,10 +76,17 @@
             <hr>
             <form method="GET" class="row g-3">
                 {% csrf_token %}
-                <label for="bancario_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                <label for="bancario_filter.form.nombres_apellidos" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
                 <div class="col-auto">
-                       {% render_field bancario_filter.form.nombres class="form-control" %}
+                       {% render_field bancario_filter.form.nombres_apellidos class="form-control" %}
                 </div>
+                {% if usuario.distrito.distrito == "Matriz" %}
+                <label for="bancario_filter.form.status__perfil__distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
+                <div class="col-auto">
+                       {% render_field bancario_filter.form.distrito class="form-control" %}
+                </div>
+                {% else %}
+                {% endif %}
                 <label for="bancario_filter.form.no_de_cuenta" class="col-sm-auto col-form-label text-right"><strong>No. de cuenta:</strong></label>
                 <div class="col-auto">
                        {% render_field bancario_filter.form.no_de_cuenta class="form-control" %}

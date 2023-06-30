@@ -33,63 +33,102 @@
 <hr>
 <hr>
 <div class="container card card-body">
-        <div class="columns is-mobile">
-            <div class="column is-half is-offset-one-quarter">
-                        <strong>
-                            Detalle días Economicos
-                        </strong>
-                    </div>
-                    <hr>
-                    <div class="card-body">
-                        <div class="row">
-                                <span class="h4">{{empleado.status.perfil.nombres}} {{empleado.status.perfil.apellidos}}</span>
-                        <form method=POST>
-                        {% csrf_token %}
-                        <li class="nav-item mx-2">
-                            <button type="submit" name="Pdf" class="btn btn-outline-danger" value='Reporte Pdf'>
-                                <i class="fa-solid fa-file-pdf fa-2xl"></i>
-                            </button>
-                        </li>
-                        <hr>
-                        </form>
-                        <table class="table table-striped table-hover bg-white">
-                            <thead class="text-black" style="background-color: #F5F5F5;">
-                                <tr style="background-color:#2A628F;color:#ffffff;">
-                                    <th scope="col">Periodo</th>
-                                    <th scope="col">Fecha</th>
-                                    <th scope="col">Días disfrutados</th>
-                                    <th scope="col">Días pendientes</th>
-                                    <th scope="col">Comentario</th>
-                                    <th scope="col">Creado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for economico in economicos %}
-                                <tr>
-                                    <td>{{economico.periodo}}</td>
-                                    <td>{{economico.fecha}}</td>
-                                    <td>{{economico.dias_disfrutados}}</td>
-                                    <td>{{economico.dias_pendientes}}</td>
-                                    <td>{{economico.comentario}}</td>
-                                    <td>{{economico.created_at}}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                            <hr>
-                            {% if usuario.tipo.admin == False %}
-                                <div class="d-none">
-                            {% else %}
-                                <div>
-                            {% endif %}
-                                <a href="{% url 'Tabla_economicos' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
-                            </div>
-                        </div>
-                    </div>
-
+    <div class="columns is-mobile">
+        <div class="column is-half is-offset-one-quarter">
+            <h4 class="title is-size-2">Detalle días económicos</h4>
         </div>
+        <hr>
+        <div class="card-body">
+            <div class="row">
+                <span class="h4">{{empleado.status.perfil.nombres}} {{empleado.status.perfil.apellidos}}</span>
+                <form method="POST">
+                    {% csrf_token %}
+                    <li class="nav-item mx-2">
+                        <button type="submit" name="Pdf" class="btn btn-outline-danger" value='Reporte Pdf'>
+                            <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                        </button>
+                    </li>
+                    <hr>
+                </form>
+                <table class="table table-striped table-hover bg-white">
+                    <thead class="text-black" style="background-color: #F5F5F5;">
+                        <tr style="background-color:#2A628F;color:#ffffff;">
+                            <th scope="col">Periodo</th>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Días disfrutados</th>
+                            <th scope="col">Días pendientes</th>
+                            <th scope="col">Comentario</th>
+                            <th scope="col">Creado</th>
+                            <th scope="col">Histórico</th>  <!-- Nueva columna para el botón -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for economico in economicos %}
+                        <tr>
+                            <td>{{economico.periodo}}</td>
+                            <td>{{economico.fecha}}</td>
+                            <td>{{economico.dias_disfrutados}}</td>
+                            <td>{{economico.dias_pendientes}}</td>
+                            <td>{{economico.comentario}}</td>
+                            <td>{{economico.created_at}}</td>
+                            <td>  <!-- Agregar botón para desplegar histórico -->
+                                <button class="btn btn-outline-primary btn-historico" data-target="#historico{{economico.id}}" onclick="toggleHistorico({{economico.id}})">
+                                    Ver histórico
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="historico{{economico.id}}" style="display: none;">  <!-- Agregar fila para el histórico y ocultarla inicialmente -->
+                            <td colspan="7">  <!-- Ocupar todas las columnas -->
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Días disfrutados</th>
+                                            <th>Días pendientes</th>
+                                            <th>Comentario</th>
+                                            <th>Creado</th>
+                                            <th>Editado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for historico in economico.history.all %}
+                                        <tr>
+                                            <td>{{historico.fecha}}</td>
+                                            <td>{{historico.dias_disfrutados}}</td>
+                                            <td>{{historico.dias_pendientes}}</td>
+                                            <td>{{historico.comentario}}</td>
+                                            <td>{{historico.created_at}}</td>
+                                            <td>{{historico.editado}}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <hr>
+                {% if usuario.tipo.admin == False %}
+                <div class="d-none">
+                {% else %}
+                <div>
+                {% endif %}
+                <a href="{% url 'Tabla_economicos' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
+            </div>
+        </div>
+    </div>
 </div>
 
-
-
+<script>
+    // JavaScript para mostrar u ocultar el histórico al hacer clic en el botón
+    function toggleHistorico(id) {
+        var historico = document.getElementById("historico" + id);
+        if (historico.style.display === "none") {
+            historico.style.display = "table-row";  // Mostrar fila del histórico
+        } else {
+            historico.style.display = "none";  // Ocultar fila del histórico
+        }
+    }
+</script>
 {% endblock %}

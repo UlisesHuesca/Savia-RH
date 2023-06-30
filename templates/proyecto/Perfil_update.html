@@ -37,6 +37,43 @@
             <div class="column is-half is-offset-one-quarter">
                 <h3 class="title is-size-3">Empleado datos de perfil</h3>
                 <hr>
+                <h5 class="title is-size-3">Historico cambios perfil</h5>
+            <div class='table-responsive'>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-ligth table-striped mx-1" style="table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th scope="col">No. de trabajador</th>
+                            <th scope="col">Empresa</th>
+                            <th scope="col">Distrito</th>
+                            <th scope="col">Nombre</th>
+                            <th scope="col">Fecha de nacimiento</th>
+                            <th scope="col">Correo electrónico</th>
+                            <th scope="col">Proyecto</th>
+                            <th scope="col">Subproyecto</th>
+                            <th scope="col">Editado</th>
+                            <th scope="col">Editor</th>              
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for registro in registros %}
+                        <tr>
+                            <td>{{registro.numero_de_trabajador}}</td>
+                            <td>{{registro.empresa}}</td>
+                            <td>{{registro.distrito}} {{registro.division}}</td>
+                            <td>{{registro.nombres}} {{registro.apellidos}}</td>
+                            <td>{{registro.fecha_nacimiento}}</td>
+                            <td>{{registro.correo_electronico}}</td> 
+                            <td>{{registro.proyecto}}</td>
+                            <td>{{registro.subproyecto}}</td>
+                            <td>{{registro.created_at}}</td> 
+                            <td>{{registro.editado}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            </div>
                 <!-- El action y el multipart es para permitir cargar imagenes -->
                 <form method='POST' action='{{ action_url }}' enctype='multipart/form-data'>
                     {% csrf_token %}

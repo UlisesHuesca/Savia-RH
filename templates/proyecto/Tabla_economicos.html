@@ -71,10 +71,17 @@
             <hr>
             <form method="GET" class="row g-3">
                 {% csrf_token %}
-                <label for="economico_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                <label for="economico_filter.form.nombres_apellidos" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
                 <div class="col-auto">
-                       {% render_field economico_filter.form.nombres class="form-control" %}
+                       {% render_field economico_filter.form.nombres_apellidos class="form-control" %}
                 </div>
+                {% if usuario.distrito.distrito == "Matriz" %}
+                <label for="economico_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
+                <div class="col-auto">
+                     {% render_field economico_filter.form.distrito class="form-control" %}
+                </div>
+                {% else %}
+                {% endif %}
                 <div class="col-auto">
                 <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>

@@ -38,6 +38,7 @@ from .models import Trabajos_encomendados
 from .models import Temas_comentario_solicitud_vacaciones
 from .models import Solicitud_vacaciones
 from .models import Vacaciones
+
 from .models import Solicitud_economicos
 from .models import Economicos
 from .models import Catorcenas
@@ -49,20 +50,30 @@ from .models import Bancarios_Batch
 class PerfilAdmin(admin.ModelAdmin):
     ordering = ['numero_de_trabajador']
     list_display = ('numero_de_trabajador','nombres','apellidos','id')
-    search_fields = ('numero_de_trabajador'),
+    search_fields = ('nombres'),
 
 class StatusAdmin(admin.ModelAdmin):
     ordering = ['id']
     list_display = ('id','perfil','perfil_id',)
     list_filter = ('complete_costo',)
-    search_fields = ('perfil__numero_de_trabajador'),
+    search_fields = ('perfil__nombres'),
 
-class CostoAdmin(admin.ModelAdmin):
+class CostoAdmin(admin.ModelAdmin): 
     ordering = ['id']
     list_display = ('id','status')
-    search_fields = ('status__perfil__numero_de_trabajador'),
+    search_fields = ('status__perfil__nombres'),
+
+class BancariosAdmin(admin.ModelAdmin): 
+    ordering = ['id']
+    list_display = ('id','status')
+    search_fields = ('status__perfil__nombres'),
 
 class VacacionAdmin(admin.ModelAdmin):
+    ordering = ['id']
+    list_display = ('id','status','periodo')
+    search_fields = ('status__perfil__nombres'),
+
+class EconoAdmin(admin.ModelAdmin):
     ordering = ['id']
     list_display = ('id','status')
     search_fields = ('status__perfil__nombres'),
@@ -115,7 +126,7 @@ admin.site.register(FactorIntegracion)
 admin.site.register(TablaCesantia)
 admin.site.register(SalarioDatos)
 admin.site.register(Costo, CostoAdmin)
-admin.site.register(DatosBancarios)
+admin.site.register(DatosBancarios, BancariosAdmin)
 admin.site.register(Bonos)
 admin.site.register(Uniformes)
 admin.site.register(Trabajos_encomendados)
@@ -123,7 +134,7 @@ admin.site.register(Temas_comentario_solicitud_vacaciones)
 admin.site.register(Solicitud_vacaciones)
 admin.site.register(Vacaciones, VacacionAdmin)
 admin.site.register(Solicitud_economicos)
-admin.site.register(Economicos)
+admin.site.register(Economicos, EconoAdmin)
 admin.site.register(Catorcenas)
 admin.site.register(Empleados_Batch)
 admin.site.register(Status_Batch)

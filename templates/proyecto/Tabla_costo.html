@@ -127,18 +127,21 @@
                 <div class="col-sm-1">
                        {% render_field costo_filter.form.numero_de_trabajador class="form-control" %}
                 </div>
-                <label for="costo_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                <label for="costo_filter.form.nombres_apellidos" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
                 <div class="col-auto">
-                       {% render_field costo_filter.form.nombres class="form-control" %}
+                       {% render_field costo_filter.form.nombres_apellidos class="form-control" %}
                 </div>
                 <label for="costo_filter.form.empresa" class="col-sm-auto col-form-label text-right"><strong>Empresa:</strong></label>
                 <div class="col-auto">
                        {% render_field costo_filter.form.empresa class="form-control" %}
                 </div>
+                {% if usuario.distrito.distrito == "Matriz" %}
                 <label for="costo_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                 <div class="col-auto">
                        {% render_field costo_filter.form.distrito class="form-control" %}
                 </div>
+                {% else %}
+                {% endif %}
             <!--    <label for="costo_filter.form.proyecto" class="col-sm-auto col-form-label text-right"><strong>Proyecto:</strong></label>
                 <div class="col-auto">
                        {% render_field costo_filter.form.proyecto class="form-control" %}
@@ -182,8 +185,8 @@
                     <th class="th_check d-none" scope="col">Apoyo de estudios</th>
                     <th class="th_check d-none" scope="col">AMV</th>
                     <th class="th_check d-none" scope="col">Gasolina</th>
-                    <th scope="col">Total apoyos y bonos</th>
                     <th scope="col">Total costo mensual para la empresa</th>
+                    <th scope="col">Total Bonos catorcena actual</th>
                     <th scope="col">Registro</th>
                     <th scope="col">Detalle</th>
                     <th scope="col">Editar</th>
@@ -215,8 +218,8 @@
                     <td class="td_check d-none">{{costo.apoyo_estudios}}</td>
                     <td class="td_check d-none">{{costo.amv}}</td>
                     <td class="td_check d-none">{{costo.gasolina}}</td>
-                    <td>{{costo.total_apoyosbonos_agregcomis}}</td>
                     <td>{{costo.total_costo_empresa}}</td>
+                    <td>{{costo.total_apoyosbonos_agregcomis}}</td>
                     <td><a class="btn btn-outline-info" type="button" href="{% url 'render_report' costo.id %}"><i class="fa-solid fa-list"></i></a></td>
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_revisar' costo.id %}"><i class="fas fa-sack-dollar"></i></a></td>
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_update' costo.id %}"><i class="fa-solid fa-pen-to-square"></i></a></td>

@@ -25,7 +25,7 @@ from .forms import CostoForm, BonosForm, VacacionesForm, EconomicosForm, Uniform
 from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, VacacionesUpdateForm, EconomicosUpdateForm, StatusUpdateForm, CatorcenasForm, EconomicosFormato
 from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, VacacionesFormato
 from .forms import SolicitudEconomicosForm, SolicitudEconomicosUpdateForm, SolicitudVacacionesForm, SolicitudVacacionesUpdateForm, Vacaciones_anteriores_BatchForm
-from .filters import BonosFilter, Costo_historicFilter, PerfilFilter, StatusFilter, BancariosFilter, CostoFilter, VacacionesFilter, UniformesFilter, EconomicosFilter
+from .filters import BonosFilter, Costo_historicFilter, PerfilFilter, StatusFilter, BancariosFilter, CostoFilter, VacacionesFilter, EconomicosFilter
 from .filters import CatorcenasFilter, DistritoFilter, SolicitudesVacacionesFilter, SolicitudesEconomicosFilter 
 from decimal import Decimal
 #Excel
@@ -193,9 +193,9 @@ def Perfil_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        perfiles= Perfil.objects.filter(complete=True).order_by("numero_de_trabajador")
+        perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
     else:
-        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True).order_by("numero_de_trabajador")
+        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
     perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
     perfiles = perfil_filter.qs
     if request.method =='POST' and 'Excel' in request.POST:
@@ -220,11 +220,14 @@ def FormularioPerfil(request):
     ahora = datetime.date.today()
 
     if request.method == 'POST' and 'btnSend' in request.POST:
-        form = PerfilForm(request.POST, request.FILES, instance=empleado)
+        if user_filter.distrito.distrito == 'Matriz':
+            form = PerfilForm(request.POST, request.FILES, instance=empleado)
+        else:
+            form = PerfilDistritoForm(request.POST, request.FILES, instance=empleado)
         form.save(commit=False)
 
-        if empleado.foto and empleado.foto.size > 500000:
-            messages.error(request,'El tamaño del archivo es mayor de 500 MB')
+        if empleado.foto and empleado.foto.size > 2097152:
+            messages.error(request,'El tamaño del archivo es mayor de 2 MB')
         elif empleado.numero_de_trabajador < 0:
             messages.error(request, '(Número empleado) El numero de empleado debe ser mayor o igual a 0')
         elif empleado.fecha_nacimiento >= ahora:
@@ -234,6 +237,10 @@ def FormularioPerfil(request):
         else:
             messages.success(request, 'Información capturada con éxito')
             if form.is_valid():
+                if user_filter.distrito.distrito != 'Matriz':
+                    empleado.distrito = user_filter.distrito
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                empleado.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
                 empleado.complete=True
                 form.save()
                 return redirect('Perfil')
@@ -250,17 +257,20 @@ def PerfilUpdate(request, pk):
     empleado = Perfil.objects.get(id=pk)
     ahora = datetime.date.today()
     subproyectos = SubProyecto.objects.all()
+    registros = empleado.history.filter(complete=True)
 
     if request.method == 'POST' and 'btnSend' in request.POST:
         #request.FILES permite subir imagenes en el form
         form = PerfilUpdateForm(request.POST, request.FILES, instance=empleado)
         empleado = form.save(commit=False)
-        if empleado.foto and empleado.foto.size > 500000:
-            messages.error(request,'El tamaño del archivo es mayor de 500 MB')
+        if empleado.foto and empleado.foto.size > 2097152:
+            messages.error(request,'El tamaño del archivo es mayor de 2 MB')
         elif empleado.fecha_nacimiento >= ahora:
             messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
         elif form.is_valid():
-            #messages.success(request, f'Cambios guardados con éxito en el perfil de {empleado.nombres} {empleado.apellidos} {empleado.foto.size}')
+            user_filter = UserDatos.objects.get(user=request.user)
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            empleado.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
             messages.success(request, f'Cambios guardados con éxito en el perfil de {empleado.nombres} {empleado.apellidos}')
             empleado = form.save(commit=False)
             empleado.save()
@@ -272,6 +282,7 @@ def PerfilUpdate(request, pk):
         'form':form,
         'empleado':empleado,
         'subproyectos':subproyectos,
+        'registros':registros,
         }
 
 
@@ -295,9 +306,9 @@ def Status_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
+        status= Status.objects.filter(complete=True, perfil__baja=False).order_by("perfil__numero_de_trabajador")
     else:
-        status = Status.objects.filter(perfil__distrito = user_filter.distrito, complete=True).order_by("perfil__numero_de_trabajador")
+        status = Status.objects.filter(perfil__distrito = user_filter.distrito, complete=True, perfil__baja=False).order_by("perfil__numero_de_trabajador")
     status_filter = StatusFilter(request.GET, queryset=status)
     status = status_filter.qs
     if request.method =='POST' and 'Excel' in request.POST:
@@ -314,9 +325,9 @@ def FormularioStatus(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        empleados = Perfil.objects.filter(complete=True, complete_status=False)
+        empleados = Perfil.objects.filter(complete=True, complete_status=False, baja=False)
     else:
-        empleados = Perfil.objects.filter(distrito=user_filter.distrito,complete=True, complete_status=False)
+        empleados = Perfil.objects.filter(distrito=user_filter.distrito,complete=True, complete_status=False, baja=False)
 
     estado,created=Status.objects.get_or_create(complete=False)
     form = StatusForm()
@@ -330,20 +341,20 @@ def FormularioStatus(request):
         if estado.fecha_planta_anterior == None and estado.fecha_planta == None:
             valido=True
         elif estado.fecha_planta_anterior == None:
-            if estado.fecha_planta >= ahora:
+            if estado.fecha_planta > ahora:
                 messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
             else:
                 valido=True
         elif estado.fecha_planta == None:
-            if estado.fecha_planta_anterior >= ahora:
+            if estado.fecha_planta_anterior > ahora:
                 messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
             else:
                 valido=True
         else:
-            if estado.fecha_planta_anterior >= ahora:
+            if estado.fecha_planta_anterior > ahora:
                 messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
             else:
-                if estado.fecha_planta >= ahora:
+                if estado.fecha_planta > ahora:
                     messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
                 else:
                     if estado.fecha_planta < estado.fecha_planta_anterior:
@@ -352,6 +363,8 @@ def FormularioStatus(request):
                         valido=True
         empleado = Perfil.objects.get(id = estado.perfil.id)
         if form.is_valid() and valido  == True:
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            estado.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
             messages.success(request, 'Información capturada con éxito')
             estado.complete=True
             form.save()
@@ -374,17 +387,36 @@ def StatusUpdate(request, pk):
     puestos = Puesto.objects.all()
     estado = Status.objects.get(id=pk)
     ahora = datetime.date.today()
+    registros = estado.history.filter(complete=True)
+    valido = False
     if request.method == 'POST' and 'btnSend' in request.POST:
         form = StatusUpdateForm(request.POST, instance=estado)
         estado = form.save(commit=False)
-        if estado.fecha_planta_anterior != None and estado.fecha_planta != None: 
-            if estado.fecha_planta_anterior >= ahora:
+        if estado.fecha_planta_anterior != None and estado.fecha_planta != None:
+            if estado.fecha_planta_anterior > ahora:   
                 messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
-            elif estado.fecha_planta >= ahora:
+            if estado.fecha_planta > ahora:   
                 messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
-            elif estado.fecha_planta <= estado.fecha_planta_anterior:
-                messages.error(request, '(Fechas) La fecha de planta anterior no puede ser posterior o igual a la fecha de planta')
-        elif form.is_valid():
+            if estado.fecha_planta_anterior > estado.fecha_planta:   
+                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a fecha de planta')
+            else:
+                valido=True
+        elif estado.fecha_planta_anterior == None and estado.fecha_planta == None:
+            valido=True
+        elif estado.fecha_planta == None:
+            if estado.fecha_planta_anterior > ahora:
+                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
+            else:
+                valido=True
+        elif estado.fecha_planta_anterior == None:
+            if estado.fecha_planta > ahora:
+                messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
+            else:
+                valido=True
+        if form.is_valid() and valido == True:
+            user_filter = UserDatos.objects.get(user=request.user)
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            estado.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
             messages.success(request, f'Cambios guardados con éxito en el Status de {estado.perfil.nombres} {estado.perfil.apellidos}')
             estado = form.save(commit=False)
             estado.save()
@@ -392,7 +424,7 @@ def StatusUpdate(request, pk):
     else:
         form = StatusUpdateForm(instance=estado)
 
-    context = {'form':form,'estado':estado,'puestos':puestos,}
+    context = {'form':form,'estado':estado,'puestos':puestos,'registros':registros,}
 
     return render(request, 'proyecto/Status_update.html',context)
 
@@ -453,9 +485,9 @@ def FormularioBonos(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        empleados= Costo.objects.filter(complete = True)
+        empleados= Costo.objects.filter(complete = True, status__perfil__baja=False)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
         empleados= Costo.objects.filter(status__perfil__id__in=perfil.all(),complete = True)
 
     bonos= Bonos.objects.filter(complete=True)
@@ -480,6 +512,8 @@ def FormularioBonos(request):
                     if bono.fecha_bono >= catorcena.fecha_inicial:
                         bono.mes_bono = catorcena.fecha_final
                 if form.is_valid():
+                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                    bono.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
                     messages.success(request, 'Información capturada con éxito')
                     bono.complete=True
                     form.save()
@@ -491,6 +525,7 @@ def FormularioBonos(request):
 @login_required(login_url='user-login')
 def BonosUpdate(request, pk):
     bono = Bonos.objects.get(id=pk)
+    registros = bono.history.filter(complete=True)
     catorcenas = Catorcenas.objects.filter(complete=True)
     if request.method == 'POST':
         form =BonosUpdateForm(request.POST, instance=bono)
@@ -502,6 +537,9 @@ def BonosUpdate(request, pk):
                 if bono.fecha_bono >= catorcena.fecha_inicial:
                     bono.mes_bono = catorcena.fecha_final
         if form.is_valid():
+            user_filter = UserDatos.objects.get(user=request.user)
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            bono.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
             messages.success(request, f'Cambios guardados con éxito en los bonos de {bono.costo.status.perfil.nombres} {bono.costo.status.perfil.apellidos}')
             bono = form.save(commit=False)
             bono.save()
@@ -509,7 +547,7 @@ def BonosUpdate(request, pk):
     else:
         form = BonosUpdateForm(instance=bono)
 
-    context = {'form':form,'bono':bono}
+    context = {'form':form,'bono':bono,'registros':registros,}
 
     return render(request, 'proyecto/Bonos_update.html',context)
 
@@ -518,10 +556,10 @@ def Tabla_uniformes(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        status= Status.objects.filter(complete=True)
+        status= Status.objects.filter(complete=True, perfil__baja=False).order_by("perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito)
-        status= Status.objects.filter(complete=True,perfil__id__in=perfil.all())
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
+        status= Status.objects.filter(complete=True,perfil__id__in=perfil.all()).order_by("perfil__numero_de_trabajador")
 
     status_filter = StatusFilter(request.GET, queryset=status)
     status = status_filter.qs
@@ -649,9 +687,9 @@ def FormularioDatosBancarios(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        empleados= Status.objects.filter(complete = True, complete_bancarios=False)
+        empleados= Status.objects.filter(complete = True, complete_bancarios=False, perfil__baja=False)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
         empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete = True, complete_bancarios=False)
 
     bancario,created=DatosBancarios.objects.get_or_create(complete=False)
@@ -663,6 +701,8 @@ def FormularioDatosBancarios(request):
         form.save(commit=False)
 
         if form.is_valid():
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            bancario.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
             empleado = Status.objects.get(id = bancario.status.id)
             messages.success(request, 'Información capturada con éxito')
             bancario.complete=True
@@ -680,11 +720,15 @@ def FormularioDatosBancarios(request):
 def BancariosUpdate(request, pk):
 
     item = DatosBancarios.objects.get(id=pk)
+    registros = item.history.filter(complete=True)
 
     if request.method == 'POST':
         form = BancariosUpdateForm(request.POST, instance=item)
 
         if form.is_valid():
+            user_filter = UserDatos.objects.get(user=request.user)
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            item.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
             messages.success(request, f'Cambios guardados con éxito los datos bancarios de {item.status.perfil.nombres} {item.status.perfil.apellidos}')
             item = form.save(commit=False)
             item.save()
@@ -692,7 +736,7 @@ def BancariosUpdate(request, pk):
     else:
         form = BancariosUpdateForm(instance=item)
 
-    context = {'form':form,'item':item}
+    context = {'form':form,'item':item,'registros':registros,}
 
     return render(request, 'proyecto/Bancario_update.html',context)
 
@@ -701,10 +745,10 @@ def FormularioCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False)
+        empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False, perfil__baja=False)
         #empleados= empleados.filter(~Q(fecha_ingreso=None))
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
         empleados= Status.objects.filter(~Q(fecha_ingreso=None), perfil__id__in=perfil.all(),complete = True, complete_costo = False)
 
     tablas = DatosISR.objects.all()
@@ -853,6 +897,8 @@ def FormularioCosto(request):
                                                                     empleado = Status.objects.get(id = costo.status.id)
                                                                     #Debes dejar lo que este entre '' para que aparezca
                                                                     if form.is_valid():
+                                                                        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                                                                        costo.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
                                                                         messages.success(request, 'Datos guardados con éxito')
                                                                         costo.complete=True
                                                                         empleado.complete_costo = True
@@ -1010,6 +1056,9 @@ def CostoUpdate(request, pk):
                                                                     costo.total_costo_empresa = costo.total_costo_empresa + total_vacaciones
                                                                     costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
                                                                     if form.is_valid():
+                                                                        user_filter = UserDatos.objects.get(user=request.user)
+                                                                        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                                                                        costo.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
                                                                         messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
                                                                         costo = form.save(commit=False)
                                                                         costo.save()
@@ -1025,15 +1074,15 @@ def CostoUpdate(request, pk):
 def Costo_revisar(request, pk):
 
     costo = Costo.objects.get(id=pk)
-
-    mes = datetime.date.today().month
-    comision=Decimal(0.09)
-
-    bonos_dato = Bonos.objects.filter(costo = costo).filter(fecha_bono__month = mes)
+    ahora = datetime.date.today() 
+    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
     sum_bonos = bonos_dato.aggregate(Sum('monto'))
     bonototal = sum_bonos['monto__sum']
     if bonototal == None:
         bonototal = 0
+    comision=Decimal(0.09)
+
     vac_reforma_actual = Decimal((12/365)*365)*Decimal(costo.sueldo_diario)
     prima_vacacional = vac_reforma_actual*Decimal(0.25)
     aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
@@ -1093,7 +1142,7 @@ def Costo_revisar(request, pk):
     costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
     bonototal = locale.currency(bonototal, grouping=True)
     if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(costo)
+        return reporte_pdf_costo_detalles(costo,bonototal)
 
     context = {'costo':costo,
                'bonototal':bonototal,}
@@ -1178,22 +1227,24 @@ def TablaCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        costos= Costo.objects.filter(complete=True,created_at__year=año).order_by("status__perfil__numero_de_trabajador")
+        costos= Costo.objects.filter(complete=True,created_at__year=año, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
         costos = Costo.objects.filter(status__perfil__id__in=perfil.all(),created_at__year=año, complete=True).order_by("status__perfil__numero_de_trabajador")
 
     costo_filter = CostoFilter(request.GET, queryset=costos)
     costos = costo_filter.qs
-    mes = datetime.date.today().month
+
     comision=Decimal(0.09)
 
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_costo(costos)
 
 
+    ahora = datetime.date.today() 
+    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
     for costo in costos:
-        bonos_dato = Bonos.objects.filter(costo = costo).filter(fecha_bono__month = mes)
+        bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
         sum_bonos = bonos_dato.aggregate(Sum('monto'))
         bonototal = sum_bonos['monto__sum']
         if bonototal == None:
@@ -1266,9 +1317,9 @@ def TablaBonos(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        bonos= Bonos.objects.filter(complete=True,mes_bono__year=año).order_by("costo__status__perfil__numero_de_trabajador")
+        bonos= Bonos.objects.filter(complete=True,mes_bono__year=año, costo__status__perfil__baja=False).order_by("costo__status__perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
         bonos = Bonos.objects.filter(costo__status__perfil__id__in=perfil.all(),mes_bono__year=año, complete=True).order_by("costo__status__perfil__numero_de_trabajador")
 
     bono_filter = BonosFilter(request.GET, queryset=bonos)
@@ -1318,20 +1369,37 @@ def Empleado_Bonos(request, pk):
 @login_required(login_url='user-login')
 def FormularioVacaciones(request):
     user_filter = UserDatos.objects.get(user=request.user)
+    
+    #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
+    #año_actual = str(date.today().year)
+    #status_filtrados = Status.objects.exclude(vacaciones__periodo=año_actual, fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) #Status que no tengan en vacaciones (Periodo=año actual) y fechas None
+    año_actual = str(date.today().year)
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
+    mes_actual = datetime.date.today().month
+    dia_actual = datetime.date.today().day
+    #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
+    reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
+    #Busco el fecha de planta en los que no tengan fecha de planta anterior
+    reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
+    reinicio = reinicio | reinicio2
+    for empleado in reinicio:
+        empleado.complete_vacaciones = False
+        empleado.save()
 
     if user_filter.distrito.distrito == 'Matriz':
-        empleados= Status.objects.filter(complete= True, complete_vacaciones = False).exclude(fecha_planta_anterior=None,fecha_planta=None)
+        empleados= Status.objects.filter(complete=True, complete_vacaciones=False, perfil__baja=False).exclude(fecha_planta_anterior=None,fecha_planta=None)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
         empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete= True, complete_vacaciones = False)
 
+    ahora = datetime.date.today() 
     tablas= TablaVacaciones.objects.all()
     descanso,created=Vacaciones.objects.get_or_create(complete=False)
     form = VacacionesForm()
     form.fields["status"].queryset = empleados
 
     periodo=1
-    ahora = datetime.date.today()
+
 
     if request.method == 'POST' and 'btnSend' in request.POST:
 
@@ -1349,6 +1417,7 @@ def FormularioVacaciones(request):
                 for dia in tabla_festivos:
                     if fecha == dia.dia_festivo:
                         cuenta -= 1 # Se le restan tambien los días festivos para sacar los días reales que va a tomar (Cantida de días)
+        dias_vacacion = cuenta #Para luego escribir en el comentario
         if cuenta > 0:
             #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
             datos = Vacaciones.objects.filter(status=descanso.status.id, total_pendiente__gt=0,).order_by("created_at") #Trae todas las vacaciones del mas antiguo al actual 2019-2022
@@ -1359,6 +1428,7 @@ def FormularioVacaciones(request):
                     dato.dias_disfrutados += cuenta
                     dato.total_pendiente -= cuenta
                     cuenta = 0
+                    break #Cuenta llega a 0 por ende ya no es necesario seguir modificando mas vacaciones
                 elif cuenta > dato.total_pendiente and cuenta > 0:
                     if dato.dias_disfrutados == None:
                         dato.dias_disfrutados = 0
@@ -1371,38 +1441,49 @@ def FormularioVacaciones(request):
                 days = descanso.status.fecha_planta_anterior
             else:
                 days = descanso.status.fecha_planta
-
-            antiguedad = ahora.year - days.year
-            if antiguedad <= periodo:
-                antiguedad = periodo
-            for tabla in tablas:
-                if antiguedad >= tabla.years:
-                    descanso.dias_de_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
+            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
+            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+                antiguedad = ahora.year - days.year
+            else:
+                antiguedad = ahora.year - days.year - 1
+            if antiguedad < periodo:
+                descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
+            else:
+                for tabla in tablas:
+                    if antiguedad >= tabla.years:
+                        descanso.dias_de_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
 
 
             descanso.dias_disfrutados = cuenta #Días que disfrutara son los que vienen de la cuenta
             descanso.fecha_planta_anterior = descanso.status.fecha_planta_anterior
             descanso.fecha_planta = descanso.status.fecha_planta
-
-            if descanso.dias_disfrutados > descanso.dias_de_vacaciones:
-                messages.error(request, f'(Dias disfrutados) La cantidad total capturada debe ser menor a {descanso.dias_de_vacaciones} ')
+            if descanso.dias_de_vacaciones == 0:
+                messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
+            elif descanso.dias_disfrutados > descanso.dias_de_vacaciones:
+                messages.error(request, f'(Dias disfrutados: {cuenta}) El empleado puede tomar hasta {descanso.dias_de_vacaciones} días de vacaciones')
             else:
                 periodofecha = descanso.created_at.year
-                str(periodo)
-                descanso.periodo=periodofecha
+                descanso.periodo=str(periodofecha)
                 descanso.total_pendiente=descanso.dias_de_vacaciones-descanso.dias_disfrutados 
 
                 empleado = Status.objects.get(id = descanso.status.id)
                 if form.is_valid():
                     for dato in datos:
-                        dato._meta.get_field('created_at').auto_now = False
-                        dato.save()
-                        dato._meta.get_field('created_at').auto_now = True
+                        historial = dato.history.first()  # Obtener la primera versión histórica del objeto
+                        if historial and historial.total_pendiente != dato.total_pendiente:
+                            # El campo 'total_pendiente' ha cambiado
+                            dato._meta.get_field('created_at').auto_now = False
+                            dato.comentario +=" "+"Solicitado periodo:" + str(descanso.periodo)
+                            dato.fecha_inicio = descanso.fecha_inicio
+                            dato.fecha_fin =  descanso.fecha_fin
+                            dato.save()
+                            dato._meta.get_field('created_at').auto_now = True
                     if cuenta > 0:
                         messages.success(request, 'Datos capturados con éxito')
                     else: 
                         messages.success(request, 'Datos capturados con éxito y descontados a sus días pendientes')
                     descanso.complete=True
+                    descanso.comentario +=" "+"Dias tomados:" + str(dias_vacacion)
                     form.save()
                     empleado.complete_vacaciones = True
                     empleado.save()
@@ -1417,6 +1498,7 @@ def FormularioVacaciones(request):
 @login_required(login_url='user-login')
 def VacacionesUpdate(request, pk):
     descanso = Vacaciones.objects.get(id=pk)
+    vacacion = descanso
     registros = descanso.history.filter(~Q(dias_disfrutados = None))
 
     #dias_anteriores = descanso.dias_disfrutados #Dias disfrutados que tenia
@@ -1440,10 +1522,10 @@ def VacacionesUpdate(request, pk):
                 for dia in tabla_festivos:
                     if fecha == dia.dia_festivo:
                         cuenta -= 1 # Se le restan tambien los días festivos para sacar los días reales que va a tomar (Cantida de días)
-
+        dias_vacacion = cuenta #Para escribir en el comentario los días
         if cuenta > 0: #Aqui salgo bien con los 2 dias--------
             #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
-            if Vacaciones.objects.filter(status=descanso.status.id).last().total_pendiente > 0:
+            if Vacaciones.objects.filter(status=descanso.status.id).last().total_pendiente > 0 or Vacaciones.objects.filter(status=descanso.status.id).first().total_pendiente > 0:
                 datos = Vacaciones.objects.filter(status=descanso.status.id, total_pendiente__gt=0,).order_by("created_at")#Trae todas las vacaciones del mas antiguo al actual 2019-2022
                 if datos.exclude(id=datos.last().id) != None:
                     datos = datos.exclude(id=datos.last().id)
@@ -1454,32 +1536,39 @@ def VacacionesUpdate(request, pk):
                             dato.total_pendiente -= cuenta
                             dato.dias_disfrutados += cuenta
                             cuenta = 0
+                            break
                         elif cuenta > dato.total_pendiente and cuenta > 0:
                             if dato.dias_disfrutados == None:
                                 dato.dias_disfrutados = 0
                             dato.dias_disfrutados += dato.total_pendiente
                             cuenta -=dato.total_pendiente
                             dato.total_pendiente = 0
-
                 descanso.dias_disfrutados += cuenta #Días que disfrutara son los que vienen de la cuenta
                 descanso.fecha_planta_anterior = descanso.status.fecha_planta_anterior
                 descanso.fecha_planta = descanso.status.fecha_planta
 
                 if descanso.dias_disfrutados > descanso.dias_de_vacaciones:
-                    messages.error(request, f'(Dias disfrutados) La cantidad total capturada debe ser menor a {descanso.total_pendiente}, cantidad actual: {descanso.dias_disfrutados}')
+                    messages.error(request, f'(Dias disfrutados) La cantidad total capturada debe ser menor o igual a {descanso.total_pendiente}, cantidad actual: {cuenta}')
                 else:
                     periodofecha = descanso.created_at.year
                     descanso.periodo = periodofecha
                     descanso.total_pendiente = descanso.dias_de_vacaciones - descanso.dias_disfrutados
                     if form.is_valid():
                         for dato in datos:
-                            dato._meta.get_field('created_at').auto_now = False
-                            dato.save()
-                            dato._meta.get_field('created_at').auto_now = True
+                            historial = dato.history.first()  # Obtener la primera versión histórica del objeto
+                            if historial and historial.total_pendiente != dato.total_pendiente:
+                                # El campo 'total_pendiente' ha cambiado
+                                dato._meta.get_field('created_at').auto_now = False
+                                dato.comentario ="Solicitado periodo: " + str(descanso.periodo)
+                                dato.fecha_inicio = descanso.fecha_inicio
+                                dato.fecha_fin =  descanso.fecha_fin
+                                dato.save()
+                                dato._meta.get_field('created_at').auto_now = True
                         if cuenta > 0:
                             messages.success(request, f'Cambios guardados con éxito los días de vacaciones de {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos}')
                         else: 
                             messages.success(request, f'Datos capturados con éxito empleado {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos} y descontados a sus días pendientes')
+                        descanso.comentario +=" " + "Dias tomados:" + str(dias_vacacion)
                         form.save()
                         return redirect('Tabla_vacaciones_empleados')
             else:
@@ -1534,9 +1623,9 @@ def Tabla_Vacaciones(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        descansos= Vacaciones.objects.filter(complete=True,created_at__year=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        descansos= Vacaciones.objects.filter(complete=True,created_at__year=año_actual, status__perfil__baja=False).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
         descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
 
     vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
@@ -1555,10 +1644,22 @@ def Tabla_Vacaciones(request): #Ya esta
 def FormularioEconomicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
+    año_actual = str(date.today().year) #Quitar el complete_economicos a todos aquellos que ya cumplan el año de planta
+    mes_actual = datetime.date.today().month
+    dia_actual = datetime.date.today().day
+    #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
+    reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
+    reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
+    reinicio = reinicio | reinicio2
+    for empleado in reinicio:
+        empleado.complete_economicos = False
+        empleado.save()
+
     if user_filter.distrito.distrito == 'Matriz':
-        empleados= Status.objects.filter(complete= True, complete_economicos = False)
+        empleados= Status.objects.filter(complete= True, complete_economicos = False, perfil__baja=False)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
         empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete= True, complete_economicos = False)
 
     economico,created=Economicos.objects.get_or_create(complete=False)
@@ -1571,20 +1672,37 @@ def FormularioEconomicos(request):
         form = EconomicosForm(request.POST,instance=economico)
         form.save(commit=False)
 
-        economico.dias_disfrutados = dias_disfrutados
-        economico.dias_pendientes = total_dias_economicos - economico.dias_disfrutados
-        periodo = economico.created_at.year
-        str(periodo)
-        economico.periodo=periodo
-        empleado = Status.objects.get(id = economico.status.id)
-        if form.is_valid():
-            messages.success(request, 'Datos capturados con exíto')
-            economico.complete=True
-            economico.complete_dias=False
-            empleado.complete_economicos = True
-            form.save()
-            empleado.save()
-            return redirect('Tabla_economicos')
+        #Se verifica si el empleado tiene un año de antigüedad
+        if economico.status.fecha_planta_anterior:
+            days = economico.status.fecha_planta_anterior
+        else:
+            days = economico.status.fecha_planta
+        ahora = datetime.date.today()
+        año = 1 
+        if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+            antiguedad = ahora.year - days.year
+        else:
+            antiguedad = ahora.year - days.year - 1
+        if antiguedad >= año:
+
+            economico.dias_disfrutados = dias_disfrutados
+            economico.dias_pendientes = total_dias_economicos - economico.dias_disfrutados
+            periodo = economico.created_at.year
+            str(periodo)
+            economico.periodo=periodo
+            empleado = Status.objects.get(id = economico.status.id)
+            if form.is_valid():
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                economico.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
+                messages.success(request, 'Datos capturados con exíto')
+                economico.complete=True
+                economico.complete_dias=False
+                empleado.complete_economicos = True
+                form.save()
+                empleado.save()
+                return redirect('Tabla_economicos')
+        else:
+            messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
 
     context = {'form':form,'empleados':empleados,}
 
@@ -1592,21 +1710,21 @@ def FormularioEconomicos(request):
 
 @login_required(login_url='user-login')
 def EconomicosUpdate(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
     status = Status.objects.get(id=pk)
-    economico,created=Economicos.objects.get_or_create(complete=False)
+    economico = Economicos.objects.filter(complete=True,status=status).last()
     form = EconomicosForm()
     total_dias_economicos=3
     dias_disfrutados=1
-
+    anterior_fecha=economico.fecha
+    anterior_dia=economico.dias_disfrutados
     if request.method == 'POST' and 'btnSend' in request.POST:
         form = EconomicosUpdateForm(request.POST,instance=economico)
-        form.save(commit=False)
-        last_economico = Economicos.objects.filter(status=status).last()
-        if last_economico.fecha == economico.fecha - timedelta(days=1):
+        if anterior_fecha == economico.fecha - timedelta(days=1):
             messages.error(request,'Los días económicos no pueden ser seguidos')
         else:
             economico.status=status
-            economico.dias_disfrutados = dias_disfrutados + last_economico.dias_disfrutados
+            economico.dias_disfrutados = dias_disfrutados + anterior_dia
             economico.dias_pendientes = total_dias_economicos - economico.dias_disfrutados
             periodo = economico.created_at.year
             str(periodo)
@@ -1618,6 +1736,8 @@ def EconomicosUpdate(request, pk):
             else:
                 economico.complete_dias=False
             if form.is_valid():
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                economico.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
                 messages.success(request, 'Se capturaron con exíto los datos')
                 economico.complete=True
                 orden.save()
@@ -1648,14 +1768,14 @@ def Tabla_Economicos(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+        economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
         #economicost= economicos.last()
-        economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+        economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        economicos = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=False,created_at__year=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        economicos = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=False,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
         #economicost = economicos.last()
-        economicoss = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=True,created_at__year=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        economicoss = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=True,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
     #economicos= Economicos.objects.filter(complete=True).annotate(Sum('dias_disfrutados'))
     economico_filter = EconomicosFilter(request.GET, queryset=economicos)
     economicos = economico_filter.qs
@@ -1675,8 +1795,8 @@ def Tabla_Economicos(request): #Ya esta
 @login_required(login_url='user-login')
 def EconomicosRevisar(request, pk):
     economicos = Economicos.objects.filter(status__id=pk)
+    #registros = economicos.history.filter(complete=True)
     empleado = economicos.last()
-
     if request.method =='POST' and 'Pdf' in request.POST:
         return reporte_pdf_economico_detalles(economicos,empleado)
 
@@ -1692,9 +1812,9 @@ def Tabla_Datosbancarios(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        bancarios= DatosBancarios.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
+        bancarios= DatosBancarios.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
         bancarios = DatosBancarios.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
     bancario_filter = BancariosFilter(request.GET, queryset=bancarios)
     bancarios = bancario_filter.qs
@@ -1742,44 +1862,47 @@ def HistoryCosto(request, pk):
     return render(request, 'proyecto/Costo_history.html',context)
 
 
-def convert_excel_costo(bancario):
-    response= HttpResponse(content_type = "application/ms-excel")
-    response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today())+'.xlsx'
+def convert_excel_costo(costos):
+    response = HttpResponse(content_type="application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today()) + '.xlsx'
     wb = Workbook()
     ws = wb.create_sheet(title='Reporte')
-    #Comenzar en la fila 1
+    # Comenzar en la fila 1
     row_num = 1
 
-    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
-    head_style = NamedStyle(name = "head_style")
-    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
-    head_style.fill = PatternFill("solid", fgColor = '00003366')
+    # Create heading style and add it to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name="head_style")
+    head_style.font = Font(name='Arial', color='00FFFFFF', bold=True, size=11)
+    head_style.fill = PatternFill("solid", fgColor='00003366')
     wb.add_named_style(head_style)
-    #Create body style and adding to workbook
-    body_style = NamedStyle(name = "body_style")
-    body_style.font = Font(name ='Calibri', size = 10)
+    # Create body style and add it to workbook
+    body_style = NamedStyle(name="body_style")
+    body_style.font = Font(name='Calibri', size=10)
     wb.add_named_style(body_style)
-    #Create messages style and adding to workbook
-    messages_style = NamedStyle(name = "mensajes_style")
-    messages_style.font = Font(name="Arial Narrow", size = 11)
+    # Create messages style and add it to workbook
+    messages_style = NamedStyle(name="mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size=11)
     wb.add_named_style(messages_style)
-    #Create date style and adding to workbook
+    # Create date style and add it to workbook
     date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
-    date_style.font = Font(name ='Calibri', size = 10)
+    date_style.font = Font(name='Calibri', size=10)
     wb.add_named_style(date_style)
     money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
-    money_style.font = Font(name ='Calibri', size = 10)
+    money_style.font = Font(name='Calibri', size=10)
     wb.add_named_style(money_style)
     money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
-    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
+    money_resumen_style.font = Font(name='Calibri', size=14, bold=True)
     wb.add_named_style(money_resumen_style)
 
-    columns = ['Empresa','Distrito','Proyecto','Subproyecto','#Empleado','Nombre','Puesto','Complemento Salario Catorcenal', 'Apoyo de Pasajes','Total percepciones mensual',
-                'Impuesto Estatal','IMSS obrero patronal','SAR 2%', 'Cesantía','Infonavit','ISR','Apoyo Visita Familiar','Apoyo Estancia','Apoyo Renta',
-                'Apoyo de Estudios','Apoyo de Mantto Vehicular','Gasolina','Total apoyos y bonos','Total costo mensual para la empresa','Ingreso mensual neto del empleado']
+    columns = ['Empresa', 'Distrito', 'Proyecto', 'Subproyecto', '#Empleado', 'Nombre', 'Puesto',
+               'Complemento Salario Catorcenal', 'Apoyo de Pasajes', 'Total percepciones mensual',
+               'Impuesto Estatal', 'IMSS obrero patronal', 'SAR 2%', 'Cesantía', 'Infonavit', 'ISR',
+               'Apoyo Visita Familiar', 'Apoyo Estancia', 'Apoyo Renta', 'Apoyo de Estudios',
+               'Apoyo de Mantto Vehicular', 'Gasolina', 'Total apoyos', 'Total costo mensual para la empresa',
+               'Ingreso mensual neto del empleado', 'Bonos']
 
     for col_num in range(len(columns)):
-        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
+        (ws.cell(row=row_num, column=col_num + 1, value=columns[col_num])).style = head_style
         if col_num < 4:
             ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
         if col_num == 4:
@@ -1787,36 +1910,40 @@ def convert_excel_costo(bancario):
         else:
             ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
 
+    columna_max = len(columns) + 2
 
-    columna_max = len(columns)+2
-
-    (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
-    (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    (ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
-    (ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
+    (ws.cell(column=columna_max, row=1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
+    (ws.cell(column=columna_max, row=2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    (ws.cell(column=columna_max, row=3, value='Algún dato')).style = messages_style
+    (ws.cell(column=columna_max + 1, row=3, value='alguna sumatoria')).style = money_resumen_style
     ws.column_dimensions[get_column_letter(columna_max)].width = 20
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
 
-    rows = bancario.values_list('status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto','status__perfil__subproyecto','status__perfil__numero_de_trabajador',Concat('status__perfil__nombres',Value(' '),'status__perfil__apellidos'), 'status__puesto','complemento_salario_catorcenal',
-                            'apoyo_de_pasajes','total_percepciones_mensual','impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta',
-                            'apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa','ingreso_mensual_neto_empleado')
+    # Se busca el bono actual
+    ahora = datetime.date.today() 
+    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
 
+    rows = costos.annotate(bonototal=Sum('bonos__monto', filter=Q(bonos__fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final]))).values_list(
+        'status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto__proyecto','status__perfil__subproyecto__subproyecto','status__perfil__numero_de_trabajador',
+        Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
+        'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa',
+        'ingreso_mensual_neto_empleado','bonototal')
 
-    for row in rows:
+    for id_costo, row in enumerate(rows):
         row_num += 1
         for col_num in range(len(row)):
             if col_num <= 5:
-                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
-            if col_num > 5 and col_num <=24:
-                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = money_style
+                (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = body_style
+            if col_num > 5 and col_num <= 25:
+                (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = money_style
             else:
-                (ws.cell(row = row_num, column = col_num+1, value=str(row[col_num]))).style = body_style
+                (ws.cell(row=row_num, column=col_num + 1, value=str(row[col_num]))).style = body_style
 
     sheet = wb['Sheet']
     wb.remove(sheet)
     wb.save(response)
 
-    return(response)
+    return response
 
 
 def convert_excel_bancarios(bancarios):
@@ -2834,7 +2961,7 @@ def reporte_pdf_uniformes(uniformes, pk):
 
     return FileResponse(buf, as_attachment=True, filename='Uniforme_reporte.pdf')
 
-def reporte_pdf_costo_detalles(costo):
+def reporte_pdf_costo_detalles(costo,bonototal):
     now = datetime.date.today()
     fecha = str(now)
     buf = io.BytesIO()
@@ -2922,8 +3049,7 @@ def reporte_pdf_costo_detalles(costo):
     #Parte superior
     numero_trabajador = str(costo.status.perfil.numero_de_trabajador)
     c.drawString(325,710, numero_trabajador)
-    c.drawString(325,690, costo.status.perfil.nombres)
-    c.drawString(390,690, costo.status.perfil.apellidos)
+    c.drawString(325,690, costo.status.perfil.nombres+' '+costo.status.perfil.apellidos)
     empresa = str(costo.status.perfil.empresa)
     c.drawString(325,670, empresa)
     distrito = str(costo.status.perfil.distrito)
@@ -2966,7 +3092,7 @@ def reporte_pdf_costo_detalles(costo):
     c.drawString(365,250,costo.impuesto)
     c.drawString(365,225,costo.subsidio)
     c.drawString(525,200,costo.total_apoyosbonos_empleadocomp)
-    c.drawString(375,175,costo.bonototal)
+    c.drawString(375,175,bonototal)
     c.drawString(515,150,costo.comision_complemeto_salario_bonos)
     c.drawString(465,125,costo.total_costo_empresa)
     c.drawString(485,100,costo.ingreso_mensual_neto_empleado)
@@ -3116,49 +3242,25 @@ def FormatoVacaciones(request):
         }
 
     return render(request, 'proyecto/Formato_vacaciones.html',context)
-'''
-@login_required(login_url='user-login')
-def FormFormatoVacaciones(request):
-    usuario = UserDatos.objects.get(user__id=request.user.id)
-    datos = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
-    if not datos:
-        usuario_fijo = Perfil.objects.filter(numero_de_trabajador=usuario.numero_de_trabajador).first()
-        status = Status.objects.get(perfil=usuario_fijo)
-        datos = 0
-    else:
-        datos = datos
-        status =  Status.objects.get(id=datos.status.id)
 
-    #if request.method =='POST' and 'Pdf' in request.POST:
-    #    return PdfFormatoVacaciones(usuario)
-    form = VacacionesFormato()
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = VacacionesFormato(request.POST,)
-        form.save(commit=False)
-        inicio = form.cleaned_data.get("fecha_inicio")
-        fin = form.cleaned_data.get("fecha_fin")
-        dia_inhabil = form.cleaned_data.get("dia_inhabil")
-        if inicio > fin:
-            messages.error(request,'La primera fecha no puede ser posterior a la segunda')
-        else:
-            if dia_inhabil == None:
-                messages.error(request,'Debe agregar el día que no  labora')
-            else:
-                if form.is_valid():
-                    return redirect('Formato_vacaciones') and PdfFormatoVacaciones(usuario,datos,status,form,)
-    context= {
-        'usuario':usuario,
-        'datos':datos,
-        'form':form,
-        'status':status,
-        }
-
-    return render(request, 'proyecto/Formato_VacacionesForm.html',context)
-'''
 @login_required(login_url='user-login')
 def SolicitudVacaciones(request):
     usuario = UserDatos.objects.get(user__id=request.user.id)
     status = Status.objects.get(perfil__numero_de_trabajador=usuario.numero_de_trabajador, perfil__distrito=usuario.distrito)
+
+    año_actual = str(date.today().year)
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
+    mes_actual = datetime.date.today().month
+    dia_actual = datetime.date.today().day
+    #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
+    reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
+    #Busco el fecha de planta en los que no tengan fecha de planta anterior
+    reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
+    reinicio = reinicio | reinicio2
+    for empleado in reinicio:
+        empleado.complete_vacaciones = False
+        empleado.save()
+
     datos = Vacaciones.objects.filter(status=status).order_by("-created_at") #Identifico las vacaciones del usuario de la mas antigua a la mas actual
     pendiente=0
     for dato in datos:
@@ -3191,14 +3293,14 @@ def SolicitudVacaciones(request):
                         cuenta -= 1  #Días que va a tomar con esta solicitud
         if status.complete_vacaciones == True:
             vacaciones = Vacaciones.objects.get(status=status,periodo=periodo)
-            if cuenta <= vacaciones.total_pendiente:
+            if cuenta <= pendiente:
                 if Solicitud_vacaciones.objects.filter(status=status):
                     verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
                     if verificar.autorizar == None:
                         messages.error(request,'Tiene una solicitud generada sin revisar')
                         valido = False
             else:
-                messages.error(request,'Esta solicitando más dias de los que cuenta')
+                messages.error(request,f'Tiene {pendiente} días pendientes, y esta solicitando {cuenta} días de vacaciones')
                 valido = False
         elif Solicitud_vacaciones.objects.filter(status=status):
             verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()  
@@ -3208,6 +3310,22 @@ def SolicitudVacaciones(request):
         if solicitud.fecha_fin < solicitud.fecha_inicio:
             messages.error(request,'La fecha de inicio no puede ser posterior a la final')
             valido=False
+
+        #Revisar si el empleado ya cumple con el año de antigüedad para solicitar
+        if status.fecha_planta_anterior:
+            days = status.fecha_planta_anterior
+        else:
+            days = status.fecha_planta
+        ahora = datetime.date.today()
+        año = 1 
+        if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+            antiguedad = ahora.year - days.year
+        else:
+            antiguedad = ahora.year - days.year - 1
+        if antiguedad < año:
+            messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
+            valido=False
+
         if valido and form.is_valid():
             solicitud.recibe_nombre = request.POST.get('recibe')
             solicitud.recibe_area = request.POST.get('area')
@@ -3263,6 +3381,7 @@ def SolicitudVacaciones(request):
 
 @login_required(login_url='user-login')
 def solicitud_vacacion_verificar(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
     solicitud = Solicitud_vacaciones.objects.get(id=pk)
     trabajos = Trabajos_encomendados.objects.get(id=solicitud.temas.id)
     temas = Temas_comentario_solicitud_vacaciones.objects.get(id=solicitud.asunto.id)
@@ -3291,12 +3410,14 @@ def solicitud_vacacion_verificar(request, pk):
                 for dia in tabla_festivos:
                     if fecha == dia.dia_festivo:
                         cuenta -= 1  #Días que va a tomar con esta solicitud
+        dias_vacacion = cuenta
         if cuenta < 0: 
             messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
             valido=False    
         
         #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
-        if Vacaciones.objects.filter(status=solicitud.status.id).last().total_pendiente > 0:
+        ultima_vacacion = Vacaciones.objects.filter(status=solicitud.status.id).last()
+        if ultima_vacacion is not None and ultima_vacacion.total_pendiente > 0:
             datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by("created_at")#Trae todas las vacaciones del mas antiguo al actual 2019-2022
             suma_total = datos.aggregate(total_suma=Sum('total_pendiente'))['total_suma']
             if suma_total < cuenta:
@@ -3311,13 +3432,15 @@ def solicitud_vacacion_verificar(request, pk):
                         dato.total_pendiente -= cuenta
                         dato.dias_disfrutados += cuenta
                         cuenta = 0
+                        break
                     elif cuenta > dato.total_pendiente and cuenta > 0:
                         if dato.dias_disfrutados == None:
                             dato.dias_disfrutados = 0
                         dato.dias_disfrutados += dato.total_pendiente
                         cuenta -=dato.total_pendiente
                         dato.total_pendiente = 0
-
+        else:
+            datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by("created_at")#Trae todas las vacaciones del mas antiguo al actual 2019-2022
             #Se sacan las fechas de planta del empleado
         fecha_planta_anterior = solicitud.status.fecha_planta_anterior
         fecha_planta = solicitud.status.fecha_planta
@@ -3337,6 +3460,7 @@ def solicitud_vacacion_verificar(request, pk):
         ############################        
         if valido and form.is_valid():
             solicitud = form.save(commit=False)
+            solicitud.comentario_rh= request.POST.get('comentario')
             solicitud.save()
             solicitud.recibe_nombre = request.POST.get('recibe')
             solicitud.recibe_area = request.POST.get('area')
@@ -3367,37 +3491,43 @@ def solicitud_vacacion_verificar(request, pk):
             temas.comentario9 = request.POST.get('comentario9')
             trabajos.save()
             temas.save()
-            valor = solicitud.fecha_fin
+            coment = request.POST.get('comentario')
             if solicitud.autorizar == True:
-                # Buscamos o creamos una instancia de Vacaciones
-                vacacion, created = Vacaciones.objects.get_or_create(complete=True,status=solicitud.status,periodo=solicitud.periodo)
-                
-                if not created:
-                    #anterior = Vacaciones.objects.get(complete=True,status=solicitud.status,periodo=solicitud.periodo)
-                    # Si no se creó una nueva instancia, editamos los campos necesarios con las cuentas previas
-                    vacacion.dias_disfrutados += cuenta
+                try:
+                    vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
+                except Vacaciones.DoesNotExist:
+                    vacacion = Vacaciones.objects.create(complete=True, status=solicitud.status, periodo=solicitud.periodo, dias_de_vacaciones=dias_de_vacaciones)
+                    vacacion.dias_disfrutados = cuenta
                     vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
                     vacacion.dia_inhabil = solicitud.dia_inhabil
                     vacacion.fecha_fin = solicitud.fecha_fin
                     vacacion.fecha_inicio = solicitud.fecha_inicio 
-                    vacacion.comentario = solicitud.informacion_adicional
+                    vacacion.comentario = coment
                 else:
-                    vacacion.dias_de_vacaciones = dias_de_vacaciones #Dias que le tocan mas la suma de los días anteriores que tenia pendientes
-                    vacacion.dias_disfrutados = cuenta
-                    vacacion.total_pendiente=vacacion.dias_de_vacaciones-vacacion.dias_disfrutados #El total pendiente= los dias de vacaciones que tiene menos los que disfrutara en esta solicitud
+                    vacacion.dias_disfrutados += cuenta
+                    vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
                     vacacion.dia_inhabil = solicitud.dia_inhabil
                     vacacion.fecha_fin = solicitud.fecha_fin
                     vacacion.fecha_inicio = solicitud.fecha_inicio
-                    vacacion.comentario = solicitud.informacion_adicional
+                    vacacion.comentario = coment
                 # Actualizamos el objeto status
                 status = Status.objects.get(id=vacacion.status.id)
                 status.complete_vacaciones = True
                 #Guardamos las vacaciones anteriores
                 for dato in datos:
-                    dato._meta.get_field('created_at').auto_now = False
-                    dato.save()
-                    dato._meta.get_field('created_at').auto_now = True
+                    historial = dato.history.first()  # Obtener la primera versión histórica del objeto
+                    if historial and historial.total_pendiente != dato.total_pendiente:
+                        # El campo 'total_pendiente' ha cambiado
+                        dato._meta.get_field('created_at').auto_now = False
+                        dato.comentario ="Tomado periodo:" + str(solicitud.periodo) 
+                        dato.fecha_inicio = solicitud.fecha_inicio
+                        dato.fecha_fin =  solicitud.fecha_fin
+                        dato.save()
+                        dato._meta.get_field('created_at').auto_now = True
                 # Guardamos los cambios en la base de datos
+                vacacion.comentario +=" "+"Dias tomados:" + str(dias_vacacion)
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                vacacion.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
                 vacacion.save()
                 status.save()
                 messages.success(request, 'Solicitud autorizada y días de vacaciones agregados')
@@ -3473,6 +3603,10 @@ def PdfFormatoVacaciones(request, pk):
         altura=200
         margen=20
         c.drawCentredString(305,502,'OBSERVACIONES')
+        if solicitud.comentario_rh:
+            c.drawString(55,490,solicitud.comentario_rh)
+        else:
+            c.drawString(55,490,'ninguna')
         c.rect(50,500, 510, 12)
         c.rect(50,435, 510, 65)
     else:
@@ -3681,6 +3815,19 @@ def FormatoEconomicos(request):
 def SolicitudEconomicos(request):
     usuario = UserDatos.objects.get(user__id=request.user.id)
     status = Status.objects.get(perfil__numero_de_trabajador=usuario.numero_de_trabajador, perfil__distrito=usuario.distrito)
+
+    año_actual = str(date.today().year) #Quitar el complete_economicos a todos aquellos que ya cumplan el año de planta
+    mes_actual = datetime.date.today().month
+    dia_actual = datetime.date.today().day
+    #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
+    reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
+    reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
+    reinicio = reinicio | reinicio2
+    for empleado in reinicio:
+        empleado.complete_economicos = False
+        empleado.save()
+
     solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
     form = SolicitudEconomicosForm()
     now = date.today()
@@ -3691,6 +3838,7 @@ def SolicitudEconomicos(request):
     else:
         datos=0
     if request.method == 'POST' and 'btnSend' in request.POST:
+
         form = SolicitudEconomicosForm(request.POST, instance=solicitud)
         form.save(commit=False)
 
@@ -3712,6 +3860,21 @@ def SolicitudEconomicos(request):
                 messages.error(request,'Tiene una solicitud generada pendiente de autorizar')
                 valido = False
 
+        #Se verifica si el empleado tiene un año de antigüedad
+        if status.fecha_planta_anterior:
+            days = status.fecha_planta_anterior
+        else:
+            days = status.fecha_planta
+        ahora = datetime.date.today()
+        año = 1 
+        if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+            antiguedad = ahora.year - days.year
+        else:
+            antiguedad = ahora.year - days.year - 1
+        if antiguedad < año:
+            messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
+            valido=False
+
         if valido and form.is_valid():
             messages.success(request, 'Solicitud enviada a RH')
             now = date.today()
@@ -3725,12 +3888,14 @@ def SolicitudEconomicos(request):
         'usuario':usuario,
         'form':form,
         'datos':datos,
+        'status':status,
     }
 
     return render(request, 'proyecto/Formato_EconomicosForm.html',context)
 
 @login_required(login_url='user-login')
 def solicitud_economico_verificar(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
     solicitud = Solicitud_economicos.objects.get(id=pk)
 
     if request.method == 'POST' and 'btnSend' in request.POST:
@@ -3739,6 +3904,7 @@ def solicitud_economico_verificar(request, pk):
 
         if form.is_valid():
             solicitud = form.save(commit=False)
+            solicitud.comentario = request.POST.get('observaciones')
             solicitud.save()
 
             if solicitud.autorizar == True:
@@ -3761,8 +3927,11 @@ def solicitud_economico_verificar(request, pk):
                 # Actualizamos el objeto status
                 status = Status.objects.get(id=economico.status.id)
                 status.complete_economicos = True
-                
+                if economico.dias_pendientes == 0:
+                    economico.complete_dias =True
                 # Guardamos los cambios en la base de datos
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                economico.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
                 economico.save()
                 status.save()
                 messages.success(request, 'Solicitud autorizada y días economicos agregados')
@@ -4534,20 +4703,19 @@ def upload_batch_vacaciones_anteriores(request):
     return render(request, 'proyecto/upload_batch_vacaciones_anteriores.html', context)
 
 @login_required(login_url='user-login')
-def Cambio_baja_empleado(request, pk):
+def Baja_empleado(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
     empleado = Perfil.objects.get(id=pk)
-    distritos = Distrito.objects.filter(complete = True)
-
     if request.method == 'POST' and 'btnSend' in request.POST:
-        distrito = request.POST.get('distrito')
-        if request.POST.get('baja_empleado'):
-            a=0
-
-
+        empleado.baja = True
+        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+        empleado.editado = str("B:"+nombre.nombres+" "+nombre.apellidos)
+        empleado.save()
+        messages.success(request, f'El empleado {empleado.nombres} {empleado.apellidos} se ha dado de baja')
+        return redirect('Perfil')
 
     context = {
-        'empleado':empleado,
-        'distritos':distritos,
-        }
+        'empleado': empleado,
+    }
 
-    return render(request, 'proyecto/Cambio_baja_empleado.html',context)
+    return render(request, 'proyecto/Baja_empleado.html', context)

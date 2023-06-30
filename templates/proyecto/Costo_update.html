@@ -37,67 +37,70 @@
         <div class="column is-half is-offset-one-quarter">
             <h3 class="title is-size-2">Datos costo del empleado</h3>
             <hr>
-            <div class='table-responsive'>
-                <table class="table table-ligth table-striped mx-1">
-                <thead>
-                        <tr>
-                            <th scope="col">Fecha</th>
-                            <th scope="col">Cesantia</th>
-                            <th scope="col">Sueldo mensual neto</th>
-                            <th scope="col">Complemento salario catorcenal</th>
-                            <th scope="col">Apoyo de pasajes</th>
-                            <th scope="col">Total percepciones mensual</th>
-                            <th scope="col">Impuesto estatal</th>
-                            <th scope="col">IMSS Obrero patronal</th>
-                            <th scope="col">SAR 2%</th>
-                            <th scope="col">CESANTIA </th>
-                            <th scope="col">INFONAVIT</th>
-                            <th scope="col">ISR</th>
-                            <th scope="col">Apoyo visita familiar</th>
-                            <th scope="col">Apoyo estancia</th>
-                            <th scope="col">Apoyo renta</th>
-                            <th scope="col">Apoyo de estudios</th>
-                            <th scope="col">AMV</th>
-                            <th scope="col">Gasolina</th>
-                            <th scope="col">Total apoyos y bonos</th>
-                            <th scope="col">Total costo mensual para la empresa</th>
-                            <th scope="col">Ingreso mensual neto del empleado</th>
-                            <!--<th scope="col">Registro</th>-->
-                        </tr>
-                </thead>
-                <tbody>
-                {% for registro in registros %}
-                        <tr>
-                            <th scope="col">{{registro.history_date}}</th>
-                            <td class="registro" registro="{{registro.id}}">{{registro.cesantia}}</td>
-                            <td>{{registro.sueldo_mensual_neto}}</td>
-                            <td>{{registro.complemento_salario_catorcenal}}</td>
-                            <td>{{registro.apoyo_de_pasajes}}</td>
-                            <td>{{registro.total_percepciones_mensual}}</td>
-                            <td>{{registro.impuesto_estatal}}</td>
-                            <td>{{registro.imms_obrero_patronal}}</td>
-                            <td>{{registro.sar}}</td>
-                            <td>{{registro.cesantia}}</td>
-                            <td>{{registro.infonavit}}</td>
-                            <td>{{registro.isr}}</td>
-                            <td>{{registro.apoyo_vist_familiar}}</td>
-                            <td>{{registro.estancia}}</td>
-                            <td>{{registro.renta}}</td>
-                            <td>{{registro.apoyo_estudios}}</td>
-                            <td>{{registro.amv}}</td>
-                            <td>{{registro.gasolina}}</td>
-                            <td class="register" comision ="{{comision}}" complemento ="{{registro.complemento_salario_catorcenal}}" registro="{{registro.id}}" campamento="{{registro.campamento}}" bonototal="{{registro.bonototal}}"></td>
-                            <td class="costo_mensual"></td>
-                            <td class="ingreso_mensual" sueldo_mensual="{{registro.sueldo_mensual_neto}}" pasajes="{{registro.apoyo_de_pasajes}}" impuesto_est="{{registro.impuesto_estatal}}" impuesto_imss ="{{registro.imms_obrero_patronal}}"
-                             sar="{{registro.sar}}" cesantia="{{registro.cesantia}}" infonavit="{{registro.infonavit}}" isr="{{registro.isr}}" total_apoyos="{{registro.total_apoyosbonos_empleadocomp}}"></td>
-                            <!--<th scope="col">
-                                <a type="button" class="btn btn-outline-info" href=""><i class="fa-solid fa-file-pdf fa-2xl"></i></a>
-                            </th>-->
-                        </tr>
-                {% endfor %}
-                </tbody>
-                </table>
-            </div>
+            <h5 class="title is-size-3">Historico cambios Costo</h5>
+                <div class='table-responsive'>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-ligth table-striped mx-1" style="table-layout: fixed; width: 250%;">
+                        <thead>
+                                <tr>
+                                    <th scope="col">Fecha</th>
+                                    <th scope="col">Cesantia</th>
+                                    <th scope="col">Sueldo mensual neto</th>
+                                    <th scope="col">Complemento salario catorcenal</th>
+                                    <th scope="col">Apoyo de pasajes</th>
+                                    <th scope="col">Total percepciones mensual</th>
+                                    <th scope="col">Impuesto estatal</th>
+                                    <th scope="col">IMSS Obrero patronal</th>
+                                    <th scope="col">SAR 2%</th>
+                                    <th scope="col">CESANTIA </th>
+                                    <th scope="col">INFONAVIT</th>
+                                    <th scope="col">ISR</th>
+                                    <th scope="col">Apoyo visita familiar</th>
+                                    <th scope="col">Apoyo estancia</th>
+                                    <th scope="col">Apoyo renta</th>
+                                    <th scope="col">Apoyo de estudios</th>
+                                    <th scope="col">AMV</th>
+                                    <th scope="col">Gasolina</th>
+                                    <th scope="col">Total apoyos y bonos</th>
+                                    <th scope="col">Total costo mensual para la empresa</th>
+                                    <th scope="col">Ingreso mensual neto del empleado</th>
+                                    <!--<th scope="col">Registro</th>-->
+                                </tr>
+                        </thead>
+                        <tbody>
+                        {% for registro in registros %}
+                                <tr>
+                                    <th scope="col">{{registro.history_date}}</th>
+                                    <td class="registro" registro="{{registro.id}}">{{registro.cesantia}}</td>
+                                    <td>{{registro.sueldo_mensual_neto}}</td>
+                                    <td>{{registro.complemento_salario_catorcenal}}</td>
+                                    <td>{{registro.apoyo_de_pasajes}}</td>
+                                    <td>{{registro.total_percepciones_mensual}}</td>
+                                    <td>{{registro.impuesto_estatal}}</td>
+                                    <td>{{registro.imms_obrero_patronal}}</td>
+                                    <td>{{registro.sar}}</td>
+                                    <td>{{registro.cesantia}}</td>
+                                    <td>{{registro.infonavit}}</td>
+                                    <td>{{registro.isr}}</td>
+                                    <td>{{registro.apoyo_vist_familiar}}</td>
+                                    <td>{{registro.estancia}}</td>
+                                    <td>{{registro.renta}}</td>
+                                    <td>{{registro.apoyo_estudios}}</td>
+                                    <td>{{registro.amv}}</td>
+                                    <td>{{registro.gasolina}}</td>
+                                    <td class="register" comision ="{{comision}}" complemento ="{{registro.complemento_salario_catorcenal}}" registro="{{registro.id}}" campamento="{{registro.campamento}}" bonototal="{{registro.bonototal}}"></td>
+                                    <td class="costo_mensual"></td>
+                                    <td class="ingreso_mensual" sueldo_mensual="{{registro.sueldo_mensual_neto}}" pasajes="{{registro.apoyo_de_pasajes}}" impuesto_est="{{registro.impuesto_estatal}}" impuesto_imss ="{{registro.imms_obrero_patronal}}"
+                                    sar="{{registro.sar}}" cesantia="{{registro.cesantia}}" infonavit="{{registro.infonavit}}" isr="{{registro.isr}}" total_apoyos="{{registro.total_apoyosbonos_empleadocomp}}"></td>
+                                    <!--<th scope="col">
+                                        <a type="button" class="btn btn-outline-info" href=""><i class="fa-solid fa-file-pdf fa-2xl"></i></a>
+                                    </th>-->
+                                </tr>
+                        {% endfor %}
+                        </tbody>
+                        </table>
+                    </div>   
+                </div>
             <form method="POST">
                 {% csrf_token %}
                             <div class="row my-2">

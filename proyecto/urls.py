@@ -16,7 +16,7 @@ urlpatterns = [
     path('upload_Perfil', views.upload_batch_empleados, name='Upload_perfil'),
 
     path('Perfil/update/<int:pk>/', views.PerfilUpdate, name='Perfil_update'),
-    path('Perfil/Cambio_Baja/<int:pk>/', views.Cambio_baja_empleado, name='Cambio_baja_empleado'),  
+    path('Perfil/Baja/<int:pk>/', views.Baja_empleado, name='Baja_empleado'),  
     path('Perfil/revisar/<int:pk>/', views.Perfil_revisar, name='Perfil_revisar'),
     path('Status/update/<int:pk>/', views.StatusUpdate, name='Status_update'),
     path('Status/revisar/<int:pk>/', views.Status_revisar, name='Status_revisar'),

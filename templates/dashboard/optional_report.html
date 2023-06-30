@@ -39,38 +39,30 @@
             <label for="form.dias_disfrutados" class="col-auto col-form-label my-1"><strong>{{costo_ver.status.perfil.nombres}} {{costo_ver.status.perfil.apellidos}}</strong></label>
             {% csrf_token %}
             <hr>
-            <table class="table table-ligth table-striped mx-1">
-            <thead>
+            <table class="table table-light table-striped mx-1">
+                <thead>
                     <tr>
-                        <th scope="col">Mes</th>
-                        <th scope="col">Costo</th>
-                        <th scope="col">Bonos</th>
+                        <th scope="col">Catorcena</th>
+                        <th scope="col">Costo total para la empresa</th>
+                        <th scope="col">Bono total de la catorcena</th>
                         <th scope="col">Comisión Bono</th>
                         <th scope="col">Costo Total</th>
                     </tr>
-            </thead>
-            <tbody>
-                {% for mes,costo in meses_cost.items%}
-                <tr>
-                    <th scope="col">{{mes}}</th>
-                    <th scope="col" class="costo">${{costo}}</th>
-                    <th scope="col" class="bonos">
-                    {% for bono in bonos %}
-                        {% if bono.month == mes %}
-                            ${{bono.total}}
-
-                        {% endif %}
+                </thead>
+                <tbody>
+                    {% for dato in datos_tabla %}
+                        <tr>
+                            <td>{{ dato.catorcena }}</td>
+                            <td class="costo">${{ dato.costo }}</td>
+                            <td class="bonos">{{ dato.bono }}</td>
+                            <td class="comision"></td>
+                            <td class="total"></td>
+                        </tr>
                     {% endfor %}
-                    </th>
-                    <th scope="col" class="comision"></th>
-                    <th scope="col" class="total"></th>
-                </tr>
-                {% endfor %}
-
-            </tbody>
+                </tbody>
             </table>
             <hr>
-
+            <h4 class="title is-size-2">Costos anteriores del Trabajador</h4>
 <div class="table-responsive">
             <table class="table table-ligth table-striped mx-1">
             <thead>

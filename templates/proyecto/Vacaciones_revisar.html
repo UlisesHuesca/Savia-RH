@@ -49,6 +49,7 @@
                                 <th scope="col">Días asignados a ese año</th>
                                 <th scope="col">Días disfrutados</th>
                                 <th scope="col">Total pendiente</th>
+                                <th scope="col">Comentario</th>
                                 <th scope="col">Acción</th>
                             </tr>
                         </thead>
@@ -61,6 +62,7 @@
                                 <td>{{ dato.dias_de_vacaciones }}</td>
                                 <td>{{ dato.dias_disfrutados }}</td>
                                 <td>{{ dato.total_pendiente }}</td>
+                                <td>{{ dato.comentario }}</td>
                                 <td>
                                     <button class="btn btn-primary btn-inspeccionar" data-historial="{{ dato.history.all }}">Inspeccionar</button>
                                 </td>
@@ -77,19 +79,21 @@
                                                 <th scope="col">Días asignados a ese año</th>
                                                 <th scope="col">Días disfrutados</th>
                                                 <th scope="col">Total pendiente</th>
+                                                <th scope="col">Comentario</th>
                                                 <th scope="col">Fecha modificación</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for historial in dato.history.all %}
                                                 <tr>
-                                                    <td>{{ historial.status.fecha_inicio }}-{{ historial.status.fecha_fin }}</td>
+                                                    <td>{{ historial.fecha_inicio }}-{{ historial.fecha_fin }}</td>
                                                     <td>{{ historial.status.fecha_planta_anterior }}</td>
                                                     <td>{{ historial.status.fecha_planta }}</td>
                                                     <td>{{ historial.periodo }}</td>
                                                     <td>{{ historial.dias_de_vacaciones }}</td>
                                                     <td>{{ historial.dias_disfrutados }}</td>
                                                     <td>{{ historial.total_pendiente }}</td>
+                                                    <td>{{ historial.comentario }}</td>
                                                     <td>{{ historial.updated_at }}</td>
                                                 </tr>
                                             {% endfor %}

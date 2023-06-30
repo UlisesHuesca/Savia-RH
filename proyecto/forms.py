@@ -113,7 +113,10 @@ class SolicitudVacacionesUpdateForm(forms.ModelForm):
 class VacacionesUpdateForm(forms.ModelForm):
     class Meta:
         model = Vacaciones
-        fields = ['fecha_inicio','fecha_fin','comentario', 'dia_inhabil']
+        fields = ['fecha_inicio', 'fecha_fin', 'comentario', 'dia_inhabil']
+        widgets = {
+            'comentario': forms.TextInput(attrs={'maxlength': '32'}),
+        }
 
 class EconomicosForm(forms.ModelForm):
     class Meta:

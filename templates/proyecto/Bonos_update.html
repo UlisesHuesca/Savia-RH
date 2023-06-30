@@ -37,6 +37,37 @@
             <div class="column is-half is-offset-one-quarter">
                 <h3 class="title is-size-3">Datos bonos del empleado</h3>
                 <hr>
+                <h5 class="title is-size-3">Historico cambio Bono</h5>
+                <div class='table-responsive'>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-ligth table-striped mx-1" style="table-layout: fixed; width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th scope="col">No. de trabajador</th>
+                                    <th scope="col">Empleado</th>
+                                    <th scope="col">Monto</th>
+                                    <th scope="col">Fecha Bono</th>
+                                    <th scope="col">Comentario</th>
+                                    <th scope="col">Editado</th>
+                                    <th scope="col">Editor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for registro in registros %}
+                                <tr>
+                                    <td>{{registro.costo.status.perfil.numero_de_trabajador}}</td>
+                                    <td>{{registro.costo.status.perfil.nombres}} {{registro.costo.status.perfil.apellidos}}</td>
+                                    <td>{{registro.monto}}</td>
+                                    <td>{{registro.fecha_bono}}</td>
+                                    <td>{{registro.comentario}}</td>
+                                    <td>{{registro.created_at}}</td>
+                                    <td>{{registro.editado}}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 <form method="POST">
                     {% csrf_token %}
                             <div class="row my-2">

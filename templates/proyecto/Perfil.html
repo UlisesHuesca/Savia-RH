@@ -116,7 +116,9 @@
                     <th scope="col">Proyecto</th>
                     <th scope="col">Subproyecto</th>
                     <th scope="col">Detalle</th>
-                    <th scope="col">Baja/Cambio Distrito</th>
+                    {% if usuario_fijo.distrito.distrito == "Matriz" %}
+                    <th scope="col">Baja</th>
+                    {% endif %}
                     <th scope="col">Editar</th>
 
                 </tr>
@@ -133,7 +135,9 @@
                     <td>{{perfil.proyecto}}</td>
                     <td>{{perfil.subproyecto}}</td>
                     <td><a class="btn btn-outline-info" id="btnRevisar" type="button" href="{% url 'Perfil_revisar' perfil.id %}"><i class="fa-solid fa-address-card"></i></a>
-                    <td><a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d" data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document" hx-get="{% url 'Cambio_baja_empleado' perfil.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    {% if usuario_fijo.distrito.distrito == "Matriz" %}
+                    <td><a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d" data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document" hx-get="{% url 'Baja_empleado' perfil.id %}"><i class="fa-solid fa-user-minus"></i></a>
+                    {% endif %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Perfil_update' perfil.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
                 </tr>
                 {% endfor %}

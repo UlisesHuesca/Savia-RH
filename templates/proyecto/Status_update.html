@@ -37,6 +37,69 @@
             <div class="column is-half is-offset-one-quarter">
                 <h3 class="title is-size-3">Datos de Status del empleado</h3>
                 <hr>
+                <h5 class="title is-size-3">Historico cambios Status</h5>
+                <div class='table-responsive'>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-ligth table-striped mx-1" style="table-layout: fixed; width: 250%;">
+                            <thead>
+                                <tr>
+                                    <th scope="col">No. de trabajador</th>
+                                    <th scope="col">Empresa</th>
+                                    <th scope="col">Distrito</th>
+                                    <th scope="col">Nombre</th>
+                                    <th scope="col">NSS</th>
+                                    <th scope="col">CURP</th>
+                                    <th scope="col">RFC</th>
+                                    <th scope="col">Teléfono</th>
+                                    <th scope="col">Profesión</th>
+                                    <th scope="col">No. Cédula</th>
+                                    <th scope="col">Nivel</th>
+                                    <th scope="col">Tipo de contrato</th>
+                                    <th scope="col">Último contrato vence</th>
+                                    <th scope="col">Tipo de sangre</th>
+                                    <th scope="col">Sexo</th>
+                                    <th scope="col">Domicilio</th>
+                                    <th scope="col">Estado civil</th>
+                                    <th scope="col">Fecha planta anterior</th>
+                                    <th scope="col">Fecha planta</th>
+                                    <th scope="col">Fecha ingreso</th>
+                                    <th scope="col">Puesto</th>
+                                    <th scope="col">Created at</th>
+                                    <th scope="col">Editado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for registro in registros %}
+                                <tr>
+                                    <td>{{registro.perfil.numero_de_trabajador}}</td>
+                                    <td>{{registro.perfil.empresa}}</td>
+                                    <td>{{registro.perfil.distrito}} {{registro.perfil.division}}</td>
+                                    <td>{{registro.perfil.nombres}} {{registro.perfil.apellidos}}</td>
+                                    <td>{{registro.nss}}</td>
+                                    <td>{{registro.curp}}</td>
+                                    <td>{{registro.rfc}}</td>
+                                    <td>{{registro.telefono}}</td>
+                                    <td>{{registro.profesion}}</td>
+                                    <td>{{registro.no_cedula}}</td>
+                                    <td>{{registro.nivel}}</td>
+                                    <td>{{registro.tipo_de_contrato}}</td>
+                                    <td>{{registro.ultimo_contrato_vence}}</td>
+                                    <td>{{registro.tipo_sangre}}</td>
+                                    <td>{{registro.sexo}}</td>
+                                    <td>{{registro.domicilio}}</td>
+                                    <td>{{registro.estado_civil}}</td>
+                                    <td>{{registro.fecha_planta_anterior}}</td>
+                                    <td>{{registro.fecha_planta}}</td>
+                                    <td>{{registro.fecha_ingreso}}</td>
+                                    <td>{{registro.puesto}}</td>
+                                    <td>{{registro.created_at}}</td>
+                                    <td>{{registro.editado}}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 <form method="POST">
                     {% csrf_token %}
                             <div class="row my-2">
@@ -75,9 +138,9 @@
                                         {{form.profesion|add_class:"form-control"}}
                                     </div>
                                 </div>
-                            </div>
+                            </div>                  
                             <div class="row my-2">
-                                <label for="form.puesto" class="col-auto col-form-label my-1"><strong>Puesto del empleado:</strong></label>
+                                <label for="form.puesto" class="col-auto col-form-label my-1"><strong>Puesto actual del empleado {{estado.puesto}}:</strong></label>
                                 <div class="col-5 d-none">
                                   {{form.puesto|add_class:"form-control"}}
                                 </div>

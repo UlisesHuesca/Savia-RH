@@ -41,7 +41,7 @@
                 <div class="form-group">
                     <label class="col-auto col-form-label"><strong>Información económicos del empleado:</strong></label>
                     <br>
-                    <label class="col-auto col-form-label">El usuario aun cuenta con sus 3 días de vacaciones</label>
+                    <label class="col-auto col-form-label">El usuario aún cuenta con sus 3 días de vacaciones</label>
                 </div>
                 <hr>
                 {% else %}
@@ -57,7 +57,7 @@
                 {% endif %} 
 
                 <h4 class="title is-size-3">Formulario</h4>
-                <label for="form.nombre" class="col-auto col-form-label"><strong>Empleado: {{datos.status.perfil.nombres}} {{datos.status.perfil.apellidos}}</strong></label>
+                <label for="form.nombre" class="col-auto col-form-label"><strong>Empleado: {{status.perfil.nombres}} {{status.perfil.apellidos}}</strong></label>
                 <form method="POST">
                     {% csrf_token %}
                             <div class="row my-2">
@@ -70,7 +70,7 @@
                                 </div>
                             </div>
                             <div class="row my-2">
-                                <label for="form.comentario" class="col-auto col-form-label my-1"><strong>Observaciones:</strong></label>
+                                <label for="form.comentario" class="col-auto col-form-label my-1"><strong>Comentario:</strong></label>
                                 <div class="col-6">
                                     {{form.comentario|add_class:"form-control"|append_attr:"placeholder=Observaciones"}}
                                 </div>

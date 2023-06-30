@@ -82,9 +82,9 @@
                 <div class="col-sm-1">
                        {% render_field status_filter.form.numero_de_trabajador class="form-control" %}
                 </div>
-                <label for="status_filter.form.perfil__nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                <label for="status_filter.form.perfil__nombres_apellidos" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
                 <div class="col-auto">
-                       {% render_field status_filter.form.nombres class="form-control" %}
+                       {% render_field status_filter.form.nombres_apellidos class="form-control" %}
                 </div>
                 {% if usuario.distrito.distrito == "Matriz" %}
                 <label for="status_filter.form.perfil__distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>

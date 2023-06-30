@@ -2,19 +2,19 @@ from django.db import models
 from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
 
-
-
  #Tabla de vacaciones
 class TablaVacaciones(models.Model):
     years = models.IntegerField(null=True)
     days = models.IntegerField(null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'Años: {self.years}, dias de vacaciones: {self.days}'
 
 class TablaFestivos(models.Model):
     dia_festivo = models.DateField(null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.dia_festivo}'
 
@@ -38,12 +38,14 @@ class Empresa(models.Model):
 class Puesto(models.Model):
     puesto = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.puesto}'
 
 class Distrito(models.Model):
     distrito = models.CharField(max_length=20,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.distrito}'
 
@@ -51,37 +53,50 @@ class Distrito(models.Model):
 class Proyecto(models.Model):
     proyecto = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.proyecto}'
+    
 class SubProyecto(models.Model):
     proyecto = models.ForeignKey(Proyecto, on_delete = models.CASCADE, null=True)
     subproyecto = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.subproyecto}'
+    
 class Contrato(models.Model):
     contrato = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.contrato}'
+    
 class Sangre(models.Model):
     sangre = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.sangre}'
+    
 class Sexo(models.Model):
     sexo = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.sexo}'
+    
 class Civil(models.Model):
     estado_civil = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.estado_civil}'
+    
 class Banco(models.Model):
     banco = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.banco}'
 
@@ -91,6 +106,7 @@ class RegistroPatronal(models.Model):
     prima_anterior = models.DecimalField(max_digits=8, decimal_places=5,null=True, default=0)
     prima = models.DecimalField(max_digits=8, decimal_places=5,null=True, default=0)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.patronal}'
 
@@ -105,6 +121,7 @@ class DatosISR(models.Model):
     g_ingresos = models.DecimalField(max_digits=14, decimal_places=2,null=True)
     subsidio = models.DecimalField(max_digits=14, decimal_places=2,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         if self.complete == False:
             return "Campo vacio"
@@ -113,6 +130,7 @@ class DatosISR(models.Model):
 class TipoPerfil(models.Model):
     nombre = models.CharField(max_length=50,null=True)
     admin = models.BooleanField(null=True, default=False)
+
     def __str__(self):
         return f'{self.nombre}, admin: {self.admin} '
 
@@ -122,6 +140,7 @@ class UserDatos(models.Model):
     tipo = models.ForeignKey(TipoPerfil, on_delete = models.CASCADE, null=True)
     numero_de_trabajador = models.IntegerField(null=True,blank=True)
     distrito = models.ForeignKey(Distrito, on_delete = models.CASCADE, null=True,blank=True)
+
     def __str__(self):
         return f'{self.user}, distrito: {self.distrito} '
 
@@ -140,8 +159,10 @@ class Perfil(models.Model):
     complete = models.BooleanField(default=False)
     baja = models.BooleanField(default=False)
     complete_status = models.BooleanField(default=False)
+    created_at=models.DateTimeField(auto_now=True)
+    updated_at=models.DateTimeField(auto_now=True)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
-    editado = models.CharField(max_length=15,blank=True)
+    editado = models.CharField(max_length=50,blank=True)
 
     class Meta:
         unique_together = ('numero_de_trabajador', 'distrito',)
@@ -164,6 +185,7 @@ class Perfil(models.Model):
 class Nivel(models.Model):
     nivel = models.IntegerField(null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.nivel}'
 
@@ -171,6 +193,7 @@ class Dia_vacacion(models.Model):
     nombre = models.CharField(max_length=50,null=True)
     numero = models.IntegerField(null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.nombre}'
 
@@ -200,6 +223,11 @@ class Status(models.Model):
     complete_vacaciones = models.BooleanField(default=False)
     complete_uniformes = models.BooleanField(default=False)
     complete_economicos = models.BooleanField(default=False)
+    history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
+    created_at=models.DateTimeField(auto_now=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    editado = models.CharField(max_length=50,blank=True)
+
     def __str__(self):
         if self.perfil ==None:
             return "Campo vacio"
@@ -213,6 +241,9 @@ class DatosBancarios(models.Model):
     banco = models.ForeignKey(Banco, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
+    created_at=models.DateTimeField(auto_now=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    editado = models.CharField(max_length=50,blank=True)
 
     def __str__(self):
         if self.status ==None:
@@ -225,6 +256,7 @@ class FactorIntegracion(models.Model):
     years = models.IntegerField(null=True)
     factor = models.DecimalField(max_digits=10, decimal_places=6,null=True, default=0)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'Años: {self.years}, factor: {self.factor}'
 
@@ -233,12 +265,14 @@ class TablaCesantia(models.Model):
     sbc2 = models.DecimalField(max_digits=8, decimal_places=2,null=True, default=0)
     cuota_patronal = models.DecimalField(max_digits=8, decimal_places=6,null=True, default=0)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'SBC del asegurado: {self.sbc}-{self.sbc2}, %Cuota patronal: {self.cuota_patronal}'
 
 class SalarioDatos(models.Model):
     UMA = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
     Salario_minimo = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+
     def __str__(self):
         return f'Salario minimo {self.Salario_minimo}, UMA: {self.UMA}'
 
@@ -293,7 +327,8 @@ class Costo(models.Model):
     updated_at=models.DateField(auto_now=True)
     complete = models.BooleanField(default=False)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
-    editado = models.CharField(max_length=15,blank=True)
+    editado = models.CharField(max_length=50,blank=True)
+
     def __str__(self):
         if self.status ==None:
             return "Campo vacio"
@@ -310,7 +345,8 @@ class Bonos(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
-    editado = models.CharField(max_length=15,blank=True)
+    editado = models.CharField(max_length=50,blank=True)
+
     def __str__(self):
         if self.costo ==None:
             return "Campo vacio"
@@ -321,6 +357,7 @@ class Catorcenas(models.Model):
     fecha_inicial = models.DateField(null=True)
     fecha_final = models.DateField(null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f' bono: {self.catorcena}, inicia {self.fecha_inicial} finaliza: {self.fecha_final}'
     class Meta:
@@ -330,6 +367,7 @@ class Ropa(models.Model):
     ropa = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
     seleccionado = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.ropa}'
 
@@ -337,6 +375,7 @@ class Seleccion(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     ropa = models.ForeignKey(Ropa, on_delete = models.CASCADE, null=True)
     seleccionado = models.BooleanField(default=False)
+
     def __str__(self):
         return f'{self.status}-{self.ropa}'
 
@@ -344,6 +383,7 @@ class Tallas(models.Model):
     ropa = models.ForeignKey(Ropa, on_delete = models.CASCADE, null=True)
     talla = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'Ropa: {self.ropa}, Talla: {self.talla}'
 
@@ -355,6 +395,7 @@ class Uniformes(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
+
     def __str__(self):
         if self.status == None:
             return "Campo vacio"
@@ -367,6 +408,7 @@ class Uniforme(models.Model):
     fecha_entrega = models.DateField(null=True)
     cantidad = models.IntegerField(null=True, default=0)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'Ropa: {self.ropa} Talla: {self.talla} Cantidad: {self.cantidad}'
 
@@ -384,8 +426,10 @@ class Trabajos_encomendados(models.Model):
     asunto6 = models.CharField(max_length=30,null=True,blank=True)
     estado6 = models.CharField(max_length=30,null=True,blank=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'ID: {self.id},'
+    
 class Temas_comentario_solicitud_vacaciones(models.Model):
     comentario1 = models.CharField(max_length=30,null=True,blank=True)
     comentario2 = models.CharField(max_length=30,null=True,blank=True)
@@ -397,6 +441,7 @@ class Temas_comentario_solicitud_vacaciones(models.Model):
     comentario8 = models.CharField(max_length=30,null=True,blank=True)
     comentario9 = models.CharField(max_length=30,null=True,blank=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'ID: {self.id},'
     
@@ -415,9 +460,11 @@ class Solicitud_vacaciones(models.Model):
     temas = models.ForeignKey(Temas_comentario_solicitud_vacaciones, on_delete = models.CASCADE, null=True)
     anexos = models.CharField(max_length=50,null=True, blank=True)
     autorizar = models.BooleanField(null=True, default=None)
+    comentario_rh = models.CharField(max_length=50,null=True, blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f' id: {self.id} Status: {self.status} Fecha solicitud: {self.created_at} Días: {self.fecha_inicio} a {self.fecha_fin}'
     
@@ -435,7 +482,8 @@ class Vacaciones(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
-    editado = models.CharField(max_length=15,blank=True)
+    editado = models.CharField(max_length=50,blank=True)
+
     def __str__(self):
         if self.status == None:
             return "Campo vacio"
@@ -450,6 +498,7 @@ class Solicitud_economicos(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
+
     def __str__(self):
         return f'Status: {self.status} Fecha solicitud: {self.created_at} Día: {self.fecha}'
     
@@ -460,11 +509,13 @@ class Economicos(models.Model):
     dias_pendientes = models.IntegerField(null=True, default=0)
     fecha = models.DateField(null=True)
     comentario = models.CharField(max_length=100,null=True)
-    created_at=models.DateTimeField(auto_now_add=True)
     complete = models.BooleanField(default=False)
     complete_dias = models.BooleanField(default=False)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
-    editado = models.CharField(max_length=15,blank=True)
+    editado = models.CharField(max_length=50,blank=True)
+
     def __str__(self):
         if self.status == None:
             return "Campo vacio"
@@ -474,7 +525,6 @@ class Empleados_Batch(models.Model):
     file_name = models.FileField(upload_to='product_bash')
     uploaded = models.DateField(auto_now_add=True)
     activated = models.BooleanField(default=False)
-
 
     def __str__(self):
         return f'File id:{self.id}'
@@ -492,7 +542,6 @@ class Costos_Batch(models.Model):
     file_name = models.FileField(upload_to='product_bash')
     uploaded = models.DateField(auto_now_add=True)
     activated = models.BooleanField(default=False)
-
 
     def __str__(self):
         return f'File id:{self.id}'

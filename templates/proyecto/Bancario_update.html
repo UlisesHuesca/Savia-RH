@@ -37,6 +37,36 @@
             <div class="column is-half is-offset-one-quarter">
                 <h2 class="title is-size-2">Datos Bancarios</h2>
                 <hr>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-ligth table-striped mx-1" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th scope="col">No. trabajador</th>
+                                <th scope="col">Nombre</th>
+                                <th scope="col">No. de cuenta</th>
+                                <th scope="col">No. de tarjeta</th>
+                                <th scope="col">Clabe interbancaria</th>
+                                <th scope="col">Banco</th>
+                                <th scope="col">Editado</th>
+                                <th scope="col">Editor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for registro in registros %}
+                            <tr>
+                                <td>{{registro.status.perfil.numero_de_trabajador}}</td>
+                                <td>{{registro.status.perfil.nombres}} {{registro.status.perfil.apellidos}}</td>
+                                <td>{{registro.no_de_cuenta}}</td>
+                                <td>{{registro.numero_de_tarjeta}}</td>
+                                <td>{{registro.clabe_interbancaria}}</td>
+                                <td>{{registro.banco}}</td>
+                                <td>{{registro.created_at}}</td>
+                                <td>{{registro.editado}}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 <form method="POST">
                     {% csrf_token %}
                             <div class="row my-2">
