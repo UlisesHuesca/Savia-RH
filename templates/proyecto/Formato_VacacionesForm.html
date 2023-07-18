@@ -52,13 +52,13 @@
                     <br>
                     <label for="form.nombre" class="col-auto col-form-label">Días pendientes totales del empleado, contando años anteriores: {{pendiente}}</label>
                     <br>
-                    <label for="form.nombre" class="col-auto col-form-label">Ultima fecha que se tomo: {{datos.fecha_inicio}} a {{datos.fecha_fin}}</label>   
+                    <label for="form.nombre" class="col-auto col-form-label">Ultima fecha que se tomo: {{datos.fecha_inicio}} a {{datos.fecha_fin}}</label>
                     <br>
-                    <a href="{% url 'Vacaciones_revisar' status_fijo.id %}" class="btn btn-primary" target="_blank"><i class="fa-solid fa-square-up-right"></i> Datos completos de vacaciones del empleado</a>         
-                    <br>                
+                    <a href="{% url 'Vacaciones_revisar' status_fijo.id %}" class="btn btn-primary" target="_blank"><i class="fa-solid fa-square-up-right"></i> Datos completos de vacaciones del empleado</a>
+                    <br>
                 </div>
                 <hr>
-                {% endif %} 
+                {% endif %}
                 <h4 class="title is-size-3">Formulario</h4>
                 <label for="form.nombre" class="col-auto col-form-label"><strong>Empleado: {{datos.status.perfil.nombres}} {{datos.status.perfil.apellidos}}</strong></label>
                 <form method="POST">
@@ -91,21 +91,21 @@
                             <h5 class="title is-size-3">Recepción de puesto</h5>
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Recibe:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="recibe" id="recibe_id" class="form-control" maxlength="20">
+                                    <input type="text" name="recibe" id="recibe_id" class="form-control" maxlength="50">
                                 </div>
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Area:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="area" id="area_id" class="form-control" maxlength="20">
+                                    <input type="text" name="area" id="area_id" class="form-control" maxlength="50">
                                 </div>
                             </div>
                             <div class="row my-2 hide-me">
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Puesto:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="puesto" id="puesto_id" class="form-control" maxlength="20">
+                                    <input type="text" name="puesto" id="puesto_id" class="form-control" maxlength="50">
                                 </div>
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Sector:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="sector" id="sector_id" class="form-control" maxlength="20" autocomplete="off">
+                                    <input type="text" name="sector" id="sector_id" class="form-control" maxlength="50" autocomplete="off">
                                 </div>
                             </div>
                             <br>
@@ -123,33 +123,53 @@
                                 <tbody>
                                     <tr>
                                     <td>1</td>
-                                    <td><input type="text" name="asunto1" id="asunto_1" class="form-control" maxlength="20"></td>
-                                    <td><input type="text" name="estado1" id="estado_1" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="asunto1" id="asunto_1" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado1" id="estado_1" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>2</td>
-                                    <td><input type="text" name="asunto2" id="asunto_2" class="form-control" maxlength="20"></td>
-                                    <td><input type="text" name="estado2" id="estado_2" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="asunto2" id="asunto_2" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado2" id="estado_2" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>3</td>
-                                    <td><input type="text" name="asunto3" id="asunto_3" class="form-control" maxlength="20"></td>
-                                    <td><input type="text" name="estado3" id="estado_3" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="asunto3" id="asunto_3" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado3" id="estado_3" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>4</td>
-                                    <td><input type="text" name="asunto4" id="asunto_4" class="form-control" maxlength="20"></td>
-                                    <td><input type="text" name="estado4" id="estado_4" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="asunto4" id="asunto_4" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado4" id="estado_4" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>5</td>
-                                    <td><input type="text" name="asunto5" id="asunto_5" class="form-control" maxlength="20"></td>
-                                    <td><input type="text" name="estado5" id="estado_5" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="asunto5" id="asunto_5" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado5" id="estado_5" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>6</td>
-                                    <td><input type="text" name="asunto6" id="asunto_6" class="form-control" maxlength="20"></td>
-                                    <td><input type="text" name="estado6" id="estado_6" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="asunto6" id="asunto_6" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado6" id="estado_6" class="form-control" maxlength="100"></td>
+                                    </tr>
+                                    <tr>
+                                    <td>7</td>
+                                    <td><input type="text" name="asunto7" id="asunto_7" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado7" id="estado_7" class="form-control" maxlength="100"></td>
+                                    </tr>
+                                    <tr>
+                                    <td>8</td>
+                                    <td><input type="text" name="asunto8" id="asunto_8" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado8" id="estado_8" class="form-control" maxlength="100"></td>
+                                    </tr>
+                                    <tr>
+                                    <td>9</td>
+                                    <td><input type="text" name="asunto9" id="asunto_9" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado9" id="estado_9" class="form-control" maxlength="100"></td>
+                                    </tr>
+                                    <tr>
+                                    <td>10</td>
+                                    <td><input type="text" name="asunto10" id="asunto_10" class="form-control" maxlength="100"></td>
+                                    <td><input type="text" name="estado10" id="estado_10" class="form-control" maxlength="100"></td>
                                     </tr>
                                 </tbody>
                                 </table>
@@ -161,7 +181,7 @@
                             <br>
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Información adicional:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="adicional" id="adicional_id" class="form-control" maxlength="20">
+                                    <input type="text" name="adicional" id="adicional_id" class="form-control" maxlength="50">
                                 </div>
                             </div>
                             <div class="row my-2 hide-me">
@@ -177,47 +197,47 @@
                                     <tr>
                                     <td>1</td>
                                     <td>Información sobre personal a su cargo</td>
-                                    <td><input type="text" name="comentario1" id="comentario_1" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario1" id="comentario_1" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>2</td>
                                     <td>Documentos</td>
-                                    <td><input type="text" name="comentario2" id="comentario_2" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario2" id="comentario_2" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>3</td>
                                     <td>Arqueo de caja o cuenta bancaria a su cargo (cuando aplique)</td>
-                                    <td><input type="text" name="comentario3" id="comentario_3" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario3" id="comentario_3" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>4</td>
                                     <td>Proyectos pendientes</td>
-                                    <td><input type="text" name="comentario4" id="comentario_4" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario4" id="comentario_4" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>5</td>
                                     <td>Estado de las operaciones a su cargo</td>
-                                    <td><input type="text" name="comentario5" id="comentario_5" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario5" id="comentario_5" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>6</td>
                                     <td>Deudas con la empresa</td>
-                                    <td><input type="text" name="comentario6" id="comentario_6" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario6" id="comentario_6" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>7</td>
                                     <td>Saldos por comprobar a contabilidad</td>
-                                    <td><input type="text" name="comentario7" id="comentario_7" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario7" id="comentario_7" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>8</td>
                                     <td>Activos asignados</td>
-                                    <td><input type="text" name="comentario8" id="comentario_8" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario8" id="comentario_8" class="form-control" maxlength="100"></td>
                                     </tr>
                                     <tr>
                                     <td>9</td>
                                     <td>Otros</td>
-                                    <td><input type="text" name="comentario9" id="comentario_9" class="form-control" maxlength="20"></td>
+                                    <td><input type="text" name="comentario9" id="comentario_9" class="form-control" maxlength="100"></td>
                                     </tr>
                                 </tbody>
                                 </table>
@@ -225,7 +245,7 @@
                             <div class="row my-2 hide-me">
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Anexos:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="anexos" id="anexos_id" class="form-control" maxlength="20">
+                                    <input type="text" name="anexos" id="anexos_id" class="form-control" maxlength="200">
                                 </div>
                             </div>
                         <hr>
@@ -260,7 +280,7 @@ $(function() {
         const endDate = new Date($('#id_fecha_fin').val());
         const diffInDays = dateDiffInDays(startDate, endDate);
 
-        if (diffInDays < 3) {
+        if (diffInDays < 2) {
             hideFields();
         } else {
             showFields();

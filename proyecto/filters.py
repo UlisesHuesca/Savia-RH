@@ -45,7 +45,7 @@ class BancariosFilter(django_filters.FilterSet):
 class CostoFilter(django_filters.FilterSet):
     numero_de_trabajador = django_filters.NumberFilter(field_name='status__perfil__numero_de_trabajador')
     nombres_apellidos = CharFilter(method='nombres_apellidos_filter', label="Search")
-    empresa = django_filters.ModelChoiceFilter(queryset=Empresa.objects.all(), field_name='status__perfil__empresa_empresa')
+    empresa = django_filters.ModelChoiceFilter(queryset=Empresa.objects.all(), field_name='status__perfil__empresa__empresa')
     distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.all(), field_name='status__perfil__distrito__distrito')
     #proyecto = django_filters.CharFilter(field_name='status__perfil__proyecto', lookup_expr='icontains')
     #subproyecto = django_filters.CharFilter(field_name='status__perfil__subproyecto', lookup_expr='icontains')
@@ -126,7 +126,7 @@ class SolicitudesVacacionesFilter(django_filters.FilterSet):
 
     def nombres_filter(self, queryset, name, value):
         return queryset.filter(Q(status__perfil__nombres__icontains = value) | Q(status__perfil__apellidos__icontains = value))
-    
+
 class SolicitudesEconomicosFilter(django_filters.FilterSet):
     numero_de_trabajador = django_filters.NumberFilter(field_name='status__perfil__numero_de_trabajador')
     nombres = CharFilter(method ='nombres_filter', label="Search")
@@ -134,6 +134,6 @@ class SolicitudesEconomicosFilter(django_filters.FilterSet):
     class Meta:
         model = Solicitud_economicos
         fields = ['nombres','distrito','numero_de_trabajador',]
-        
+
     def nombres_filter(self, queryset, name, value):
         return queryset.filter(Q(status__perfil__nombres__icontains = value) | Q(status__perfil__apellidos__icontains = value))

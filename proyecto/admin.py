@@ -33,7 +33,7 @@ from .models import Perfil
 from .models import Status
 from .models import DatosBancarios
 from .models import Bonos
-from .models import Uniformes 
+from .models import Uniformes
 from .models import Trabajos_encomendados
 from .models import Temas_comentario_solicitud_vacaciones
 from .models import Solicitud_vacaciones
@@ -55,15 +55,15 @@ class PerfilAdmin(admin.ModelAdmin):
 class StatusAdmin(admin.ModelAdmin):
     ordering = ['id']
     list_display = ('id','perfil','perfil_id',)
-    list_filter = ('complete_costo',)
+    list_filter = ('complete_costo','complete_vacaciones','complete_economicos','complete_bancarios',)
     search_fields = ('perfil__nombres'),
 
-class CostoAdmin(admin.ModelAdmin): 
+class CostoAdmin(admin.ModelAdmin):
     ordering = ['id']
     list_display = ('id','status')
     search_fields = ('status__perfil__nombres'),
 
-class BancariosAdmin(admin.ModelAdmin): 
+class BancariosAdmin(admin.ModelAdmin):
     ordering = ['id']
     list_display = ('id','status')
     search_fields = ('status__perfil__nombres'),

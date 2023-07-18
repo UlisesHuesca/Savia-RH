@@ -56,7 +56,7 @@ class Proyecto(models.Model):
 
     def __str__(self):
         return f'{self.proyecto}'
-    
+
 class SubProyecto(models.Model):
     proyecto = models.ForeignKey(Proyecto, on_delete = models.CASCADE, null=True)
     subproyecto = models.CharField(max_length=50,null=True)
@@ -64,35 +64,35 @@ class SubProyecto(models.Model):
 
     def __str__(self):
         return f'{self.subproyecto}'
-    
+
 class Contrato(models.Model):
     contrato = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.contrato}'
-    
+
 class Sangre(models.Model):
     sangre = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.sangre}'
-    
+
 class Sexo(models.Model):
     sexo = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.sexo}'
-    
+
 class Civil(models.Model):
     estado_civil = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.estado_civil}'
-    
+
 class Banco(models.Model):
     banco = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
@@ -168,6 +168,12 @@ class Perfil(models.Model):
         unique_together = ('numero_de_trabajador', 'distrito',)
 
     @property
+    def costo_empleado(self):
+        costos_perfil = self.status_set.all()
+        total =  sum([costo.get_costo for costo in costos_perfil])
+        return total
+
+    @property
     def fotoURL(self):
         try:
             url = self.foto.url
@@ -227,6 +233,12 @@ class Status(models.Model):
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
     editado = models.CharField(max_length=50,blank=True)
+
+    @property
+    def get_costo(self):
+        costos = self.costo_set.filter(complete=True)
+        total =  sum([costo.total_costo_empresa for costo in costos])
+        return total
 
     def __str__(self):
         if self.perfil ==None:
@@ -413,38 +425,46 @@ class Uniforme(models.Model):
         return f'Ropa: {self.ropa} Talla: {self.talla} Cantidad: {self.cantidad}'
 
 class Trabajos_encomendados(models.Model):
-    asunto1 = models.CharField(max_length=30,null=True,blank=True)
-    estado1 = models.CharField(max_length=30,null=True,blank=True)
-    asunto2 = models.CharField(max_length=30,null=True,blank=True)
-    estado2 = models.CharField(max_length=30,null=True,blank=True)
-    asunto3 = models.CharField(max_length=30,null=True,blank=True)
-    estado3 = models.CharField(max_length=30,null=True,blank=True)
-    asunto4 = models.CharField(max_length=30,null=True,blank=True)
-    estado4 = models.CharField(max_length=30,null=True,blank=True)
-    asunto5 = models.CharField(max_length=30,null=True,blank=True)
-    estado5 = models.CharField(max_length=30,null=True,blank=True)
-    asunto6 = models.CharField(max_length=30,null=True,blank=True)
-    estado6 = models.CharField(max_length=30,null=True,blank=True)
+    asunto1 = models.CharField(max_length=100,null=True,blank=True)
+    estado1 = models.CharField(max_length=100,null=True,blank=True)
+    asunto2 = models.CharField(max_length=100,null=True,blank=True)
+    estado2 = models.CharField(max_length=100,null=True,blank=True)
+    asunto3 = models.CharField(max_length=100,null=True,blank=True)
+    estado3 = models.CharField(max_length=100,null=True,blank=True)
+    asunto4 = models.CharField(max_length=100,null=True,blank=True)
+    estado4 = models.CharField(max_length=100,null=True,blank=True)
+    asunto5 = models.CharField(max_length=100,null=True,blank=True)
+    estado5 = models.CharField(max_length=100,null=True,blank=True)
+    asunto6 = models.CharField(max_length=100,null=True,blank=True)
+    estado6 = models.CharField(max_length=100,null=True,blank=True)
+    asunto7 = models.CharField(max_length=100,null=True,blank=True)
+    estado7 = models.CharField(max_length=100,null=True,blank=True)
+    asunto8 = models.CharField(max_length=100,null=True,blank=True)
+    estado8 = models.CharField(max_length=100,null=True,blank=True)
+    asunto9 = models.CharField(max_length=100,null=True,blank=True)
+    estado9 = models.CharField(max_length=100,null=True,blank=True)
+    asunto10 = models.CharField(max_length=100,null=True,blank=True)
+    estado10 = models.CharField(max_length=100,null=True,blank=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f'ID: {self.id},'
-    
+
 class Temas_comentario_solicitud_vacaciones(models.Model):
-    comentario1 = models.CharField(max_length=30,null=True,blank=True)
-    comentario2 = models.CharField(max_length=30,null=True,blank=True)
-    comentario3 = models.CharField(max_length=30,null=True,blank=True)
-    comentario4 = models.CharField(max_length=30,null=True,blank=True)
-    comentario5 = models.CharField(max_length=30,null=True,blank=True)
-    comentario6 = models.CharField(max_length=30,null=True,blank=True)
-    comentario7 = models.CharField(max_length=30,null=True,blank=True)
-    comentario8 = models.CharField(max_length=30,null=True,blank=True)
-    comentario9 = models.CharField(max_length=30,null=True,blank=True)
+    comentario1 = models.CharField(max_length=100,null=True,blank=True)
+    comentario2 = models.CharField(max_length=100,null=True,blank=True)
+    comentario3 = models.CharField(max_length=100,null=True,blank=True)
+    comentario4 = models.CharField(max_length=100,null=True,blank=True)
+    comentario5 = models.CharField(max_length=100,null=True,blank=True)
+    comentario6 = models.CharField(max_length=100,null=True,blank=True)
+    comentario7 = models.CharField(max_length=100,null=True,blank=True)
+    comentario8 = models.CharField(max_length=100,null=True,blank=True)
+    comentario9 = models.CharField(max_length=100,null=True,blank=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f'ID: {self.id},'
-    
+
 class Solicitud_vacaciones(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     periodo = models.CharField(max_length=50,null=True)
@@ -458,16 +478,16 @@ class Solicitud_vacaciones(models.Model):
     asunto = models.ForeignKey(Trabajos_encomendados, on_delete = models.CASCADE, null=True)
     informacion_adicional= models.CharField(max_length=50,null=True, blank=True)
     temas = models.ForeignKey(Temas_comentario_solicitud_vacaciones, on_delete = models.CASCADE, null=True)
-    anexos = models.CharField(max_length=50,null=True, blank=True)
+    anexos = models.CharField(max_length=200,null=True, blank=True)
     autorizar = models.BooleanField(null=True, default=None)
-    comentario_rh = models.CharField(max_length=50,null=True, blank=True)
+    comentario_rh = models.CharField(max_length=100,null=True, blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f' id: {self.id} Status: {self.status} Fecha solicitud: {self.created_at} Días: {self.fecha_inicio} a {self.fecha_fin}'
-    
+
 class Vacaciones(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     periodo = models.CharField(max_length=50,null=True)
@@ -477,7 +497,7 @@ class Vacaciones(models.Model):
     fecha_fin = models.DateField(null=True)
     dias_disfrutados = models.IntegerField(null=True, default=0)
     total_pendiente = models.IntegerField(null=True, default=0)
-    comentario = models.CharField(max_length=50,null=True)
+    comentario = models.CharField(max_length=100,null=True)
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
@@ -501,7 +521,7 @@ class Solicitud_economicos(models.Model):
 
     def __str__(self):
         return f'Status: {self.status} Fecha solicitud: {self.created_at} Día: {self.fecha}'
-    
+
 class Economicos(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     periodo = models.CharField(max_length=50,null=True)

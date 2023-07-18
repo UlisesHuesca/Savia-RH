@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
+
 {% block content %}
 <hr>
 <hr>
@@ -49,25 +50,25 @@
               <form method='POST'>
               <div class="row">
                     {% csrf_token %}
-                    {{form|crispy}} 
+                    {{form|crispy}}
               </div>
 
-             
 
-              
-              <div class="form-check d-flex justify-content-center mb-4">
+
+
+              <!--<div class="form-check d-flex justify-content-center mb-4">
                 <label class="form-check-label" for="form2Example33">
                     <a class='btn' style="color:rgb(84, 118, 150)" href="">Cambiar contraseña</a>
                 </label>
-              </div>
+              </div>-->
 
               <!-- Submit button -->
-              <input class='btn btn-primary btn-block mb-4' type='submit' value='Log in'>
+              <input class='btn btn-primary btn-block mb-4 my-2' type='submit' value='Log in'>
               </form>
 
               <!-- Register buttons -->
               <div class="text-center">
-                
+
               </div>
             </form>
           </div>

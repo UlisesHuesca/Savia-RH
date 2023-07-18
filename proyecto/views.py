@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.http import FileResponse
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Sum
 from django.contrib import messages
 import locale
@@ -16,7 +17,7 @@ import json
 
 from django.http import HttpResponse
 import datetime
-from datetime import timedelta, date 
+from datetime import timedelta, date
 from dateutil.relativedelta import relativedelta #Años entre 2 fechas con años bisiestos
 from django.db.models.functions import Concat
 #PDF generator
@@ -26,7 +27,7 @@ from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, Vacaci
 from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, VacacionesFormato
 from .forms import SolicitudEconomicosForm, SolicitudEconomicosUpdateForm, SolicitudVacacionesForm, SolicitudVacacionesUpdateForm, Vacaciones_anteriores_BatchForm
 from .filters import BonosFilter, Costo_historicFilter, PerfilFilter, StatusFilter, BancariosFilter, CostoFilter, VacacionesFilter, EconomicosFilter
-from .filters import CatorcenasFilter, DistritoFilter, SolicitudesVacacionesFilter, SolicitudesEconomicosFilter 
+from .filters import CatorcenasFilter, DistritoFilter, SolicitudesVacacionesFilter, SolicitudesEconomicosFilter
 from decimal import Decimal
 #Excel
 from openpyxl import Workbook
@@ -77,7 +78,7 @@ def Tabla_isr(request):
 @login_required(login_url='user-login')
 def Tabla_catorcenas(request):
 
-    catorcenas = Catorcenas.objects.filter(complete=True)
+    catorcenas = Catorcenas.objects.filter(complete=True).order_by("-fecha_final")
 
     catorcena_filter = CatorcenasFilter(request.GET, queryset=catorcenas)
     catorcenas = catorcena_filter.qs
@@ -198,11 +199,18 @@ def Perfil_vista(request):
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
     perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
     perfiles = perfil_filter.qs
+
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_perfil(perfiles)
+
+    p = Paginator(perfiles, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
     context= {
         'perfiles':perfiles,
         'perfil_filter':perfil_filter,
+        'salidas_list':salidas_list,
         }
 
     return render(request, 'proyecto/Perfil.html',context)
@@ -313,9 +321,16 @@ def Status_vista(request):
     status = status_filter.qs
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_status(status)
+
+                    #Set up pagination
+    p = Paginator(status, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
     context= {
         'status':status,
         'status_filter':status_filter,
+        'salidas_list':salidas_list,
         }
 
     return render(request, 'proyecto/Status.html',context)
@@ -393,11 +408,11 @@ def StatusUpdate(request, pk):
         form = StatusUpdateForm(request.POST, instance=estado)
         estado = form.save(commit=False)
         if estado.fecha_planta_anterior != None and estado.fecha_planta != None:
-            if estado.fecha_planta_anterior > ahora:   
+            if estado.fecha_planta_anterior > ahora:
                 messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
-            if estado.fecha_planta > ahora:   
+            if estado.fecha_planta > ahora:
                 messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
-            if estado.fecha_planta_anterior > estado.fecha_planta:   
+            if estado.fecha_planta_anterior > estado.fecha_planta:
                 messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a fecha de planta')
             else:
                 valido=True
@@ -468,7 +483,7 @@ def Administrar_tablas(request):
             return excel_reporte_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,)
         if request.method =='POST' and 'Pdf' in request.POST:
             return reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,)
-    else: 
+    else:
         if request.method =='POST' and 'Excel' in request.POST:
             return excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,)
         if request.method =='POST' and 'Pdf' in request.POST:
@@ -565,10 +580,15 @@ def Tabla_uniformes(request):
     status = status_filter.qs
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_uniformes(status)
+                #Set up pagination
+    p = Paginator(status, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
 
     context= {
         'status':status,
         'status_filter':status_filter,
+        'salidas_list':salidas_list,
         }
 
     return render(request, 'proyecto/Tabla_uniformes.html',context)
@@ -1074,7 +1094,7 @@ def CostoUpdate(request, pk):
 def Costo_revisar(request, pk):
 
     costo = Costo.objects.get(id=pk)
-    ahora = datetime.date.today() 
+    ahora = datetime.date.today()
     catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
     bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
     sum_bonos = bonos_dato.aggregate(Sum('monto'))
@@ -1240,10 +1260,14 @@ def TablaCosto(request):
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_costo(costos)
 
+                #Set up pagination
+    p = Paginator(costos, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
 
-    ahora = datetime.date.today() 
+    ahora = datetime.date.today()
     catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    for costo in costos:
+    for costo in salidas_list:
         bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
         sum_bonos = bonos_dato.aggregate(Sum('monto'))
         bonototal = sum_bonos['monto__sum']
@@ -1307,7 +1331,7 @@ def TablaCosto(request):
         costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
         costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
 
-    context = {'costos':costos,'costo_filter':costo_filter,}
+    context = {'costos':costos,'costo_filter':costo_filter,'salidas_list':salidas_list,}
 
     return render(request, 'proyecto/Tabla_costo.html',context)
 
@@ -1333,9 +1357,15 @@ def TablaBonos(request):
             bono.monto = 0
         else:
             bono.monto=locale.currency(bono.monto, grouping=True)
+                #Set up pagination
+    p = Paginator(bonos, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
     context= {
         'bonos':bonos,
         'bono_filter':bono_filter,
+        'salidas_list':salidas_list,
         }
 
     return render(request, 'proyecto/BonosTabla.html',context)
@@ -1369,10 +1399,7 @@ def Empleado_Bonos(request, pk):
 @login_required(login_url='user-login')
 def FormularioVacaciones(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    
-    #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
-    #año_actual = str(date.today().year)
-    #status_filtrados = Status.objects.exclude(vacaciones__periodo=año_actual, fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) #Status que no tengan en vacaciones (Periodo=año actual) y fechas None
+
     año_actual = str(date.today().year)
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
     mes_actual = datetime.date.today().month
@@ -1392,7 +1419,7 @@ def FormularioVacaciones(request):
         perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
         empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete= True, complete_vacaciones = False)
 
-    ahora = datetime.date.today() 
+    ahora = datetime.date.today()
     tablas= TablaVacaciones.objects.all()
     descanso,created=Vacaciones.objects.get_or_create(complete=False)
     form = VacacionesForm()
@@ -1422,7 +1449,7 @@ def FormularioVacaciones(request):
             #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
             datos = Vacaciones.objects.filter(status=descanso.status.id, total_pendiente__gt=0,).order_by("created_at") #Trae todas las vacaciones del mas antiguo al actual 2019-2022
             for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
-                if cuenta <= dato.total_pendiente and cuenta > 0: 
+                if cuenta <= dato.total_pendiente and cuenta > 0:
                     if dato.dias_disfrutados == None:
                         dato.dias_disfrutados = 0
                     dato.dias_disfrutados += cuenta
@@ -1435,8 +1462,8 @@ def FormularioVacaciones(request):
                     dato.dias_disfrutados = dato.total_pendiente
                     cuenta -= dato.total_pendiente
                     dato.total_pendiente = 0
-            #ARRIBA se usan aqui atras los días de vacaciones anteriores y si no completan sale cuenta con el valor de los que se deben tomar de la actual             
-            #Se calculan los días para la vacación actual 
+            #ARRIBA se usan aqui atras los días de vacaciones anteriores y si no completan sale cuenta con el valor de los que se deben tomar de la actual
+            #Se calculan los días para la vacación actual
             if descanso.status.fecha_planta_anterior:
                 days = descanso.status.fecha_planta_anterior
             else:
@@ -1464,10 +1491,63 @@ def FormularioVacaciones(request):
             else:
                 periodofecha = descanso.created_at.year
                 descanso.periodo=str(periodofecha)
-                descanso.total_pendiente=descanso.dias_de_vacaciones-descanso.dias_disfrutados 
+                descanso.total_pendiente=descanso.dias_de_vacaciones-descanso.dias_disfrutados
 
                 empleado = Status.objects.get(id = descanso.status.id)
                 if form.is_valid():
+                    trabajos_encomendados, created = Trabajos_encomendados.objects.get_or_create(complete=False,)
+                    temas, created = Temas_comentario_solicitud_vacaciones.objects.get_or_create(complete=False,)
+                    trabajos_encomendados.asunto1 = request.POST.get('asunto1')
+                    trabajos_encomendados.estado1 = request.POST.get('estado1')
+                    trabajos_encomendados.asunto2 = request.POST.get('asunto2')
+                    trabajos_encomendados.estado2 = request.POST.get('estado2')
+                    trabajos_encomendados.asunto3 = request.POST.get('asunto3')
+                    trabajos_encomendados.estado3 = request.POST.get('estado3')
+                    trabajos_encomendados.asunto4 = request.POST.get('asunto4')
+                    trabajos_encomendados.estado4 = request.POST.get('estado4')
+                    trabajos_encomendados.asunto5 = request.POST.get('asunto5')
+                    trabajos_encomendados.estado5 = request.POST.get('estado5')
+                    trabajos_encomendados.asunto6 = request.POST.get('asunto6')
+                    trabajos_encomendados.estado6 = request.POST.get('estado6')
+                    trabajos_encomendados.asunto7 = request.POST.get('asunto7')
+                    trabajos_encomendados.estado7 = request.POST.get('estado7')
+                    trabajos_encomendados.asunto8 = request.POST.get('asunto8')
+                    trabajos_encomendados.estado8 = request.POST.get('estado8')
+                    trabajos_encomendados.asunto9 = request.POST.get('asunto9')
+                    trabajos_encomendados.estado9 = request.POST.get('estado9')
+                    trabajos_encomendados.asunto10 = request.POST.get('asunto10')
+                    trabajos_encomendados.estado10 = request.POST.get('estado10')
+                    temas.comentario1 = request.POST.get('comentario1')
+                    temas.comentario2 = request.POST.get('comentario2')
+                    temas.comentario3 = request.POST.get('comentario3')
+                    temas.comentario4 = request.POST.get('comentario4')
+                    temas.comentario5 = request.POST.get('comentario5')
+                    temas.comentario6 = request.POST.get('comentario6')
+                    temas.comentario7 = request.POST.get('comentario7')
+                    temas.comentario8 = request.POST.get('comentario8')
+                    temas.comentario9 = request.POST.get('comentario9')
+                    trabajos_encomendados.complete=True
+                    trabajos_encomendados.save()
+                    temas.complete=True
+                    temas.save()
+                    solicitud, created = Solicitud_vacaciones.objects.get_or_create(complete=False)
+                    solicitud.status = descanso.status
+                    solicitud.periodo = descanso.periodo
+                    solicitud.fecha_inicio = descanso.fecha_inicio
+                    solicitud.fecha_fin = descanso.fecha_fin
+                    solicitud.dia_inhabil = descanso.dia_inhabil
+                    solicitud.recibe_nombre = request.POST.get('recibe')
+                    solicitud.recibe_area = request.POST.get('area')
+                    solicitud.recibe_puesto = request.POST.get('puesto')
+                    solicitud.recibe_sector = request.POST.get('sector')
+                    solicitud.asunto = trabajos_encomendados
+                    solicitud.informacion_adicional = request.POST.get('adicional')
+                    solicitud.temas = temas
+                    solicitud.anexos = request.POST.get('anexos')
+                    solicitud.autorizar = True
+                    solicitud.comentario_rh = descanso.comentario
+                    solicitud.complete=True
+                    solicitud.save()
                     for dato in datos:
                         historial = dato.history.first()  # Obtener la primera versión histórica del objeto
                         if historial and historial.total_pendiente != dato.total_pendiente:
@@ -1480,10 +1560,12 @@ def FormularioVacaciones(request):
                             dato._meta.get_field('created_at').auto_now = True
                     if cuenta > 0:
                         messages.success(request, 'Datos capturados con éxito')
-                    else: 
+                    else:
                         messages.success(request, 'Datos capturados con éxito y descontados a sus días pendientes')
                     descanso.complete=True
                     descanso.comentario +=" "+"Dias tomados:" + str(dias_vacacion)
+                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                    descanso.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
                     form.save()
                     empleado.complete_vacaciones = True
                     empleado.save()
@@ -1566,15 +1648,15 @@ def VacacionesUpdate(request, pk):
                                 dato._meta.get_field('created_at').auto_now = True
                         if cuenta > 0:
                             messages.success(request, f'Cambios guardados con éxito los días de vacaciones de {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos}')
-                        else: 
+                        else:
                             messages.success(request, f'Datos capturados con éxito empleado {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos} y descontados a sus días pendientes')
                         descanso.comentario +=" " + "Dias tomados:" + str(dias_vacacion)
                         form.save()
                         return redirect('Tabla_vacaciones_empleados')
             else:
-                messages.error(request, 'Ya a tomado todos sus días de vacaciones') 
+                messages.error(request, 'Ya a tomado todos sus días de vacaciones')
         else:
-            messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0') 
+            messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
     else:
         form = VacacionesUpdateForm()
     context = {
@@ -1623,19 +1705,27 @@ def Tabla_Vacaciones(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        descansos= Vacaciones.objects.filter(complete=True,created_at__year=año_actual, status__perfil__baja=False).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual, status__perfil__baja=False).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+    #elif user_filter.distrito.distrito == 'Poza Rica':
+    #    perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
+    #    descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo__in=["2022", "2023"]).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
-        descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
 
     vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
     descansos = vacaciones_filter.qs
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_vacaciones(descansos)
+                #Set up pagination
+    p = Paginator(descansos, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
 
     context= {
         'descansos':descansos,
         'vacaciones_filter':vacaciones_filter,
+        'salidas_list':salidas_list,
         }
 
     return render(request, 'proyecto/TablaVacaciones.html',context)
@@ -1678,7 +1768,7 @@ def FormularioEconomicos(request):
         else:
             days = economico.status.fecha_planta
         ahora = datetime.date.today()
-        año = 1 
+        año = 1
         if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
             antiguedad = ahora.year - days.year
         else:
@@ -1692,6 +1782,14 @@ def FormularioEconomicos(request):
             economico.periodo=periodo
             empleado = Status.objects.get(id = economico.status.id)
             if form.is_valid():
+                solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
+                solicitud.status = economico.status
+                solicitud.periodo = economico.periodo
+                solicitud.fecha = economico.fecha
+                solicitud.comentario = economico.comentario
+                solicitud.autorizar = True
+                solicitud.complete=True
+                solicitud.save()
                 nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
                 economico.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
                 messages.success(request, 'Datos capturados con exíto')
@@ -1720,7 +1818,10 @@ def EconomicosUpdate(request, pk):
     anterior_dia=economico.dias_disfrutados
     if request.method == 'POST' and 'btnSend' in request.POST:
         form = EconomicosUpdateForm(request.POST,instance=economico)
-        if anterior_fecha == economico.fecha - timedelta(days=1):
+        fecha_form = request.POST.get('fecha')
+        year, month, day = map(int, fecha_form.split('-'))
+        fecha_form = date(year, month, day)
+        if anterior_fecha == fecha_form - timedelta(days=1):
             messages.error(request,'Los días económicos no pueden ser seguidos')
         else:
             economico.status=status
@@ -1736,6 +1837,14 @@ def EconomicosUpdate(request, pk):
             else:
                 economico.complete_dias=False
             if form.is_valid():
+                solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
+                solicitud.status = economico.status
+                solicitud.periodo = economico.periodo
+                solicitud.fecha = economico.fecha
+                solicitud.comentario = economico.comentario
+                solicitud.autorizar = True
+                solicitud.complete=True
+                solicitud.save()
                 nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
                 economico.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
                 messages.success(request, 'Se capturaron con exíto los datos')
@@ -1783,11 +1892,22 @@ def Tabla_Economicos(request): #Ya esta
     economicoss = economico_filters.qs
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_economicos(economicos,economicoss)
+
+                #Set up pagination
+    p = Paginator(economicos, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+                #Set up pagination
+    p = Paginator(economicoss, 50)
+    page = request.GET.get('page')
+    salidas_listt = p.get_page(page)
     context= {
         'economicos':economicos,
         'economico_filter':economico_filter,
         'economicoss':economicoss,
         'economico_filters':economico_filters,
+        'salidas_list':salidas_list,
+        'salidas_listt':salidas_listt,
         }
 
     return render(request, 'proyecto/Tabla_economicos.html',context)
@@ -1822,9 +1942,15 @@ def Tabla_Datosbancarios(request):
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_bancarios(bancarios)
 
+                #Set up pagination
+    p = Paginator(bancarios, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
     context= {
         'bancarios':bancarios,
         'bancario_filter':bancario_filter,
+        'salidas_list':salidas_list,
         }
 
     return render(request, 'proyecto/Tabla_Datosbancarios.html',context)
@@ -1920,7 +2046,7 @@ def convert_excel_costo(costos):
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
 
     # Se busca el bono actual
-    ahora = datetime.date.today() 
+    ahora = datetime.date.today()
     catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
 
     rows = costos.annotate(bonototal=Sum('bonos__monto', filter=Q(bonos__fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final]))).values_list(
@@ -3303,7 +3429,7 @@ def SolicitudVacaciones(request):
                 messages.error(request,f'Tiene {pendiente} días pendientes, y esta solicitando {cuenta} días de vacaciones')
                 valido = False
         elif Solicitud_vacaciones.objects.filter(status=status):
-            verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()  
+            verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
             if verificar.autorizar == None:
                 messages.error(request,'Tiene una solicitud generada pendiente de autorizar')
                 valido = False
@@ -3317,7 +3443,7 @@ def SolicitudVacaciones(request):
         else:
             days = status.fecha_planta
         ahora = datetime.date.today()
-        año = 1 
+        año = 1
         if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
             antiguedad = ahora.year - days.year
         else:
@@ -3347,6 +3473,14 @@ def SolicitudVacaciones(request):
             trabajos_encomendados.estado5 = request.POST.get('estado5')
             trabajos_encomendados.asunto6 = request.POST.get('asunto6')
             trabajos_encomendados.estado6 = request.POST.get('estado6')
+            trabajos_encomendados.asunto7 = request.POST.get('asunto7')
+            trabajos_encomendados.estado7 = request.POST.get('estado7')
+            trabajos_encomendados.asunto8 = request.POST.get('asunto8')
+            trabajos_encomendados.estado8 = request.POST.get('estado8')
+            trabajos_encomendados.asunto9 = request.POST.get('asunto9')
+            trabajos_encomendados.estado9 = request.POST.get('estado9')
+            trabajos_encomendados.asunto10 = request.POST.get('asunto10')
+            trabajos_encomendados.estado10 = request.POST.get('estado10')
             temas.comentario1 = request.POST.get('comentario1')
             temas.comentario2 = request.POST.get('comentario2')
             temas.comentario3 = request.POST.get('comentario3')
@@ -3368,7 +3502,7 @@ def SolicitudVacaciones(request):
             solicitud.temas = temas
             solicitud.complete=True
             form.save()
-            return redirect('index') 
+            return redirect('index')
     context= {
         'usuario':usuario,
         'form':form,
@@ -3411,10 +3545,10 @@ def solicitud_vacacion_verificar(request, pk):
                     if fecha == dia.dia_festivo:
                         cuenta -= 1  #Días que va a tomar con esta solicitud
         dias_vacacion = cuenta
-        if cuenta < 0: 
+        if cuenta < 0:
             messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
-            valido=False    
-        
+            valido=False
+
         #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
         ultima_vacacion = Vacaciones.objects.filter(status=solicitud.status.id).last()
         if ultima_vacacion is not None and ultima_vacacion.total_pendiente > 0:
@@ -3422,7 +3556,7 @@ def solicitud_vacacion_verificar(request, pk):
             suma_total = datos.aggregate(total_suma=Sum('total_pendiente'))['total_suma']
             if suma_total < cuenta:
                 messages.error(request, f'Esta pidiendo {cuenta} días cuando solo tiene {suma_total}')
-                valido=False      
+                valido=False
             if datos.exclude(id=datos.last().id) != None:
                 datos = datos.exclude(id=datos.last().id) #Hasta aqui bien
                 for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
@@ -3445,7 +3579,7 @@ def solicitud_vacacion_verificar(request, pk):
         fecha_planta_anterior = solicitud.status.fecha_planta_anterior
         fecha_planta = solicitud.status.fecha_planta
         if fecha_planta_anterior: #Si existe fecha de planta anterior se ocupa esa
-            days = fecha_planta_anterior 
+            days = fecha_planta_anterior
         else:
             days = fecha_planta
         periodo=1
@@ -3456,8 +3590,8 @@ def solicitud_vacacion_verificar(request, pk):
         tablas= TablaVacaciones.objects.all() #Se buscan los dias que le tocan de vacaciones segun su antigüedad
         for tabla in tablas:
             if antiguedad >= tabla.years:
-                dias_de_vacaciones = tabla.days #Variable que tiene los dias de vacaciones que le tocan      
-        ############################        
+                dias_de_vacaciones = tabla.days #Variable que tiene los dias de vacaciones que le tocan
+        ############################
         if valido and form.is_valid():
             solicitud = form.save(commit=False)
             solicitud.comentario_rh= request.POST.get('comentario')
@@ -3480,6 +3614,14 @@ def solicitud_vacacion_verificar(request, pk):
             trabajos.estado5 = request.POST.get('estado5')
             trabajos.asunto6 = request.POST.get('asunto6')
             trabajos.estado6 = request.POST.get('estado6')
+            trabajos.asunto7 = request.POST.get('asunto7')
+            trabajos.estado7 = request.POST.get('estado7')
+            trabajos.asunto8 = request.POST.get('asunto8')
+            trabajos.estado8 = request.POST.get('estado8')
+            trabajos.asunto9 = request.POST.get('asunto9')
+            trabajos.estado9 = request.POST.get('estado9')
+            trabajos.asunto10 = request.POST.get('asunto10')
+            trabajos.estado10 = request.POST.get('estado10')
             temas.comentario1 = request.POST.get('comentario1')
             temas.comentario2 = request.POST.get('comentario2')
             temas.comentario3 = request.POST.get('comentario3')
@@ -3501,7 +3643,7 @@ def solicitud_vacacion_verificar(request, pk):
                     vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
                     vacacion.dia_inhabil = solicitud.dia_inhabil
                     vacacion.fecha_fin = solicitud.fecha_fin
-                    vacacion.fecha_inicio = solicitud.fecha_inicio 
+                    vacacion.fecha_inicio = solicitud.fecha_inicio
                     vacacion.comentario = coment
                 else:
                     vacacion.dias_disfrutados += cuenta
@@ -3519,7 +3661,7 @@ def solicitud_vacacion_verificar(request, pk):
                     if historial and historial.total_pendiente != dato.total_pendiente:
                         # El campo 'total_pendiente' ha cambiado
                         dato._meta.get_field('created_at').auto_now = False
-                        dato.comentario ="Tomado periodo:" + str(solicitud.periodo) 
+                        dato.comentario ="Tomado periodo:" + str(solicitud.periodo)
                         dato.fecha_inicio = solicitud.fecha_inicio
                         dato.fecha_fin =  solicitud.fecha_fin
                         dato.save()
@@ -3541,7 +3683,7 @@ def solicitud_vacacion_verificar(request, pk):
     context = {'form':form,'solicitud':solicitud, 'temas':temas, 'trabajos':trabajos}
 
     return render(request,'proyecto/solicitud_vacaciones_update.html',context)
-    
+
 def PdfFormatoVacaciones(request, pk):
     solicitud= Solicitud_vacaciones.objects.get(id=pk)
     inicio = solicitud.fecha_inicio
@@ -3688,7 +3830,7 @@ def PdfFormatoVacaciones(request, pk):
         c.setFont('Helvetica',11)
         #Tabla y altura guia
         data =[]
-        high = 150
+        high = 130
         data.append(['''No.''','''DENOMINACIÓN ASUNTO''','''ESTADO''',])
         #for economico in economicos: #Salen todos los datos
         #    creado = economico.created_at.date()
@@ -3699,8 +3841,37 @@ def PdfFormatoVacaciones(request, pk):
         data.append([4,solicitud.asunto.asunto4,solicitud.asunto.estado4,])
         data.append([5,solicitud.asunto.asunto5,solicitud.asunto.estado5,])
         data.append([6,solicitud.asunto.asunto6,solicitud.asunto.estado6,])
+        data.append([7,solicitud.asunto.asunto7,solicitud.asunto.estado7,])
+        data.append([8,solicitud.asunto.asunto8,solicitud.asunto.estado8,])
+        data.append([9,solicitud.asunto.asunto9,solicitud.asunto.estado9,])
+        data.append([10,solicitud.asunto.asunto10,solicitud.asunto.estado10,])
         high = high - 20
             #Propiedades de la tabla
+        width, height = letter
+        table = Table(data, colWidths=[1.5 * cm, 8 * cm, 10  * cm,], repeatRows=1)
+        table.setStyle(TableStyle([ #estilos de la tabla
+            #ENCABEZADO
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('TEXTCOLOR',(0,0),(-1,0), black),
+            ('FONTSIZE',(0,0),(-1,0), 12),
+            ('BACKGROUND',(0,0),(-1,0), white),
+            #CUERPO
+            ('TEXTCOLOR',(0,1),(-1,-1), colors.black),
+            ('FONTSIZE',(0,1),(-1,-1), 12),
+            ('GRID',(0,0),(-1,-1),0.5,colors.grey),
+            ]))
+        table.setStyle(TableStyle([
+            ('GRID',(0,0),(-1,-1),0.5,colors.grey),
+            ]))
+        table.wrapOn(c, width, height)
+        table.drawOn(c, 25, high)
+        c.showPage()
+        data =[]
+        high = 850
+        for n in range(11, 51):
+            data.append([n, "   " , "    "])
+            high -= 20
+                    #Propiedades de la tabla
         width, height = letter
         table = Table(data, colWidths=[1.5 * cm, 8 * cm, 10  * cm,], repeatRows=1)
         table.setStyle(TableStyle([ #estilos de la tabla
@@ -3855,7 +4026,7 @@ def SolicitudEconomicos(request):
                 messages.error(request,'Usted ya a utilizado sus 3 días económicos')
                 valido = False
         elif Solicitud_economicos.objects.filter(status=status):
-            verificar = Solicitud_economicos.objects.filter(status=status,periodo=periodo).last()  
+            verificar = Solicitud_economicos.objects.filter(status=status,periodo=periodo).last()
             if verificar.autorizar == None:
                 messages.error(request,'Tiene una solicitud generada pendiente de autorizar')
                 valido = False
@@ -3866,7 +4037,7 @@ def SolicitudEconomicos(request):
         else:
             days = status.fecha_planta
         ahora = datetime.date.today()
-        año = 1 
+        año = 1
         if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
             antiguedad = ahora.year - days.year
         else:
@@ -3874,7 +4045,12 @@ def SolicitudEconomicos(request):
         if antiguedad < año:
             messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
             valido=False
-
+        fecha_form = request.POST.get('fecha')
+        year, month, day = map(int, fecha_form.split('-'))
+        fecha_form = date(year, month, day)
+        if datos.fecha == fecha_form - timedelta(days=1):
+            messages.error(request,'Los días económicos no pueden ser seguidos')
+            valido = False
         if valido and form.is_valid():
             messages.success(request, 'Solicitud enviada a RH')
             now = date.today()
@@ -3882,7 +4058,7 @@ def SolicitudEconomicos(request):
             solicitud.status = status
             solicitud.complete=True
             form.save()
-            return redirect('index') 
+            return redirect('index')
 
     context= {
         'usuario':usuario,
@@ -3911,19 +4087,19 @@ def solicitud_economico_verificar(request, pk):
                 observaciones = request.POST.get('observaciones')
                 # Buscamos o creamos una instancia de Economicos
                 economico, created = Economicos.objects.get_or_create(complete=True,status=solicitud.status,periodo=solicitud.periodo)
-                
+
                 if not created:
                     anterior = Economicos.objects.get(complete=True,status=solicitud.status,periodo=solicitud.periodo)
                     # Si no se creó una nueva instancia, editamos los campos necesarios
                     economico.comentario = observaciones
-                    economico.dias_disfrutados = anterior.dias_disfrutados + 1 
+                    economico.dias_disfrutados = anterior.dias_disfrutados + 1
                     economico.dias_pendientes = anterior.dias_pendientes - 1
                     economico.fecha = solicitud.fecha
                 else:
                     economico.comentario = observaciones
                     economico.dias_disfrutados = 1
-                    economico.dias_pendientes = 2  
-                    economico.fecha = solicitud.fecha  
+                    economico.dias_pendientes = 2
+                    economico.fecha = solicitud.fecha
                 # Actualizamos el objeto status
                 status = Status.objects.get(id=economico.status.id)
                 status.complete_economicos = True
@@ -3937,7 +4113,7 @@ def solicitud_economico_verificar(request, pk):
                 messages.success(request, 'Solicitud autorizada y días economicos agregados')
             else:
                 messages.success(request, 'Solicitud guardada como no autorizado')
-            return redirect('Solicitudes_economicos') 
+            return redirect('Solicitudes_economicos')
     else:
         form = SolicitudEconomicosUpdateForm(instance=solicitud)
 
@@ -4565,9 +4741,9 @@ def Tabla_solicitud_vacaciones(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        perfiles= Perfil.objects.filter(complete=True).order_by("numero_de_trabajador")
+        perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
     else:
-        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True).order_by("numero_de_trabajador")
+        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True, baja=False).order_by("numero_de_trabajador")
 
     solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
     solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
@@ -4590,9 +4766,9 @@ def Tabla_solicitud_economicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        perfiles= Perfil.objects.filter(complete=True).order_by("numero_de_trabajador")
+        perfiles= Perfil.objects.filter(complete=True,baja=False).order_by("numero_de_trabajador")
     else:
-        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True).order_by("numero_de_trabajador")
+        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
 
     solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
     solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
