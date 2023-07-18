@@ -1,1 +1,0 @@
-[{"model": "proyecto.sexo", "pk": 1, "fields": {"sexo": "Femenino", "complete": false}}, {"model": "proyecto.sexo", "pk": 2, "fields": {"sexo": "Masculino", "complete": false}}]

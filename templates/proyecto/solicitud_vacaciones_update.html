@@ -78,7 +78,7 @@
                                 <div class="row my-2 align-items-center">
                                     <label for="form.comentario" class="col-auto col-form-label my-1"><strong>Comentario:</strong></label>
                                     <div class="col-3">
-                                        <input type="text" name="comentario" id="comentario_id" class="form-control" maxlength="30">
+                                        <input type="text" name="comentario" id="comentario_id" class="form-control" maxlength="90">
                                     </div>
                                 </div>
                         </div>
@@ -88,21 +88,21 @@
                                 <h5 class="title is-size-3">Recepción de puesto</h5>
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Recibe:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="recibe" value="{{solicitud.recibe_nombre|default:''}}" id="recibe_id" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;">
+                                    <input type="text" name="recibe" value="{{solicitud.recibe_nombre|default:''}}" id="recibe_id" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;">
                                 </div>
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Área:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="area" value="{{solicitud.recibe_area|default:''}}" id="area_id" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;">
+                                    <input type="text" name="area" value="{{solicitud.recibe_area|default:''}}" id="area_id" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;">
                                 </div>
                             </div>
                             <div class="row my-2 hide-me">
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Puesto:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="puesto" value="{{solicitud.recibe_puesto|default:''}}" id="puesto_id" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;">
+                                    <input type="text" name="puesto" value="{{solicitud.recibe_puesto|default:''}}" id="puesto_id" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;">
                                 </div>
                                 <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Sector:</strong></label>
                                 <div class="col-3">
-                                    <input type="text" name="sector" value="{{solicitud.recibe_sector|default:''}}" id="sector_id" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;" autocomplete="off">
+                                    <input type="text" name="sector" value="{{solicitud.recibe_sector|default:''}}" id="sector_id" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;" autocomplete="off">
                                 </div>
                             </div>
                             <br>
@@ -120,33 +120,33 @@
                                     <tbody>
                                         <tr>
                                             <td>1</td>
-                                            <td><input type="text" name="asunto1" value="{{trabajos.asunto1}}" id="asunto_1" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
-                                            <td><input type="text" name="estado1" value="{{trabajos.estado1}}" id="estado_1" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="asunto1" value="{{trabajos.asunto1}}" id="asunto_1" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="estado1" value="{{trabajos.estado1}}" id="estado_1" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>2</td>
-                                            <td><input type="text" name="asunto2" value="{{trabajos.asunto2}}" id="asunto_2" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
-                                            <td><input type="text" name="estado2" value="{{trabajos.estado2}}" id="estado_2" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="asunto2" value="{{trabajos.asunto2}}" id="asunto_2" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="estado2" value="{{trabajos.estado2}}" id="estado_2" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>3</td>
-                                            <td><input type="text" name="asunto3" value="{{trabajos.asunto3}}" id="asunto_3" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
-                                            <td><input type="text" name="estado3" value="{{trabajos.estado3}}" id="estado_3" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="asunto3" value="{{trabajos.asunto3}}" id="asunto_3" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="estado3" value="{{trabajos.estado3}}" id="estado_3" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>4</td>
-                                            <td><input type="text" name="asunto4" value="{{trabajos.asunto4}}" id="asunto_4" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
-                                            <td><input type="text" name="estado4" value="{{trabajos.estado4}}" id="estado_4" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="asunto4" value="{{trabajos.asunto4}}" id="asunto_4" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="estado4" value="{{trabajos.estado4}}" id="estado_4" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>5</td>
-                                            <td><input type="text" name="asunto5" value="{{trabajos.asunto5}}" id="asunto_5" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
-                                            <td><input type="text" name="estado5" value="{{trabajos.estado5}}" id="estado_5" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="asunto5" value="{{trabajos.asunto5}}" id="asunto_5" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="estado5" value="{{trabajos.estado5}}" id="estado_5" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>6</td>
-                                            <td><input type="text" name="asunto6" value="{{trabajos.asunto6}}" id="asunto_6" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
-                                            <td><input type="text" name="estado6" value="{{trabajos.estado6}}" id="estado_6" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="asunto6" value="{{trabajos.asunto6}}" id="asunto_6" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="estado6" value="{{trabajos.estado6}}" id="estado_6" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -174,47 +174,47 @@
                                         <tr>
                                             <td>1</td>
                                             <td>Información sobre personal a su cargo</td>
-                                            <td><input type="text" name="comentario1" value="{{temas.comentario1|default:''}}" id="comentario_1" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario1" value="{{temas.comentario1|default:''}}" id="comentario_1" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>2</td>
                                             <td>Documentos</td>
-                                            <td><input type="text" name="comentario2" value="{{temas.comentario2|default:''}}" id="comentario_2" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario2" value="{{temas.comentario2|default:''}}" id="comentario_2" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>3</td>
                                             <td>Arqueo de caja o cuenta bancaria a su cargo (cuando aplique)</td>
-                                            <td><input type="text" name="comentario3" value="{{temas.comentario3|default:''}}" id="comentario_3" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario3" value="{{temas.comentario3|default:''}}" id="comentario_3" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>4</td>
                                             <td>Proyectos pendientes</td>
-                                            <td><input type="text" name="comentario4" value="{{temas.comentario4|default:''}}" id="comentario_4" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario4" value="{{temas.comentario4|default:''}}" id="comentario_4" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>5</td>
                                             <td>Estado de las operaciones a su cargo</td>
-                                            <td><input type="text" name="comentario5" value="{{temas.comentario5|default:''}}" id="comentario_5" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario5" value="{{temas.comentario5|default:''}}" id="comentario_5" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>6</td>
                                             <td>Deudas con la empresa</td>
-                                            <td><input type="text" name="comentario6" value="{{temas.comentario6|default:''}}" id="comentario_6" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario6" value="{{temas.comentario6|default:''}}" id="comentario_6" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>7</td>
                                             <td>Saldos por comprobar a contabilidad</td>
-                                            <td><input type="text" name="comentario7" value="{{temas.comentario7|default:''}}" id="comentario_7" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario7" value="{{temas.comentario7|default:''}}" id="comentario_7" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>8</td>
                                             <td>Activos asignados</td>
-                                            <td><input type="text" name="comentario8" value="{{temas.comentario8|default:''}}" id="comentario_8" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario8" value="{{temas.comentario8|default:''}}" id="comentario_8" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                         <tr>
                                             <td>9</td>
                                             <td>Otros</td>
-                                            <td><input type="text" name="comentario9" value="{{temas.comentario9|default:''}}" id="comentario_9" class="form-control" maxlength="20" readonly style="background-color: #e9ecef; color: #868e96;"></td>
+                                            <td><input type="text" name="comentario9" value="{{temas.comentario9|default:''}}" id="comentario_9" class="form-control" maxlength="50" readonly style="background-color: #e9ecef; color: #868e96;"></td>
                                         </tr>
                                     </tbody>
                                 </table>

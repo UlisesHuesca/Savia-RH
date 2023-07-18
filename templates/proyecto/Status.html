@@ -1,5 +1,7 @@
 {% extends 'partials/base.html' %}
 {% load widget_tweaks %}
+{% load tt_extras %}
+
 <html>
 <head>
 {% block title %}Status{% endblock %}
@@ -37,14 +39,15 @@
 
 <hr>
 <hr>
-    <!-- Aqui es el encabezado -->
-    <div class = "row mt-2 bg-white">
-        <form method=POST>
+<!-- Aqui es el encabezado -->
+
+<div class="row mt-2 bg-white">
+    <form method="POST">
         {% csrf_token %}
         <div class="col-12">
             <div class="card card-body">
                 <h5>Status del empleado</h5>
-                 <div class = "row mt-2 bg-white">
+                <div class="row mt-2 bg-white">
                     <hr>
                     <ul class="nav nav-pills">
                         <li class="nav-item mx-2">
@@ -52,7 +55,7 @@
                                 <i class="fa-solid fa-file-excel fa-2xl"></i>
                             </button>
                         </li>
-                    <!--    <li class="nav-item mx-2">
+                        <!--    <li class="nav-item mx-2">
                             <button type="button" class="btn btn-outline-danger">
                                <i class="fa-solid fa-file-pdf fa-2xl"></i>
                             </button>
@@ -63,7 +66,9 @@
                             </a>
                         </li>
                         <li class="nav-item mx-2">
-                            <a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d" data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document" hx-get="{% url 'Upload_status' %}">
+                            <a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d"
+                                data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document"
+                                hx-get="{% url 'Upload_status' %}">
                                 <i class="fa-solid fa-file-arrow-up"> CARGA MASIVA</i>
                             </a>
                         </li>
@@ -71,44 +76,50 @@
                 </div>
             </div>
         </div>
-        </form>
-    </div>
+    </form>
+</div>
+
 <div class="card card-body">
-            <h5>Filtro Status de empleados</h5>
-            <hr>
-            <form method="GET" class="row g-3">
-                {% csrf_token %}
-                <label for="status_filter.form.perfil__numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
-                <div class="col-sm-1">
-                       {% render_field status_filter.form.numero_de_trabajador class="form-control" %}
-                </div>
-                <label for="status_filter.form.perfil__nombres_apellidos" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
-                <div class="col-auto">
-                       {% render_field status_filter.form.nombres_apellidos class="form-control" %}
-                </div>
-                {% if usuario.distrito.distrito == "Matriz" %}
-                <label for="status_filter.form.perfil__distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
-                <div class="col-auto">
-                       {% render_field status_filter.form.distrito class="form-control" %}
-                </div>
-                {% else %}
-                {% endif %}
-                <label for="status_filter.form.profesion" class="col-sm-auto col-form-label text-right"><strong>Profesión:</strong></label>
-                <div class="col-auto">
-                       {% render_field status_filter.form.profesion class="form-control" %}
-                </div>
-                <label for="status_filter.form.tipo_de_contrato" class="col-sm-auto col-form-label text-right"><strong>Contrato:</strong></label>
-                <div class="col-auto">
-                       {% render_field status_filter.form.tipo_de_contrato class="form-control" %}
-                </div>
-                <div class="col-auto">
-                <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </div>
-            </form>
+    <h5>Filtro Status de empleados</h5>
+    <hr>
+    <form method="GET" class="row g-3">
+        {% csrf_token %}
+        <label for="status_filter.form.perfil__numero_de_trabajador"
+            class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
+        <div class="col-sm-1">
+            {% render_field status_filter.form.numero_de_trabajador class="form-control" %}
+        </div>
+        <label for="status_filter.form.perfil__nombres_apellidos" class="col-sm-auto col-form-label text-right">
+            <strong>Nombre:</strong></label>
+        <div class="col-auto">
+            {% render_field status_filter.form.nombres_apellidos class="form-control" %}
+        </div>
+        {% if usuario.distrito.distrito == "Matriz" %}
+        <label for="status_filter.form.perfil__distrito" class="col-sm-auto col-form-label text-right">
+            <strong>Distrito:</strong></label>
+        <div class="col-auto">
+            {% render_field status_filter.form.distrito class="form-control" %}
+        </div>
+        {% else %}
+        {% endif %}
+        <label for="status_filter.form.profesion" class="col-sm-auto col-form-label text-right"><strong>Profesión:</strong></label>
+        <div class="col-auto">
+            {% render_field status_filter.form.profesion class="form-control" %}
+        </div>
+        <label for="status_filter.form.tipo_de_contrato" class="col-sm-auto col-form-label text-right">
+            <strong>Contrato:</strong></label>
+        <div class="col-auto">
+            {% render_field status_filter.form.tipo_de_contrato class="form-control" %}
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-success" type="submit" value="Buscar"><i
+                    class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+    </form>
 </div>
 
 <!-- Aquí empieza la generación de la tabla -->
-<div class = "row mt-2">
+<div class="row mt-2">
     <div class="col-md-12">
         <table class="table table-striped table-hover bg-white">
             <thead class="text-black" style="background-color: #F5F5F5;">
@@ -134,7 +145,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for estado in status %}
+                {% for estado in salidas_list %}
                 <tr>
                     <td>{{estado.perfil.nombres}} {{estado.perfil.apellidos}}</td>
                     <td>{{estado.perfil.numero_de_trabajador}}</td>
@@ -147,29 +158,61 @@
                     <td>{{estado.nivel}}</td>
                     <td>{{estado.tipo_de_contrato}}</td>
                     {% if estado.ultimo_contrato_vence|date:'Y-m-d' == "6000-01-01" %}
-                        <td>ESPECIAL</td>
+                    <td>ESPECIAL</td>
                     {% elif estado.ultimo_contrato_vence|date:'Y-m-d' == "6001-01-01" %}
-                        <td>INDETERMINADO</td>
+                    <td>INDETERMINADO</td>
                     {% elif estado.ultimo_contrato_vence|date:'Y-m-d' == "6002-01-01" %}
-                        <td>HONORARIOS</td>
+                    <td>HONORARIOS</td>
                     {% elif estado.ultimo_contrato_vence|date:'Y-m-d' == "6003-01-01" %}
-                        <td>NR</td>
+                    <td>NR</td>
                     {% else %}
-                        <td>{{estado.ultimo_contrato_vence}}</td>
+                    <td>{{estado.ultimo_contrato_vence}}</td>
                     {% endif %}
                     <td>{{estado.tipo_sangre}}</td>
                     <td>{{estado.sexo}}</td>
                     <td>{{estado.telefono}}</td>
                     <td>{{estado.domicilio}}</td>
                     <td>{{estado.estado_civil}}</td>
-                    <td><a class="btn btn-outline-info" id="btnRevisar" type="button" href="{% url 'Status_revisar' estado.id %}"><i class="fa-solid fa-address-card"></i></a>
-                    <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Status_update' estado.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    <td><a class="btn btn-outline-info" id="btnRevisar" type="button"
+                            href="{% url 'Status_revisar' estado.id %}"><i class="fa-solid fa-address-card"></i></a>
+                    </td>
+                    <td><a class="btn btn-outline-info" id="btnActualizar" type="button"
+                            href="{% url 'Status_update' estado.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        {% if salidas_list.has_previous %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url 1 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-left"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.previous_page_number  'page' request.GET.urlencode %}"><i class="fa-solid fa-angle-left"></i></a></li>
+        {% endif %}
+
+        {% for item in salidas_list.paginator.page_range %}
+            {% if salidas_list.number == item %}
+                <li class="page-item active"><a href="#" class="page-link bg-dark">{{item}}</a></li>
+            {% elif item > salidas_list.number|add:'-2' and item < salidas_list.number|add:'2' %}
+                <li class="page-item "><a class="page-link" style="color:#3E92CC" href="{% my_url item 'page' request.GET.urlencode %}" class="page-link">{{item}}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if salidas_list.paginator.num_pages > salidas_list.number|add:'2' %}
+        <li><a class="page-link" style="color:#3E92CC" href="?page={{salidas_list.number|add:'2'}}">&hellip;</a></li>
+        <li><a style="color:#3E92CC" href="?page={{ item }}">{{item}}</a></li>
+        <li><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}">{{salidas_list.paginator.num_pages}}</a></li>
+        {% endif %}
+
+        {% if salidas_list.has_next %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.next_page_number 'page' request.GET.urlencode %}"><i class="fa-solid fa-chevron-right"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-right"></i></a></a></li>
+        {% endif %}
+    </ul>
+</nav>
 
 <!--Este es el modal-->
         <div class="modal fade" id ="dialog" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog">

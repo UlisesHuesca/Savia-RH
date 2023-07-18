@@ -1,1 +1,0 @@
-[{"model": "proyecto.tipoperfil", "pk": 1, "fields": {"nombre": "Administrador", "admin": true}}, {"model": "proyecto.tipoperfil", "pk": 2, "fields": {"nombre": "Empleado", "admin": false}}]

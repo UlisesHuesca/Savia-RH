@@ -1,4 +1,6 @@
 {% extends 'partials/base.html'%}
+{% load static %}
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -42,12 +44,12 @@
             <div class="card">
                 <div class="card-header bg-light text-dark">
                     <strong>
-                        SAVIA X
+                        SAVIA RH
                     </strong>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <img src="https://www.pythonanywhere.com/user/vicjosh/files/home/vicjosh/mysite/templates/partials/SAVIA_Logo1.png" alt="SAVIA" width="160" height="170">
+                        <img src="{% static 'images/SAVIA_Logo1.png' %}" alt="SAVIA" width="160" height="170">
                     </div>
                 </div>
             </div>

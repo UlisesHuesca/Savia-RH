@@ -1,1 +1,0 @@
-[{"model": "proyecto.civil", "pk": 1, "fields": {"estado_civil": "Soltero", "complete": true}}, {"model": "proyecto.civil", "pk": 2, "fields": {"estado_civil": "Casado", "complete": true}}, {"model": "proyecto.civil", "pk": 3, "fields": {"estado_civil": "NR", "complete": true}}]

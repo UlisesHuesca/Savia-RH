@@ -9,7 +9,7 @@
     {% if user.is_authenticated %}
         <div class="container-fluid">
             <a class="navbar-brand" href={% url "index" %}>
-            <img src="https://www.pythonanywhere.com/user/vicjosh/files/home/vicjosh/mysite/templates/partials/SAVIA_Logo1.png" alt="SAVIA" width="50" height="50">
+            <img src="{% static 'images/SAVIA_Logo1.png' %}" alt="SAVIA" width="50" height="50">
             </a>
             <ul class="nav nav-pills" >
                 <li  class="nav-item">
@@ -61,7 +61,7 @@
                             {% endif %}
                             {% if status_fijo.complete_economicos == True %}
                                 <a class="dropdown-item" href="{% url 'Economicos_revisar' status_fijo.id %}">Economicos</a>
-                            {% endif %} 
+                            {% endif %}
                             {% if status_fijo.complete_bancarios == True %}
                                 <a class="dropdown-item" href="{% url 'Empleado_bancarios' status_fijo.id %}">Datos bancarios</a>
                             {% endif %}
@@ -93,7 +93,7 @@
                                     <span class="badge bg-danger"></span>
                                     <span class="badge bg-danger">({{vacaciones_count}})</span>
                                     <span class="sr-only">unread messages</span>
-                                    {% endif %} 
+                                    {% endif %}
                                 </a>
                                 <a class="dropdown-item" href="{% url 'Solicitudes_economicos' %}">
                                     Solicitudes económicos
@@ -101,7 +101,7 @@
                                     <span class="badge bg-danger"></span>
                                     <span class="badge bg-danger">({{economicos_count}})</span>
                                     <span class="sr-only">unread messages</span>
-                                    {% endif %} 
+                                    {% endif %}
                                 </a>
                             <!--<a class="dropdown-item" href="{% url 'Tabla_isr' %}">Tabla datos ISR</a>-->
                             <!--<a class="dropdown-item" href="{% url 'Tabla_dias_vacaciones' %}">Tabla de días de vacaciones disponibles</a>-->
