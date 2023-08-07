@@ -2020,7 +2020,7 @@ def convert_excel_costo(costos):
     money_resumen_style.font = Font(name='Calibri', size=14, bold=True)
     wb.add_named_style(money_resumen_style)
 
-    columns = ['Empresa', 'Distrito', 'Proyecto', 'Subproyecto', '#Empleado', 'Nombre', 'Puesto',
+    columns = ['Empresa', 'Distrito', 'Proyecto', 'Subproyecto', '#Empleado', 'Nombre', 'Puesto','Nivel','Neto Catorcenal',
                'Complemento Salario Catorcenal', 'Apoyo de Pasajes', 'Total percepciones mensual',
                'Impuesto Estatal', 'IMSS obrero patronal', 'SAR 2%', 'Cesantía', 'Infonavit', 'ISR',
                'Apoyo Visita Familiar', 'Apoyo Estancia', 'Apoyo Renta', 'Apoyo de Estudios',
@@ -2030,9 +2030,9 @@ def convert_excel_costo(costos):
     for col_num in range(len(columns)):
         (ws.cell(row=row_num, column=col_num + 1, value=columns[col_num])).style = head_style
         if col_num < 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
-        if col_num == 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+        if col_num == 5 or col_num == 6:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 35
         else:
             ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
 
@@ -2040,8 +2040,8 @@ def convert_excel_costo(costos):
 
     (ws.cell(column=columna_max, row=1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
     (ws.cell(column=columna_max, row=2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    (ws.cell(column=columna_max, row=3, value='Algún dato')).style = messages_style
-    (ws.cell(column=columna_max + 1, row=3, value='alguna sumatoria')).style = money_resumen_style
+    #(ws.cell(column=columna_max, row=3, value='Algún dato')).style = messages_style
+    #(ws.cell(column=columna_max + 1, row=3, value='alguna sumatoria')).style = money_resumen_style
     ws.column_dimensions[get_column_letter(columna_max)].width = 20
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
 
@@ -2051,7 +2051,7 @@ def convert_excel_costo(costos):
 
     rows = costos.annotate(bonototal=Sum('bonos__monto', filter=Q(bonos__fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final]))).values_list(
         'status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto__proyecto','status__perfil__subproyecto__subproyecto','status__perfil__numero_de_trabajador',
-        Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
+        Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','status__nivel__nivel','neto_catorcenal_sin_deducciones','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
         'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa',
         'ingreso_mensual_neto_empleado','bonototal')
 
@@ -2060,7 +2060,7 @@ def convert_excel_costo(costos):
         for col_num in range(len(row)):
             if col_num <= 5:
                 (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = body_style
-            if col_num > 5 and col_num <= 25:
+            if col_num > 7 and col_num < 27:
                 (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = money_style
             else:
                 (ws.cell(row=row_num, column=col_num + 1, value=str(row[col_num]))).style = body_style
