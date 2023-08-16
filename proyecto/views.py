@@ -6,6 +6,8 @@ from django.core.paginator import Paginator
 from django.db.models import Sum
 from django.contrib import messages
 import locale
+import math
+
 locale.setlocale( locale.LC_ALL, '' )
 
 from .models import DatosISR, Costo, TablaVacaciones, Perfil, Status, Uniformes, DatosBancarios, Bonos, Vacaciones, Economicos, Puesto, Empleados_Batch, RegistroPatronal, Banco, TablaFestivos
@@ -42,6 +44,11 @@ from django.db.models.functions import Concat
 from django.db.models import Value
 from django.db.models import Sum
 from django.db.models import Count
+from django.db.models import IntegerField
+from django.db.models.functions import Cast
+from django.http import HttpResponseRedirect
+
+
 
 
 from reportlab.pdfgen import canvas
@@ -52,7 +59,7 @@ from reportlab.lib import colors
 from reportlab.lib.colors import Color, black, blue, red, white
 from reportlab.platypus import BaseDocTemplate, Frame, Paragraph, NextPageTemplate, PageBreak, PageTemplate,Table, SimpleDocTemplate,TableStyle, KeepInFrame
 import textwrap
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 import os
 
@@ -1396,201 +1403,17 @@ def Empleado_Bonos(request, pk):
 
     return render(request, 'proyecto/Empleado_bonos.html',context)
 
-@login_required(login_url='user-login')
-def FormularioVacaciones(request):
-    user_filter = UserDatos.objects.get(user=request.user)
-
-    año_actual = str(date.today().year)
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
-    mes_actual = datetime.date.today().month
-    dia_actual = datetime.date.today().day
-    #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
-    reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
-    #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
-    reinicio = reinicio | reinicio2
-    for empleado in reinicio:
-        empleado.complete_vacaciones = False
-        empleado.save()
-
-    if user_filter.distrito.distrito == 'Matriz':
-        empleados= Status.objects.filter(complete=True, complete_vacaciones=False, perfil__baja=False).exclude(fecha_planta_anterior=None,fecha_planta=None)
-    else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
-        empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete= True, complete_vacaciones = False)
-
-    ahora = datetime.date.today()
-    tablas= TablaVacaciones.objects.all()
-    descanso,created=Vacaciones.objects.get_or_create(complete=False)
-    form = VacacionesForm()
-    form.fields["status"].queryset = empleados
-
-    periodo=1
-
-
-    if request.method == 'POST' and 'btnSend' in request.POST:
-
-        form = VacacionesForm(request.POST,instance=descanso)
-        form.save(commit=False)
-        tabla_festivos = TablaFestivos.objects.all()
-        delta = timedelta(days=1)
-        day_count = (descanso.fecha_fin - descanso.fecha_inicio + delta ).days
-        cuenta = day_count #Dias entre las dos fechas
-        inhabil = descanso.dia_inhabil.numero
-        for fecha in (descanso.fecha_inicio + timedelta(n) for n in range(day_count)):
-            if fecha.isoweekday() == inhabil:
-                cuenta -= 1 #Se le restan a la cuenta los días inhabiles para sacar los dias reales
-            else:
-                for dia in tabla_festivos:
-                    if fecha == dia.dia_festivo:
-                        cuenta -= 1 # Se le restan tambien los días festivos para sacar los días reales que va a tomar (Cantida de días)
-        dias_vacacion = cuenta #Para luego escribir en el comentario
-        if cuenta > 0:
-            #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
-            datos = Vacaciones.objects.filter(status=descanso.status.id, total_pendiente__gt=0,).order_by("created_at") #Trae todas las vacaciones del mas antiguo al actual 2019-2022
-            for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
-                if cuenta <= dato.total_pendiente and cuenta > 0:
-                    if dato.dias_disfrutados == None:
-                        dato.dias_disfrutados = 0
-                    dato.dias_disfrutados += cuenta
-                    dato.total_pendiente -= cuenta
-                    cuenta = 0
-                    break #Cuenta llega a 0 por ende ya no es necesario seguir modificando mas vacaciones
-                elif cuenta > dato.total_pendiente and cuenta > 0:
-                    if dato.dias_disfrutados == None:
-                        dato.dias_disfrutados = 0
-                    dato.dias_disfrutados = dato.total_pendiente
-                    cuenta -= dato.total_pendiente
-                    dato.total_pendiente = 0
-            #ARRIBA se usan aqui atras los días de vacaciones anteriores y si no completan sale cuenta con el valor de los que se deben tomar de la actual
-            #Se calculan los días para la vacación actual
-            if descanso.status.fecha_planta_anterior:
-                days = descanso.status.fecha_planta_anterior
-            else:
-                days = descanso.status.fecha_planta
-            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
-            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
-                antiguedad = ahora.year - days.year
-            else:
-                antiguedad = ahora.year - days.year - 1
-            if antiguedad < periodo:
-                descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
-            else:
-                for tabla in tablas:
-                    if antiguedad >= tabla.years:
-                        descanso.dias_de_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
-
-
-            descanso.dias_disfrutados = cuenta #Días que disfrutara son los que vienen de la cuenta
-            descanso.fecha_planta_anterior = descanso.status.fecha_planta_anterior
-            descanso.fecha_planta = descanso.status.fecha_planta
-            if descanso.dias_de_vacaciones == 0:
-                messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
-            elif descanso.dias_disfrutados > descanso.dias_de_vacaciones:
-                messages.error(request, f'(Dias disfrutados: {cuenta}) El empleado puede tomar hasta {descanso.dias_de_vacaciones} días de vacaciones')
-            else:
-                periodofecha = descanso.created_at.year
-                descanso.periodo=str(periodofecha)
-                descanso.total_pendiente=descanso.dias_de_vacaciones-descanso.dias_disfrutados
-
-                empleado = Status.objects.get(id = descanso.status.id)
-                if form.is_valid():
-                    trabajos_encomendados, created = Trabajos_encomendados.objects.get_or_create(complete=False,)
-                    temas, created = Temas_comentario_solicitud_vacaciones.objects.get_or_create(complete=False,)
-                    trabajos_encomendados.asunto1 = request.POST.get('asunto1')
-                    trabajos_encomendados.estado1 = request.POST.get('estado1')
-                    trabajos_encomendados.asunto2 = request.POST.get('asunto2')
-                    trabajos_encomendados.estado2 = request.POST.get('estado2')
-                    trabajos_encomendados.asunto3 = request.POST.get('asunto3')
-                    trabajos_encomendados.estado3 = request.POST.get('estado3')
-                    trabajos_encomendados.asunto4 = request.POST.get('asunto4')
-                    trabajos_encomendados.estado4 = request.POST.get('estado4')
-                    trabajos_encomendados.asunto5 = request.POST.get('asunto5')
-                    trabajos_encomendados.estado5 = request.POST.get('estado5')
-                    trabajos_encomendados.asunto6 = request.POST.get('asunto6')
-                    trabajos_encomendados.estado6 = request.POST.get('estado6')
-                    trabajos_encomendados.asunto7 = request.POST.get('asunto7')
-                    trabajos_encomendados.estado7 = request.POST.get('estado7')
-                    trabajos_encomendados.asunto8 = request.POST.get('asunto8')
-                    trabajos_encomendados.estado8 = request.POST.get('estado8')
-                    trabajos_encomendados.asunto9 = request.POST.get('asunto9')
-                    trabajos_encomendados.estado9 = request.POST.get('estado9')
-                    trabajos_encomendados.asunto10 = request.POST.get('asunto10')
-                    trabajos_encomendados.estado10 = request.POST.get('estado10')
-                    temas.comentario1 = request.POST.get('comentario1')
-                    temas.comentario2 = request.POST.get('comentario2')
-                    temas.comentario3 = request.POST.get('comentario3')
-                    temas.comentario4 = request.POST.get('comentario4')
-                    temas.comentario5 = request.POST.get('comentario5')
-                    temas.comentario6 = request.POST.get('comentario6')
-                    temas.comentario7 = request.POST.get('comentario7')
-                    temas.comentario8 = request.POST.get('comentario8')
-                    temas.comentario9 = request.POST.get('comentario9')
-                    trabajos_encomendados.complete=True
-                    trabajos_encomendados.save()
-                    temas.complete=True
-                    temas.save()
-                    solicitud, created = Solicitud_vacaciones.objects.get_or_create(complete=False)
-                    solicitud.status = descanso.status
-                    solicitud.periodo = descanso.periodo
-                    solicitud.fecha_inicio = descanso.fecha_inicio
-                    solicitud.fecha_fin = descanso.fecha_fin
-                    solicitud.dia_inhabil = descanso.dia_inhabil
-                    solicitud.recibe_nombre = request.POST.get('recibe')
-                    solicitud.recibe_area = request.POST.get('area')
-                    solicitud.recibe_puesto = request.POST.get('puesto')
-                    solicitud.recibe_sector = request.POST.get('sector')
-                    solicitud.asunto = trabajos_encomendados
-                    solicitud.informacion_adicional = request.POST.get('adicional')
-                    solicitud.temas = temas
-                    solicitud.anexos = request.POST.get('anexos')
-                    solicitud.autorizar = True
-                    solicitud.comentario_rh = descanso.comentario
-                    solicitud.complete=True
-                    solicitud.save()
-                    for dato in datos:
-                        historial = dato.history.first()  # Obtener la primera versión histórica del objeto
-                        if historial and historial.total_pendiente != dato.total_pendiente:
-                            # El campo 'total_pendiente' ha cambiado
-                            dato._meta.get_field('created_at').auto_now = False
-                            dato.comentario +=" "+"Solicitado periodo:" + str(descanso.periodo)
-                            dato.fecha_inicio = descanso.fecha_inicio
-                            dato.fecha_fin =  descanso.fecha_fin
-                            dato.save()
-                            dato._meta.get_field('created_at').auto_now = True
-                    if cuenta > 0:
-                        messages.success(request, 'Datos capturados con éxito')
-                    else:
-                        messages.success(request, 'Datos capturados con éxito y descontados a sus días pendientes')
-                    descanso.complete=True
-                    descanso.comentario +=" "+"Dias tomados:" + str(dias_vacacion)
-                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                    descanso.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
-                    form.save()
-                    empleado.complete_vacaciones = True
-                    empleado.save()
-                    return redirect('Tabla_vacaciones_empleados')
-        else:
-            messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
-
-    context = {'form':form,'empleados':empleados}
-
-    return render(request, 'proyecto/VacacionesForm.html',context)
 
 @login_required(login_url='user-login')
 def VacacionesUpdate(request, pk):
+    currentFieldCount = 10
     descanso = Vacaciones.objects.get(id=pk)
-    vacacion = descanso
     registros = descanso.history.filter(~Q(dias_disfrutados = None))
 
-    #dias_anteriores = descanso.dias_disfrutados #Dias disfrutados que tenia
     if request.method == 'POST' and 'btnSend' in request.POST:
         form = VacacionesUpdateForm(request.POST, instance=descanso)
         descanso = form.save(commit=False)
 
-        #suma_dias = descanso.dias_disfrutados #Que ya estan tomados viene del formulario
-        #if suma_dias == None:
-        #    suma_dias = 0
 
         tabla_festivos = TablaFestivos.objects.all()
         delta = timedelta(days=1)
@@ -1608,7 +1431,7 @@ def VacacionesUpdate(request, pk):
         if cuenta > 0: #Aqui salgo bien con los 2 dias--------
             #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
             if Vacaciones.objects.filter(status=descanso.status.id).last().total_pendiente > 0 or Vacaciones.objects.filter(status=descanso.status.id).first().total_pendiente > 0:
-                datos = Vacaciones.objects.filter(status=descanso.status.id, total_pendiente__gt=0,).order_by("created_at")#Trae todas las vacaciones del mas antiguo al actual 2019-2022
+                datos = Vacaciones.objects.filter(status=descanso.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
                 if datos.exclude(id=datos.last().id) != None:
                     datos = datos.exclude(id=datos.last().id)
                     for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
@@ -1636,6 +1459,54 @@ def VacacionesUpdate(request, pk):
                     descanso.periodo = periodofecha
                     descanso.total_pendiente = descanso.dias_de_vacaciones - descanso.dias_disfrutados
                     if form.is_valid():
+                        solicitud, created = Solicitud_vacaciones.objects.get_or_create(complete=False)
+                        num_campos = int(request.POST.get('num_campos', 0))
+
+                        for i in range(1, num_campos + 1):
+                            asunto = request.POST.get(f'asunto{i}')
+                            estado = request.POST.get(f'estado{i}')
+
+                            # Crear un nuevo grupo de Trabajos_encomendados para cada conjunto de 10 campos
+                            if (i - 1) % 10 == 0:
+                                if i > 1:
+                                    trabajos_grupo.complete = True
+                                    trabajos_grupo.save()
+
+                                trabajos_grupo = Trabajos_encomendados()
+                                trabajos_grupo.save()
+                                solicitud.asunto.add(trabajos_grupo)
+
+                            setattr(trabajos_grupo, f'asunto{(i - 1) % 10 + 1}', asunto)
+                            setattr(trabajos_grupo, f'estado{(i - 1) % 10 + 1}', estado)
+                            trabajos_grupo.save()
+
+                        # Marcar el último grupo como completo
+                        trabajos_grupo.complete = True
+                        trabajos_grupo.save()
+
+                        temas, created = Temas_comentario_solicitud_vacaciones.objects.get_or_create(complete=False,)
+                        for i in range(1, 10):
+                            comentario = request.POST.get(f'comentario{i}')
+                            setattr(temas, f'comentario{i}', comentario)
+                        temas.complete=True
+                        temas.save()
+
+                        solicitud.status = descanso.status
+                        solicitud.periodo = descanso.periodo
+                        solicitud.fecha_inicio = descanso.fecha_inicio
+                        solicitud.fecha_fin = descanso.fecha_fin
+                        solicitud.dia_inhabil = descanso.dia_inhabil
+                        solicitud.recibe_nombre = request.POST.get('recibe')
+                        solicitud.recibe_area = request.POST.get('area')
+                        solicitud.recibe_puesto = request.POST.get('puesto')
+                        solicitud.recibe_sector = request.POST.get('sector')
+                        solicitud.informacion_adicional = request.POST.get('adicional')
+                        solicitud.temas = temas
+                        solicitud.anexos = request.POST.get('anexos')
+                        solicitud.autorizar = True
+                        solicitud.comentario_rh = descanso.comentario
+                        solicitud.complete=True
+                        solicitud.save()
                         for dato in datos:
                             historial = dato.history.first()  # Obtener la primera versión histórica del objeto
                             if historial and historial.total_pendiente != dato.total_pendiente:
@@ -1663,8 +1534,8 @@ def VacacionesUpdate(request, pk):
         'form':form,
         'descanso':descanso,
         'registros':registros,
+        'currentFieldCount': currentFieldCount,
         }
-
     return render(request, 'proyecto/Vacaciones_update.html',context)
 
 @login_required(login_url='user-login')
@@ -1674,8 +1545,8 @@ def VacacionesRevisar(request, pk):
         usuario = usuario.status
     elif Status.objects.filter(id=pk):
         usuario = Status.objects.get(id=pk)
-    datos = Vacaciones.objects.filter(status=usuario).order_by("-created_at") #Identifico las vacaciones del usuario de la mas antigua a la mas actual
-    actual = Vacaciones.objects.filter(status=usuario).order_by("-created_at").last()
+    datos = Vacaciones.objects.filter(status=usuario).order_by(Cast('periodo', output_field=IntegerField()).desc()) #Identifico las vacaciones del usuario de la mas antigua a la mas actual
+    actual = Vacaciones.objects.filter(status=usuario).order_by(Cast('periodo', output_field=IntegerField())).last()
     resultado = 0
     for dato in datos:
         resultado += dato.total_pendiente
@@ -1690,19 +1561,45 @@ def VacacionesRevisar(request, pk):
 
 @login_required(login_url='user-login')
 def Tabla_Vacaciones(request): #Ya esta
-#Aqui se quitan de las tablas los datos de las vacaciones anteriores, en el formulario se mandan a llamar para añadir los días pendientes
-    año_actual = datetime.date.today().year
-    fecha_inicio = date(año_actual, 1, 1)
-    fecha_actual = datetime.date.today()
-    if fecha_actual == fecha_inicio:
-        datos = Vacaciones.objects.filter(complete = True)
-        for dato in datos:
-            if año_actual != dato.created_at.year:
-                status = Status.objects.get(id = dato.status.id)
-                status.complete_vacaciones = False
-                status.save()
-
     user_filter = UserDatos.objects.get(user=request.user)
+
+    #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
+    fecha_actual = date.today()
+    año_actual = str(fecha_actual.year)
+    #Busca todos los status que no tengan vacaciones del año actual (periodo)
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual)) 
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    #Busco el fecha de planta en los que no tengan fecha de planta anterior
+    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    if reinicio:
+        for empleado in reinicio:
+            #Se calculan los días para la vacación actual 
+            ahora = datetime.date.today() 
+            tablas= TablaVacaciones.objects.all()
+            if empleado.fecha_planta_anterior:
+                days = empleado.fecha_planta_anterior
+            else:
+                days = empleado.fecha_planta
+            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
+            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+                antiguedad = ahora.year - days.year
+            else:
+                antiguedad = ahora.year - days.year - 1
+            #if antiguedad < periodo:
+            #    descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
+            #else:
+            for tabla in tablas:
+                if antiguedad >= tabla.years:
+                    dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
+                        
+            vacacion = Vacaciones.objects.create(complete=True, status=empleado, periodo=año_actual, dias_de_vacaciones=dias_vacaciones,
+                                                fecha_inicio=None, fecha_fin=None, dias_disfrutados=0, dia_inhabil=None,
+                                                total_pendiente=dias_vacaciones, comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+            empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
+            empleado.save()
 
     if user_filter.distrito.distrito == 'Matriz':
         descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual, status__perfil__baja=False).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
@@ -1859,22 +1756,26 @@ def EconomicosUpdate(request, pk):
 
 @login_required(login_url='user-login')
 def Tabla_Economicos(request): #Ya esta
-#Aqui se quitan de las tablas los datos de las economicos anteriores
-    #empleado = Status.objects.get(id = descanso.status.id)
-    dias_pendientes=3
-    año_actual = datetime.date.today().year
-    fecha_inicio = date(año_actual, 1, 1)
-    #año_anterior = fecha_inicio - timedelta(days=1)
-    #año_anterior = año_anterior.year
-    fecha_actual = datetime.date.today()
-    if fecha_actual == fecha_inicio:
-        datos = Economicos.objects.filter(complete = True)
-        for dato in datos:
-            if año_actual != dato.created_at.year:
-                status = Status.objects.get(id = dato.status.id)
-                status.complete_economicos = False
-                status.save()
     user_filter = UserDatos.objects.get(user=request.user)
+
+    #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
+    fecha_actual = date.today()
+    año_actual = str(fecha_actual.year)
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #Busca todos los status que no tengan vacaciones del año actual (periodo)
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual)) 
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    #Busco el fecha de planta en los que no tengan fecha de planta anterior
+    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    if reinicio:
+        for empleado in reinicio:                        
+            economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None, 
+                                                comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+            empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
+            empleado.save()
 
     if user_filter.distrito.distrito == 'Matriz':
         economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
@@ -3371,35 +3272,62 @@ def FormatoVacaciones(request):
 
 @login_required(login_url='user-login')
 def SolicitudVacaciones(request):
+    currentFieldCount = 10
     usuario = UserDatos.objects.get(user__id=request.user.id)
     status = Status.objects.get(perfil__numero_de_trabajador=usuario.numero_de_trabajador, perfil__distrito=usuario.distrito)
 
-    año_actual = str(date.today().year)
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
-    mes_actual = datetime.date.today().month
-    dia_actual = datetime.date.today().day
-    #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
-    reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
+    #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
+    fecha_actual = date.today()
+    año_actual = str(fecha_actual.year)
+    #Busca todos los status que no tengan vacaciones del año actual (periodo)
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual)) 
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
-    reinicio = reinicio | reinicio2
-    for empleado in reinicio:
-        empleado.complete_vacaciones = False
-        empleado.save()
+    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    if reinicio:
+        for empleado in reinicio:
+            #Se calculan los días para la vacación actual 
+            ahora = datetime.date.today() 
+            tablas= TablaVacaciones.objects.all()
+            if empleado.fecha_planta_anterior:
+                days = empleado.fecha_planta_anterior
+            else:
+                days = empleado.fecha_planta
+            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
+            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+                antiguedad = ahora.year - days.year
+            else:
+                antiguedad = ahora.year - days.year - 1
+            #if antiguedad < periodo:
+            #    descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
+            #else:
+            for tabla in tablas:
+                if antiguedad >= tabla.years:
+                    dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
+                        
+            vacacion = Vacaciones.objects.create(complete=True, status=empleado, periodo=año_actual, dias_de_vacaciones=dias_vacaciones,
+                                                fecha_inicio=None, fecha_fin=None, dias_disfrutados=0, dia_inhabil=None,
+                                                total_pendiente=dias_vacaciones, comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+            empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
+            empleado.save()
 
-    datos = Vacaciones.objects.filter(status=status).order_by("-created_at") #Identifico las vacaciones del usuario de la mas antigua a la mas actual
+    datos = Vacaciones.objects.filter(status=status).order_by(Cast('periodo', output_field=IntegerField())) #Identifico las vacaciones del usuario de la mas antigua a la mas actual
+    
     pendiente=0
     for dato in datos:
-        pendiente += dato.total_pendiente
+        pendiente += dato.total_pendiente #Para sacar el total de días pendientes
     solicitud, created = Solicitud_vacaciones.objects.get_or_create(complete=False)
     form = SolicitudVacacionesForm()
-    valido = True
+    valido = False
+
     now = date.today()
     periodo = str(now.year)
-    if Vacaciones.objects.filter(complete=True,status=status,periodo=periodo):
-        datos= Vacaciones.objects.get(complete=True,status=status,periodo=periodo)
-    else:
-        datos=0
+    datos= Vacaciones.objects.get(complete=True,status=status,periodo=periodo) #Para sacar el dato actual
+
+
     if request.method == 'POST' and 'btnSend' in request.POST:
         form = SolicitudVacacionesForm(request.POST, instance=solicitud)
         form.save(commit=False)
@@ -3417,88 +3345,67 @@ def SolicitudVacaciones(request):
                 for dia in tabla_festivos:
                     if fecha == dia.dia_festivo:
                         cuenta -= 1  #Días que va a tomar con esta solicitud
-        if status.complete_vacaciones == True:
-            vacaciones = Vacaciones.objects.get(status=status,periodo=periodo)
-            if cuenta <= pendiente:
-                if Solicitud_vacaciones.objects.filter(status=status):
-                    verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
-                    if verificar.autorizar == None:
-                        messages.error(request,'Tiene una solicitud generada sin revisar')
-                        valido = False
+
+        if cuenta <= pendiente:
+            if solicitud.fecha_fin > solicitud.fecha_inicio:
+                verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
+                if verificar is None:
+                    valido = True
+                elif verificar.autorizar is not None:
+                    valido = True
+                else:
+                    messages.error(request, 'Tiene una solicitud generada sin revisar')
             else:
-                messages.error(request,f'Tiene {pendiente} días pendientes, y esta solicitando {cuenta} días de vacaciones')
-                valido = False
-        elif Solicitud_vacaciones.objects.filter(status=status):
-            verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
-            if verificar.autorizar == None:
-                messages.error(request,'Tiene una solicitud generada pendiente de autorizar')
-                valido = False
-        if solicitud.fecha_fin < solicitud.fecha_inicio:
-            messages.error(request,'La fecha de inicio no puede ser posterior a la final')
-            valido=False
-
-        #Revisar si el empleado ya cumple con el año de antigüedad para solicitar
-        if status.fecha_planta_anterior:
-            days = status.fecha_planta_anterior
+                messages.error(request,'La fecha de inicio no puede ser posterior a la final')
         else:
-            days = status.fecha_planta
-        ahora = datetime.date.today()
-        año = 1
-        if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
-            antiguedad = ahora.year - days.year
-        else:
-            antiguedad = ahora.year - days.year - 1
-        if antiguedad < año:
-            messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
-            valido=False
-
+            messages.error(request,f'Tiene {pendiente} días pendientes, y esta solicitando {cuenta} días de vacaciones')
         if valido and form.is_valid():
+            num_campos = int(request.POST.get('num_campos', 0))
+
+            for i in range(1, num_campos + 1):
+                asunto = request.POST.get(f'asunto{i}')
+                estado = request.POST.get(f'estado{i}')
+
+                # Crear un nuevo grupo de Trabajos_encomendados para cada conjunto de 10 campos
+                if (i - 1) % 10 == 0:
+                    if i > 1:
+                        trabajos_grupo.complete = True
+                        trabajos_grupo.save()
+
+                    trabajos_grupo = Trabajos_encomendados()
+                    trabajos_grupo.save()
+                    solicitud.asunto.add(trabajos_grupo)
+
+                setattr(trabajos_grupo, f'asunto{(i - 1) % 10 + 1}', asunto)
+                setattr(trabajos_grupo, f'estado{(i - 1) % 10 + 1}', estado)
+                trabajos_grupo.save()
+
+            # Marcar el último grupo como completo
+            trabajos_grupo.complete = True
+            trabajos_grupo.save()
+
             solicitud.recibe_nombre = request.POST.get('recibe')
             solicitud.recibe_area = request.POST.get('area')
             solicitud.recibe_puesto = request.POST.get('puesto')
             solicitud.recibe_sector = request.POST.get('sector')
             solicitud.informacion_adicional = request.POST.get('adicional')
             solicitud.anexos = request.POST.get('anexos')
-            trabajos_encomendados, created = Trabajos_encomendados.objects.get_or_create(complete=False,)
+            #trabajos_encomendados, created = Trabajos_encomendados.objects.get_or_create(complete=False,)
             temas, created = Temas_comentario_solicitud_vacaciones.objects.get_or_create(complete=False,)
-            trabajos_encomendados.asunto1 = request.POST.get('asunto1')
-            trabajos_encomendados.estado1 = request.POST.get('estado1')
-            trabajos_encomendados.asunto2 = request.POST.get('asunto2')
-            trabajos_encomendados.estado2 = request.POST.get('estado2')
-            trabajos_encomendados.asunto3 = request.POST.get('asunto3')
-            trabajos_encomendados.estado3 = request.POST.get('estado3')
-            trabajos_encomendados.asunto4 = request.POST.get('asunto4')
-            trabajos_encomendados.estado4 = request.POST.get('estado4')
-            trabajos_encomendados.asunto5 = request.POST.get('asunto5')
-            trabajos_encomendados.estado5 = request.POST.get('estado5')
-            trabajos_encomendados.asunto6 = request.POST.get('asunto6')
-            trabajos_encomendados.estado6 = request.POST.get('estado6')
-            trabajos_encomendados.asunto7 = request.POST.get('asunto7')
-            trabajos_encomendados.estado7 = request.POST.get('estado7')
-            trabajos_encomendados.asunto8 = request.POST.get('asunto8')
-            trabajos_encomendados.estado8 = request.POST.get('estado8')
-            trabajos_encomendados.asunto9 = request.POST.get('asunto9')
-            trabajos_encomendados.estado9 = request.POST.get('estado9')
-            trabajos_encomendados.asunto10 = request.POST.get('asunto10')
-            trabajos_encomendados.estado10 = request.POST.get('estado10')
-            temas.comentario1 = request.POST.get('comentario1')
-            temas.comentario2 = request.POST.get('comentario2')
-            temas.comentario3 = request.POST.get('comentario3')
-            temas.comentario4 = request.POST.get('comentario4')
-            temas.comentario5 = request.POST.get('comentario5')
-            temas.comentario6 = request.POST.get('comentario6')
-            temas.comentario7 = request.POST.get('comentario7')
-            temas.comentario8 = request.POST.get('comentario8')
-            temas.comentario9 = request.POST.get('comentario9')
-            trabajos_encomendados.complete=True
-            trabajos_encomendados.save()
+            for i in range(1, 10):
+                comentario = request.POST.get(f'comentario{i}')
+                setattr(temas, f'comentario{i}', comentario)
+
+            temas.save()
+            #trabajos_encomendados.complete=True
+            #trabajos_encomendados.save()
             temas.complete=True
             temas.save()
             messages.success(request, 'Solicitud enviada a RH')
             now = date.today()
             solicitud.periodo = str(now.year)
             solicitud.status = status
-            solicitud.asunto =  trabajos_encomendados
+            #solicitud.asunto =  trabajos_encomendados
             solicitud.temas = temas
             solicitud.complete=True
             form.save()
@@ -3509,6 +3416,7 @@ def SolicitudVacaciones(request):
         'status':status,
         'datos':datos,
         'pendiente':pendiente,
+        'currentFieldCount': currentFieldCount,
         }
 
     return render(request, 'proyecto/Formato_VacacionesForm.html',context)
@@ -3517,8 +3425,20 @@ def SolicitudVacaciones(request):
 def solicitud_vacacion_verificar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     solicitud = Solicitud_vacaciones.objects.get(id=pk)
-    trabajos = Trabajos_encomendados.objects.get(id=solicitud.temas.id)
-    temas = Temas_comentario_solicitud_vacaciones.objects.get(id=solicitud.asunto.id)
+    trabajos = Trabajos_encomendados.objects.filter(solicitud_vacaciones__id=solicitud.id)
+    #Para mostrar en el html la ennumeracion correcta de los datos
+    trabajos_data = []
+    for index, trabajo in enumerate(trabajos):
+        trabajo_data = []
+        start_number = index * 10 + 1  # Calcular el número inicial del conjunto de datos
+        for i in range(1, 11):
+            asunto = getattr(trabajo, f'asunto{i}', '')
+            estado = getattr(trabajo, f'estado{i}', '')
+            trabajo_data.append((start_number + i - 1, asunto, estado))  # Agregar el número al conjunto de datos
+        trabajos_data.append(trabajo_data)
+
+
+    temas = Temas_comentario_solicitud_vacaciones.objects.get(solicitud_vacaciones__id=solicitud.id)
     tabla_festivos = TablaFestivos.objects.all()
     delta = timedelta(days=1)
     valido = True
@@ -3552,7 +3472,7 @@ def solicitud_vacacion_verificar(request, pk):
         #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
         ultima_vacacion = Vacaciones.objects.filter(status=solicitud.status.id).last()
         if ultima_vacacion is not None and ultima_vacacion.total_pendiente > 0:
-            datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by("created_at")#Trae todas las vacaciones del mas antiguo al actual 2019-2022
+            datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
             suma_total = datos.aggregate(total_suma=Sum('total_pendiente'))['total_suma']
             if suma_total < cuenta:
                 messages.error(request, f'Esta pidiendo {cuenta} días cuando solo tiene {suma_total}')
@@ -3573,85 +3493,22 @@ def solicitud_vacacion_verificar(request, pk):
                         dato.dias_disfrutados += dato.total_pendiente
                         cuenta -=dato.total_pendiente
                         dato.total_pendiente = 0
-        else:
-            datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by("created_at")#Trae todas las vacaciones del mas antiguo al actual 2019-2022
-            #Se sacan las fechas de planta del empleado
-        fecha_planta_anterior = solicitud.status.fecha_planta_anterior
-        fecha_planta = solicitud.status.fecha_planta
-        if fecha_planta_anterior: #Si existe fecha de planta anterior se ocupa esa
-            days = fecha_planta_anterior
-        else:
-            days = fecha_planta
-        periodo=1
-        ahora = datetime.date.today()
-        antiguedad = ahora.year - days.year #Se saca los años de antigüedad del empleado
-        if antiguedad <= periodo:
-            antiguedad = periodo
-        tablas= TablaVacaciones.objects.all() #Se buscan los dias que le tocan de vacaciones segun su antigüedad
-        for tabla in tablas:
-            if antiguedad >= tabla.years:
-                dias_de_vacaciones = tabla.days #Variable que tiene los dias de vacaciones que le tocan
+        #else:
+        #    datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
         ############################
         if valido and form.is_valid():
             solicitud = form.save(commit=False)
             solicitud.comentario_rh= request.POST.get('comentario')
             solicitud.save()
-            solicitud.recibe_nombre = request.POST.get('recibe')
-            solicitud.recibe_area = request.POST.get('area')
-            solicitud.recibe_puesto = request.POST.get('puesto')
-            solicitud.recibe_sector = request.POST.get('sector')
-            solicitud.informacion_adicional = request.POST.get('adicional')
-            solicitud.anexos = request.POST.get('anexos')
-            trabajos.asunto1 = request.POST.get('asunto1')
-            trabajos.estado1 = request.POST.get('estado1')
-            trabajos.asunto2 = request.POST.get('asunto2')
-            trabajos.estado2 = request.POST.get('estado2')
-            trabajos.asunto3 = request.POST.get('asunto3')
-            trabajos.estado3 = request.POST.get('estado3')
-            trabajos.asunto4 = request.POST.get('asunto4')
-            trabajos.estado4 = request.POST.get('estado4')
-            trabajos.asunto5 = request.POST.get('asunto5')
-            trabajos.estado5 = request.POST.get('estado5')
-            trabajos.asunto6 = request.POST.get('asunto6')
-            trabajos.estado6 = request.POST.get('estado6')
-            trabajos.asunto7 = request.POST.get('asunto7')
-            trabajos.estado7 = request.POST.get('estado7')
-            trabajos.asunto8 = request.POST.get('asunto8')
-            trabajos.estado8 = request.POST.get('estado8')
-            trabajos.asunto9 = request.POST.get('asunto9')
-            trabajos.estado9 = request.POST.get('estado9')
-            trabajos.asunto10 = request.POST.get('asunto10')
-            trabajos.estado10 = request.POST.get('estado10')
-            temas.comentario1 = request.POST.get('comentario1')
-            temas.comentario2 = request.POST.get('comentario2')
-            temas.comentario3 = request.POST.get('comentario3')
-            temas.comentario4 = request.POST.get('comentario4')
-            temas.comentario5 = request.POST.get('comentario5')
-            temas.comentario6 = request.POST.get('comentario6')
-            temas.comentario7 = request.POST.get('comentario7')
-            temas.comentario8 = request.POST.get('comentario8')
-            temas.comentario9 = request.POST.get('comentario9')
-            trabajos.save()
-            temas.save()
             coment = request.POST.get('comentario')
             if solicitud.autorizar == True:
-                try:
-                    vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
-                except Vacaciones.DoesNotExist:
-                    vacacion = Vacaciones.objects.create(complete=True, status=solicitud.status, periodo=solicitud.periodo, dias_de_vacaciones=dias_de_vacaciones)
-                    vacacion.dias_disfrutados = cuenta
-                    vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
-                    vacacion.dia_inhabil = solicitud.dia_inhabil
-                    vacacion.fecha_fin = solicitud.fecha_fin
-                    vacacion.fecha_inicio = solicitud.fecha_inicio
-                    vacacion.comentario = coment
-                else:
-                    vacacion.dias_disfrutados += cuenta
-                    vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
-                    vacacion.dia_inhabil = solicitud.dia_inhabil
-                    vacacion.fecha_fin = solicitud.fecha_fin
-                    vacacion.fecha_inicio = solicitud.fecha_inicio
-                    vacacion.comentario = coment
+                vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
+                vacacion.dias_disfrutados += cuenta
+                vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
+                vacacion.dia_inhabil = solicitud.dia_inhabil
+                vacacion.fecha_fin = solicitud.fecha_fin
+                vacacion.fecha_inicio = solicitud.fecha_inicio
+                vacacion.comentario = coment
                 # Actualizamos el objeto status
                 status = Status.objects.get(id=vacacion.status.id)
                 status.complete_vacaciones = True
@@ -3680,7 +3537,7 @@ def solicitud_vacacion_verificar(request, pk):
     else:
         form = SolicitudVacacionesUpdateForm(instance=solicitud)
 
-    context = {'form':form,'solicitud':solicitud, 'temas':temas, 'trabajos':trabajos}
+    context = {'form':form,'solicitud':solicitud, 'temas':temas, 'trabajos_data': trabajos_data}
 
     return render(request,'proyecto/solicitud_vacaciones_update.html',context)
 
@@ -3717,11 +3574,12 @@ def PdfFormatoVacaciones(request, pk):
     azul = Color(0.16015625,0.5,0.72265625)
     rojo = Color(0.59375, 0.05859375, 0.05859375)
 
-    c.setFillColor(black)
+    c.setFillColor(azul)
     c.setLineWidth(.2)
     c.setFont('Helvetica-Bold',16)
     c.drawCentredString(305,765,'GRUPO VORCAB SA DE CV')
     c.drawCentredString(305,750,'SOLICITUD DE VACACIONES')
+    c.drawInlineImage('static/images/vordcab.png',50,720, 4 * cm, 2 * cm) #Imagen Savia
     if solicitud.autorizar == False:
         c.setFillColor(rojo)
         c.setFont('Helvetica-Bold',16)
@@ -3813,87 +3671,136 @@ def PdfFormatoVacaciones(request, pk):
         c.setFont('Helvetica',11)
         c.drawString(40,400,'DATOS DE QUIEN RECIBE:')
         c.drawString(40,380,'Nombre:')
-        c.drawString(100,380,solicitud.recibe_nombre)
+        if solicitud.recibe_nombre:
+            c.drawString(100,380,solicitud.recibe_nombre)
         c.line(90,378,375,378)
         c.drawString(385,380,'Area:')
-        c.drawString(435,380,solicitud.recibe_area)
+        if solicitud.recibe_area:
+            c.drawString(435,380,solicitud.recibe_area)
         c.line(420,378,560,378)
         c.drawString(40,360,'Puesto:')
-        c.drawString(100,360,solicitud.recibe_puesto)
+        if solicitud.recibe_puesto:
+            c.drawString(100,360,solicitud.recibe_puesto)
         c.line(90,358,375,358)
         c.drawString(40,340,'Sector:')
-        c.drawString(100,340,solicitud.recibe_sector)
+        if solicitud.recibe_sector:
+            c.drawString(100,340,solicitud.recibe_sector)
         c.line(90,338,375,338)
         c.setFont('Helvetica-Bold',14)
-        c.drawString(40,290,'SITUACIÓN DE TRABAJOS ENCOMENDADOS:')
+        c.drawString(40,300,'SITUACIÓN DE TRABAJOS ENCOMENDADOS:')
         c.setFillColor(black)
         c.setFont('Helvetica',11)
+
+        # Estilo de párrafo para los datos en la tabla
+        styleSheet = getSampleStyleSheet()
+        paragraphStyle = styleSheet['Normal']
+        paragraphStyle.fontSize = 8
         #Tabla y altura guia
-        data =[]
         high = 130
-        data.append(['''No.''','''DENOMINACIÓN ASUNTO''','''ESTADO''',])
-        #for economico in economicos: #Salen todos los datos
-        #    creado = economico.created_at.date()
-        #    data.append([economico.periodo,economico.fecha,economico.dias_disfrutados,economico.dias_pendientes,creado,])
-        data.append([1,solicitud.asunto.asunto1,solicitud.asunto.estado1,])
-        data.append([2,solicitud.asunto.asunto2,solicitud.asunto.estado2,])
-        data.append([3,solicitud.asunto.asunto3,solicitud.asunto.estado3,])
-        data.append([4,solicitud.asunto.asunto4,solicitud.asunto.estado4,])
-        data.append([5,solicitud.asunto.asunto5,solicitud.asunto.estado5,])
-        data.append([6,solicitud.asunto.asunto6,solicitud.asunto.estado6,])
-        data.append([7,solicitud.asunto.asunto7,solicitud.asunto.estado7,])
-        data.append([8,solicitud.asunto.asunto8,solicitud.asunto.estado8,])
-        data.append([9,solicitud.asunto.asunto9,solicitud.asunto.estado9,])
-        data.append([10,solicitud.asunto.asunto10,solicitud.asunto.estado10,])
+        trabajos = Trabajos_encomendados.objects.filter(solicitud_vacaciones__id=solicitud.id)
+        data = []
+        data.append(['No.', 'DENOMINACIÓN ASUNTO', 'ESTADO'])
+
+        numero = 1  # Inicializar el número
+
+        for index, trabajo in enumerate(trabajos, start=1):
+            trabajo_data = []
+            for i in range(1, 11):
+                asunto = getattr(trabajo, f'asunto{i}', '')
+                estado = getattr(trabajo, f'estado{i}', '')
+                trabajo_data.append((numero, asunto, estado))
+                numero += 1  # Incrementar el número
+            data.extend(trabajo_data)
         high = high - 20
-            #Propiedades de la tabla
-        width, height = letter
-        table = Table(data, colWidths=[1.5 * cm, 8 * cm, 10  * cm,], repeatRows=1)
-        table.setStyle(TableStyle([ #estilos de la tabla
+
+        #Propiedades de la tabla
+        width, height = landscape(letter)
+        table_style = TableStyle([ #estilos de la tabla
             #ENCABEZADO
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('TEXTCOLOR',(0,0),(-1,0), black),
+            ('TEXTCOLOR',(0,0),(-1,0), colors.black),
             ('FONTSIZE',(0,0),(-1,0), 12),
-            ('BACKGROUND',(0,0),(-1,0), white),
+            ('BACKGROUND',(0,0),(-1,0), colors.white),
             #CUERPO
             ('TEXTCOLOR',(0,1),(-1,-1), colors.black),
             ('FONTSIZE',(0,1),(-1,-1), 12),
             ('GRID',(0,0),(-1,-1),0.5,colors.grey),
-            ]))
-        table.setStyle(TableStyle([
-            ('GRID',(0,0),(-1,-1),0.5,colors.grey),
-            ]))
-        table.wrapOn(c, width, height)
-        table.drawOn(c, 25, high)
-        c.showPage()
-        data =[]
-        high = 850
-        for n in range(11, 51):
-            data.append([n, "   " , "    "])
-            high -= 20
-                    #Propiedades de la tabla
-        width, height = letter
-        table = Table(data, colWidths=[1.5 * cm, 8 * cm, 10  * cm,], repeatRows=1)
-        table.setStyle(TableStyle([ #estilos de la tabla
-            #ENCABEZADO
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('TEXTCOLOR',(0,0),(-1,0), black),
-            ('FONTSIZE',(0,0),(-1,0), 12),
-            ('BACKGROUND',(0,0),(-1,0), white),
-            #CUERPO
-            ('TEXTCOLOR',(0,1),(-1,-1), colors.black),
-            ('FONTSIZE',(0,1),(-1,-1), 12),
-            ('GRID',(0,0),(-1,-1),0.5,colors.grey),
-            ]))
-        table.setStyle(TableStyle([
-            ('GRID',(0,0),(-1,-1),0.5,colors.grey),
-            ]))
-        table.wrapOn(c, width, height)
-        table.drawOn(c, 25, high)
+        ])
+
+        # Definir variables para el salto de página
+        rows_per_page = 7
+        total_rows = len(data) - 1  # Excluye el encabezado
+        current_row = 1  # Comenzar desde la primera fila (excluyendo el encabezado)
+
+        # Generar páginas con el contenido restante
+        while current_row <= total_rows:
+            # Calcular el espacio disponible en la página actual
+            available_height = height - 70 - 20  # Ajustar según el espaciado
+            
+            # Calcular cuántas filas caben en la página actual
+            if current_row == 1:
+                rows_on_page = min(rows_per_page, math.floor((available_height - 20) / 20))  # Para la primera página
+            else:
+                rows_on_page = min(20, math.floor((available_height - 20) / 20))  # Para las páginas restantes
+
+            # Obtener los datos para la página actual
+            end_row = int(current_row + rows_on_page) if current_row + rows_on_page <= total_rows else total_rows + 1
+            page_data = data[current_row:end_row]
+
+            # Reemplazar valores None con un espacio en blanco
+            page_data = [[cell if cell is not None else " " for cell in row] for row in page_data]
+
+            # Calcular la altura para dibujar la tabla
+            table_height = len(page_data) * 20
+            
+            # Calcular la posición vertical para la tabla
+            if current_row == 1:
+                # Ajustar el margen superior para la primera tabla
+                table_y = height - 130 - table_height - 275  # Usar la altura específica para la primera tabla
+            else:
+                # Calcular el margen desde la parte superior de la página
+                margin_top = 40
+                table_y = height - table_height - margin_top
+
+            # Dentro del bucle para crear la tabla de cada página
+            table_data = []
+            for row in page_data:
+                table_row = []
+                for cell_data in row:
+                    if isinstance(cell_data, str) and len(cell_data) > 30:
+                        # Aplicar estilo CSS para dividir palabras largas
+                        cell_data = cell_data.replace(' ', '<br/>')
+                        cell_data = f'<font size="12">{cell_data}</font>'
+                        cell = Paragraph(cell_data, paragraphStyle)
+                    else:
+                        cell = cell_data
+                    table_row.append(cell)
+                table_data.append(table_row)
+
+            # Crear la tabla para la página actual
+            table = Table([data[0]] + table_data, colWidths=[1.5 * cm, 8 * cm, 10 * cm], repeatRows=1)
+            table.setStyle(table_style)
+
+            # Dibujar la tabla en la página actual
+            table.wrapOn(c, width, height)
+            table.drawOn(c, 25, table_y)
+
+            # Avanzar al siguiente conjunto de filas
+            current_row += rows_on_page
+            
+            # Cambiar la cantidad de filas por página después de la primera página
+            if current_row == 1:
+                rows_per_page = 20
+            
+            # Agregar una nueva página si quedan más filas por dibujar
+            if current_row <= total_rows:
+                c.showPage()
         c.showPage()
         c.setFont('Helvetica-Bold',12)
         #Parrafo con salto de linea automatica si el texto es muy largo
-        text = solicitud.informacion_adicional
+        text = " "
+        if solicitud.informacion_adicional:
+            text = solicitud.informacion_adicional
         x = 40
         y = 750
         c.setFillColor(black)
@@ -3904,21 +3811,48 @@ def PdfFormatoVacaciones(request, pk):
         for line in lines:
             c.drawString(x + 10, y - 35, line)
             y -= 15
+      
+        # Estilo de párrafo para los comentarios
+        styleSheet = getSampleStyleSheet()
+        commentStyle = styleSheet['Normal']
+        commentStyle.fontSize = 8
 
-        data2 =[]
-        high = 425
-        data2.append(['''No.''','''TEMAS''','''  ''',])
-        data2.append(["1","Información sobre personal a su cargo",solicitud.temas.comentario1,])
-        data2.append(["2","Documentos",solicitud.temas.comentario2,])
-        data2.append(["3","Arqueo de caja o cuenta bancaria a su cargo (cuando aplique)",solicitud.temas.comentario3,])
-        data2.append(["4","Proyectos pendientes",solicitud.temas.comentario4,])
-        data2.append(["5","Estado de las operaciones a su cargo",solicitud.temas.comentario5,])
-        data2.append(["6","Deudas con la empresa",solicitud.temas.comentario6,])
-        data2.append(["7","Saldos por comprobar a contabilidad",solicitud.temas.comentario7,])
-        data2.append(["8","Activos asignados",solicitud.temas.comentario8,])
-        data2.append(["9","Otros",solicitud.temas.comentario9,])
+        def format_comment(comment):
+            if comment is None:
+                return ""
+            return Paragraph(comment, commentStyle)
+        
+        # Datos y ajustes de la tabla
+        data2 = []
+        high = 465
+        data2.append(['No.', 'TEMAS', 'COMENTARIO'])
+        data2.append(["1", "Información sobre personal a su cargo", format_comment(solicitud.temas.comentario1)])
+        data2.append(["2", "Documentos", format_comment(solicitud.temas.comentario2)])
+        data2.append(["3", Paragraph("Arqueo de caja o cuenta bancaria a su cargo (cuando aplique)"), format_comment(solicitud.temas.comentario3)])
+        data2.append(["4", "Proyectos pendientes", format_comment(solicitud.temas.comentario4)])
+        data2.append(["5", "Estado de las operaciones a su cargo", format_comment(solicitud.temas.comentario5)])
+        data2.append(["6", "Deudas con la empresa", format_comment(solicitud.temas.comentario6)])
+        data2.append(["7", "Saldos por comprobar a contabilidad", format_comment(solicitud.temas.comentario7)])
+        data2.append(["8", "Activos asignados", format_comment(solicitud.temas.comentario8)])
+        data2.append(["9", "Otros", format_comment(solicitud.temas.comentario9)])
+
+        table = Table(data2, colWidths=[1.5 * cm, 8 * cm, 11 * cm,], repeatRows=1)
+        table.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('TEXTCOLOR',(0,0),(-1,0), colors.black),
+            ('FONTSIZE',(0,0),(-1,0), 13),
+            ('BACKGROUND',(0,0),(-1,0), colors.white),
+            ('GRID',(0,0),(-1,-1),0.5,colors.grey),
+        ]))
+
+        # Dibujar la tabla en el lienzo
+        table.wrapOn(c, width, height)
+        table.drawOn(c, 25, high)
+
         #c.drawString(40,375,'ANEXOS:')
-        text = solicitud.anexos
+        text = " "
+        if solicitud.anexos:
+            text = solicitud.anexos
         x = 40
         y = 380
         c.setFillColor(black)
@@ -3939,23 +3873,7 @@ def PdfFormatoVacaciones(request, pk):
         c.drawCentredString(400,170,'RECIBI (NOMBRE Y FIRMA)')
         c.drawCentredString(400,190,solicitud.recibe_nombre)
         c.line(320,185,480,185)
-        table = Table(data2, colWidths=[1.5 * cm, 11 * cm, 7 * cm,], repeatRows=1)
-        table.setStyle(TableStyle([ #estilos de la tabla
-            #ENCABEZADO
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('TEXTCOLOR',(0,0),(-1,0), black),
-            ('FONTSIZE',(0,0),(-1,0), 13),
-            ('BACKGROUND',(0,0),(-1,0), white),
-            #CUERPO
-            ('TEXTCOLOR',(0,1),(-1,-1), colors.black),
-            ('FONTSIZE',(0,1),(-1,-1), 10),
-            ('GRID',(0,0),(-1,-1),0.5,colors.grey),
-            ]))
-        table.setStyle(TableStyle([
-            ('GRID',(0,0),(-1,-1),0.5,colors.grey),
-            ]))
-        table.wrapOn(c, width, height)
-        table.drawOn(c, 25, high)
+
     c.drawCentredString(200,70,'FIRMA DE GERENCIA')
     c.rect(120,68, 160, 70)
     c.line(120,80,280,80)
@@ -3987,64 +3905,48 @@ def SolicitudEconomicos(request):
     usuario = UserDatos.objects.get(user__id=request.user.id)
     status = Status.objects.get(perfil__numero_de_trabajador=usuario.numero_de_trabajador, perfil__distrito=usuario.distrito)
 
-    año_actual = str(date.today().year) #Quitar el complete_economicos a todos aquellos que ya cumplan el año de planta
-    mes_actual = datetime.date.today().month
-    dia_actual = datetime.date.today().day
-    #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
-    reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
-    reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
-    reinicio = reinicio | reinicio2
-    for empleado in reinicio:
-        empleado.complete_economicos = False
-        empleado.save()
+    #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
+    fecha_actual = date.today()
+    año_actual = str(fecha_actual.year)
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #Busca todos los status que no tengan vacaciones del año actual (periodo)
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual)) 
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    #Busco el fecha de planta en los que no tengan fecha de planta anterior
+    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    if reinicio:
+        for empleado in reinicio:                        
+            economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None, 
+                                                comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+            empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
+            empleado.save()
+
 
     solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
     form = SolicitudEconomicosForm()
     now = date.today()
     periodo = str(now.year)
     valido = True
-    if Economicos.objects.filter(complete=True,status=status,periodo=periodo):
-        datos= Economicos.objects.get(complete=True,status=status,periodo=periodo)
-    else:
-        datos=0
+    datos= Economicos.objects.get(complete=True,status=status,periodo=periodo)
     if request.method == 'POST' and 'btnSend' in request.POST:
 
         form = SolicitudEconomicosForm(request.POST, instance=solicitud)
         form.save(commit=False)
 
-        if status.complete_economicos == True:
-            economicos = Economicos.objects.get(status=status, periodo=periodo)
-            datos=economicos
-            if economicos.dias_disfrutados < 3:
-                if Solicitud_economicos.objects.filter(status=status):
-                    verificar = Solicitud_economicos.objects.filter(status=status).last()
-                    if verificar.autorizar == None:
-                        messages.error(request,'Tiene una solicitud generada sin revisar')
-                        valido = False
-            else:
-                messages.error(request,'Usted ya a utilizado sus 3 días económicos')
-                valido = False
-        elif Solicitud_economicos.objects.filter(status=status):
-            verificar = Solicitud_economicos.objects.filter(status=status,periodo=periodo).last()
-            if verificar.autorizar == None:
-                messages.error(request,'Tiene una solicitud generada pendiente de autorizar')
-                valido = False
 
-        #Se verifica si el empleado tiene un año de antigüedad
-        if status.fecha_planta_anterior:
-            days = status.fecha_planta_anterior
+        if datos.dias_disfrutados < 3:
+            if Solicitud_economicos.objects.filter(status=status):
+                verificar = Solicitud_economicos.objects.filter(status=status,periodo=periodo).last()
+                if verificar.autorizar == None:
+                    messages.error(request,'Tiene una solicitud generada sin revisar')
+                    valido = False
         else:
-            days = status.fecha_planta
-        ahora = datetime.date.today()
-        año = 1
-        if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
-            antiguedad = ahora.year - days.year
-        else:
-            antiguedad = ahora.year - days.year - 1
-        if antiguedad < año:
-            messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
-            valido=False
+            messages.error(request,'Usted ya a utilizado sus 3 días económicos')
+            valido = False
+
         fecha_form = request.POST.get('fecha')
         year, month, day = map(int, fecha_form.split('-'))
         fecha_form = date(year, month, day)
@@ -4267,6 +4169,15 @@ def PdfFormatoEconomicos(request, pk):
 
     #Reportes generales
 def excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,):
+
+    
+    fecha_actual = date.today()
+    año_actual = str(fecha_actual.year)
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    status= Status.objects.filter(complete=True, perfil__baja=False)
+    reinicio = status.filter(Q(fecha_planta_anterior__lte=fecha_hace_un_año) |Q(fecha_planta__lte=fecha_hace_un_año))
+    reinicio = reinicio.count()
+
     matriz= perfil.filter(distrito__distrito = 'Matriz')
     matriz = matriz.count()
     altamira= perfil.filter(distrito__distrito = 'Altamira')
@@ -4345,6 +4256,8 @@ def excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economi
     (ws.cell(column = 2, row = 10, value=hombres)).style = body_style
     (ws.cell(column = 1, row = 11, value='Mujeres:')).style = messages_style
     (ws.cell(column = 2, row = 11, value=mujeres)).style = body_style
+    (ws.cell(column = 1, row = 12, value='Empleados con 1 año antigüedad:')).style = messages_style
+    (ws.cell(column = 2, row = 12, value=reinicio)).style = body_style
 
     (ws.cell(column = 1, row = 15, value='Matriz')).style = messages_style
     (ws.cell(column = 2, row = 15, value=matriz)).style = body_style
@@ -4895,3 +4808,39 @@ def Baja_empleado(request, pk):
     }
 
     return render(request, 'proyecto/Baja_empleado.html', context)
+
+@login_required(login_url='user-login')
+def Antiguedad(request, pk): #Comprobar que el empleado si puede entrar a los link de solcitud si tiene la antiguedad y evitar error
+    user_filter = UserDatos.objects.get(user=request.user)
+    perfil = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
+    status = Status.objects.get(perfil=perfil)
+    fecha_actual = date.today()
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    
+    if status.fecha_planta_anterior is not None:
+        if status.fecha_planta_anterior <= fecha_hace_un_año:
+            if pk == 1:
+                return redirect('Solicitar_vacacion')
+            elif pk == 2:
+                return redirect('Solicitar_economico')
+            elif pk == 3:
+                return redirect('Solicitudes_vista_empleado')
+            else:
+                messages.error(request, 'Opción inválida para pk')
+        else:
+            messages.error(request, f'El empleado aún no tiene un año de antigüedad para la solicitud, fecha planta: {status.fecha_planta_anterior}')
+    elif status.fecha_planta is not None:
+        if status.fecha_planta <= fecha_hace_un_año:
+            if pk == 1:
+                return redirect('Solicitar_vacacion')
+            elif pk == 2:
+                return redirect('Solicitar_economico')
+            elif pk == 3:
+                return redirect('Solicitudes_vista_empleado')
+            else:
+                messages.error(request, 'Opción inválida para pk')
+        else:
+            messages.error(request, f'El empleado aún no tiene un año de antigüedad para la solicitud, fecha planta: {status.fecha_planta}')
+    else:
+        messages.error(request, 'El usuario no cuenta con una fecha de planta para poder realizar la solicitud')
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
