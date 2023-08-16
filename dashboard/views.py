@@ -22,6 +22,8 @@ from openpyxl.utils import get_column_letter
 import datetime
 from django.db.models.functions import Concat, Extract
 from django.db.models import Value
+from datetime import timedelta, date
+from dateutil.relativedelta import relativedelta #Años entre 2 fechas con años bisiestos
 #PDF generator
 from django.db.models import Q
 from openpyxl.drawing.image import Image
@@ -40,6 +42,26 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
     #for dato in DatosBancarios.objects.filter(complete=True):
     #    dato.status.complete_bancarios = True
     #    dato.status.save()
+
+    #vacacion = Vacaciones.objects.filter(periodo="2023")
+    #for dato in vacacion:
+    #    status = Status.objects.get(id=dato.status.id)
+    #    status.complete_vacaciones = False
+    #    status.save()
+    #    dato.delete() 
+    
+    #fecha_actual = date.today()
+    #año_actual = str(fecha_actual.year)
+    #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #status= Status.objects.filter(complete=True, perfil__baja=False)
+    #reinicio = status.filter(Q(fecha_planta_anterior__lte=fecha_hace_un_año) |Q(fecha_planta__lte=fecha_hace_un_año))
+    #economicos = Economicos.objects.exclude(status__in=reinicio)
+    #for dato in economicos:
+    #    status = Status.objects.get(id=dato.status.id)
+    #    status.complete_economicos = False
+    #    status.save()
+    #    dato.delete() 
+
     usuario = UserDatos.objects.get(user__id=request.user.id)
     periodo = str(datetime.date.today().year)
     if usuario.distrito.distrito == 'Matriz':

@@ -39,7 +39,7 @@ urlpatterns = [
     path('upload_Costos', views.upload_batch_costos, name='Upload_costos'),
     path('Empleado/Costo/<int:pk>/', views.Empleado_Costo, name='Empleado_costo'),
 
-    path('Formulario_Vacaciones', views.FormularioVacaciones, name='Formulario_vacaciones'),
+    #path('Formulario_Vacaciones', views.FormularioVacaciones, name='Formulario_vacaciones'),
     path('VacacionesEmpleados', views.Tabla_Vacaciones, name='Tabla_vacaciones_empleados'),
 
     path('Vacaciones/update/<int:pk>/', views.VacacionesUpdate, name='Vacaciones_update'),
@@ -86,5 +86,6 @@ urlpatterns = [
     path('Solicitud_economico_autorizar/<int:pk>/', views.solicitud_economico_verificar, name='solicitud-economico-update'),
 
     path('Solicitudes_revisadas/Empleado', views.Solicitudes_revisar_empleado, name='Solicitudes_vista_empleado'), #Vista empleado generar pdf
-
+    path('antiguedad/<int:pk>/', views.Antiguedad, name='antiguedad'),
+    
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

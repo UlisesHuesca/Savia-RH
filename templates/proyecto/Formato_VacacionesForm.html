@@ -37,14 +37,6 @@
             <div class="column is-half is-offset-one-quarter">
                 <h3 class="title is-size-3">Formato solicitud vacaciones</h3>
                 <hr>
-                {% if datos == 0 %}
-                <div class="form-group">
-                    <label class="col-auto col-form-label"><strong>Información vacaciones del empleado:</strong></label>
-                    <br>
-                    <label class="col-auto col-form-label">El usuario aún no genera las vacaciones de este año</label>
-                </div>
-                <hr>
-                {% else %}
                 <div class="form-group">
                     <label class="col-auto col-form-label"><strong>Información vacaciones del empleado</strong></label>
                     <br>
@@ -58,7 +50,6 @@
                     <br>
                 </div>
                 <hr>
-                {% endif %}
                 <h4 class="title is-size-3">Formulario</h4>
                 <label for="form.nombre" class="col-auto col-form-label"><strong>Empleado: {{datos.status.perfil.nombres}} {{datos.status.perfil.apellidos}}</strong></label>
                 <form method="POST">
@@ -173,6 +164,12 @@
                                     </tr>
                                 </tbody>
                                 </table>
+                            </div>
+                                <input type="hidden" name="num_campos" id="num_campos" value="10"> <!-- Campo oculto para almacenar el número de campos -->
+                            <div class="row my-2 hide-me">
+                                <div class="col-auto">
+                                <button type="button" id="add-fields" class="btn btn-sm btn-primary">Agregar más campos</button>
+                                </div>
                             </div>
                             <br>
                             <br>
@@ -292,6 +289,40 @@ $(function() {
 
     // manejar el cambio en los campos de fecha cuando se cambian
     $('#id_fecha_inicio, #id_fecha_fin').change(handleDateChange);
+
+    // Contador para mantener el número de campos actuales
+    let currentFieldCount = 10;
+
+    // Función para agregar campos adicionales
+    function addFields() {
+        const maxFields = 50; // Máximo de campos permitidos
+
+        if (currentFieldCount < maxFields) {
+            currentFieldCount++;
+
+            const newRow = $('<tr></tr>');
+            newRow.append(`<td>${currentFieldCount}</td>`);
+            newRow.append(`<td><input type="text" name="asunto${currentFieldCount}" class="form-control" maxlength="100"></td>`);
+            newRow.append(`<td><input type="text" name="estado${currentFieldCount}" class="form-control" maxlength="100"></td>`);
+            $('.table:first tbody').append(newRow); // Selecciona la primera tabla y agrega la nueva fila
+ 
+            updateNumCampos(); // Actualizar el valor del campo oculto
+        } else {
+            alert('Se ha alcanzado el máximo de campos permitidos.');
+        }
+    }
+
+    // Manejar clic en el botón para agregar campos
+    $('#add-fields').click(addFields);
+    
+        // Función para obtener el número de campos actuales
+    function getCurrentFieldCount() {
+        return currentFieldCount;
+    }
+    // Función para actualizar el valor del campo oculto con el número de campos actuales
+    function updateNumCampos() {
+        $('#num_campos').val(getCurrentFieldCount());
+}
 });
 </script>
 {% endblock %}

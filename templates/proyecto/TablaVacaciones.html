@@ -56,12 +56,12 @@
                             <button type="button" class="btn btn-outline-danger">
                                <i class="fa-solid fa-file-pdf fa-2xl"></i>
                             </button>
-                        </li> -->
+                        
                         <li class="nav-item mx-2">
-                            <a type="button" class="btn btn-outline-info" href="{% url 'Formulario_vacaciones' %}">
+                            <a type="button" class="btn btn-outline-info" href="">
                                 <i class="fa-solid fa-user-plus"></i>
                             </a>
-                        </li>
+                        </li> </li> -->
                         <li class="nav-item mx-2">
                             <a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d" data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document" hx-get="{% url 'Upload_vacaciones_anteriores' %}">
                                 <i class="fa-solid fa-file-arrow-up"> CARGA MASIVA V/E</i>
@@ -78,6 +78,10 @@
             <hr>
             <form method="GET" class="row g-3">
                 {% csrf_token %}
+                <label for="vacaciones_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong># Trabajador:</strong></label>
+                <div class="col-auto">
+                       {% render_field vacaciones_filter.form.numero_de_trabajador class="form-control" %}
+                </div>
                 <label for="vacaciones_filter.form.nombres_apellidos" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
                 <div class="col-auto">
                        {% render_field vacaciones_filter.form.nombres_apellidos class="form-control" %}

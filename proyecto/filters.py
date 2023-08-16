@@ -72,12 +72,13 @@ class BonosFilter(django_filters.FilterSet):
         return queryset.annotate(nombres_apellidos_combined=Concat('costo__status__perfil__nombres', Value(' '), 'costo__status__perfil__apellidos', output_field=CharField())).filter(nombres_apellidos_combined__icontains=value)
 
 class VacacionesFilter(django_filters.FilterSet):
+    numero_de_trabajador = django_filters.NumberFilter(field_name='status__perfil__numero_de_trabajador')
     nombres_apellidos = CharFilter(method='nombres_apellidos_filter', label="Search")
     distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.all(), field_name='status__perfil__distrito__distrito')
 
     class Meta:
         model = Vacaciones
-        fields = ['nombres_apellidos','distrito',]
+        fields = ['numero_de_trabajador','nombres_apellidos','distrito',]
 
     def nombres_apellidos_filter(self, queryset, name, value):
         return queryset.annotate(nombres_apellidos_combined=Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos', output_field=CharField())).filter(nombres_apellidos_combined__icontains=value)
@@ -118,7 +119,7 @@ class DistritoFilter(django_filters.FilterSet):
 class SolicitudesVacacionesFilter(django_filters.FilterSet):
     numero_de_trabajador = django_filters.NumberFilter(field_name='status__perfil__numero_de_trabajador')
     nombres = CharFilter(method ='nombres_filter', label="Search")
-    distrito = django_filters.CharFilter(field_name='status__perfil__distrito__distrito', lookup_expr='icontains')
+    distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.all(), field_name='status__perfil__distrito__distrito')
 
     class Meta:
         model = Solicitud_vacaciones
@@ -130,7 +131,7 @@ class SolicitudesVacacionesFilter(django_filters.FilterSet):
 class SolicitudesEconomicosFilter(django_filters.FilterSet):
     numero_de_trabajador = django_filters.NumberFilter(field_name='status__perfil__numero_de_trabajador')
     nombres = CharFilter(method ='nombres_filter', label="Search")
-    distrito = django_filters.CharFilter(field_name='status__perfil__distrito__distrito', lookup_expr='icontains')
+    distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.all(), field_name='status__perfil__distrito__distrito')
     class Meta:
         model = Solicitud_economicos
         fields = ['nombres','distrito','numero_de_trabajador',]

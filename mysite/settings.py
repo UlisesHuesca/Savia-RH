@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-r9fy(pk86$+m$yra4u*dua2%u(8xp9e-t^(3q3ibft-oj6c+zk'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False #True es para ver la pantalla amarilla, False para ver el 404
+DEBUG = True #True es para ver la pantalla amarilla, False para ver el 404
 
 ALLOWED_HOSTS = ['*']
 
@@ -92,29 +92,29 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #        'NAME': 'newdatabase',
 #    }
 #}
-DATABASES = {
-   'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vicjosh$default',
-        'USER': 'vicjosh',
-        'PASSWORD': 'mimi2000',
-        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
-        'PORT': '',  # Deja este campo vacío
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
-    }
-}
 #DATABASES = {
-#    'default': {
+#   'default': {
 #        'ENGINE': 'django.db.backends.mysql',
-#        'NAME': 'saviadatabase',
-#        'USER': 'root',
-#        'PASSWORD': 'Root',
-#        'HOST': 'localhost',
-#        'PORT': '',
+#        'NAME': 'vicjosh$default',
+#        'USER': 'vicjosh',
+#        'PASSWORD': 'mimi2000',
+#        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
+#        'PORT': '',  # Deja este campo vacío
+#        'OPTIONS': {
+#            'charset': 'utf8mb4',
+#        },
 #    }
 #}
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'saviadatabase',
+        'USER': 'root',
+        'PASSWORD': 'Root',
+        'HOST': 'localhost',
+        'PORT': '',
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 

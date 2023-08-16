@@ -475,7 +475,7 @@ class Solicitud_vacaciones(models.Model):
     recibe_area= models.CharField(max_length=50,null=True, blank=True)
     recibe_puesto= models.CharField(max_length=50,null=True, blank=True)
     recibe_sector= models.CharField(max_length=50,null=True, blank=True)
-    asunto = models.ForeignKey(Trabajos_encomendados, on_delete = models.CASCADE, null=True)
+    asunto = models.ManyToManyField(Trabajos_encomendados, blank=True)
     informacion_adicional= models.CharField(max_length=50,null=True, blank=True)
     temas = models.ForeignKey(Temas_comentario_solicitud_vacaciones, on_delete = models.CASCADE, null=True)
     anexos = models.CharField(max_length=200,null=True, blank=True)
@@ -486,7 +486,7 @@ class Solicitud_vacaciones(models.Model):
     complete = models.BooleanField(default=False)
 
     def __str__(self):
-        return f' id: {self.id} Status: {self.status} Fecha solicitud: {self.created_at} Días: {self.fecha_inicio} a {self.fecha_fin}'
+        return f'{self.temas} id: {self.id} Status: {self.status} Fecha solicitud: {self.created_at} Días: {self.fecha_inicio} a {self.fecha_fin}'
 
 class Vacaciones(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)

@@ -123,12 +123,21 @@
                             {% if usuario_fijo.numero_de_trabajador == None or usuario_fijo.baja == True %}
                             <div>
                             {% else %}
+                            {% if status_fijo.complete_vacaciones == False and status_fijo.complete_economicos == False %}
+                            <h6 class="dropdown-header">Solicitudes</h6>
+                            <div class="dropdown-divider"></div> <!-- Para comprobar que el empleado ya puede hacer las solicitudes-->
+                            <a class="dropdown-item" href="{% url 'antiguedad' pk=1 %}">Solicitar días de vacaciones</a> 
+                            <a class="dropdown-item" href="{% url 'antiguedad' pk=2 %}">Solicitar días económicos</a>
+                            <a class="dropdown-item" href="{% url 'antiguedad' pk=3 %}">Solicitudes revisadas</a>
+                            <div class="dropdown-divider"></div>
+                            {% else %}
                             <h6 class="dropdown-header">Solicitudes</h6>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Solicitar_vacacion' %}">Solicitar días de vacaciones</a>
                             <a class="dropdown-item" href="{% url 'Solicitar_economico' %}">Solicitar días económicos</a>
                             <a class="dropdown-item" href="{% url 'Solicitudes_vista_empleado' %}">Solicitudes revisadas</a>
-                        <div class="dropdown-divider"></div>
+                            <div class="dropdown-divider"></div>
+                            {% endif %}
                             {% endif %}
                     </div>
                 </div>
