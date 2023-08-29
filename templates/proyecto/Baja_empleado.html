@@ -50,14 +50,51 @@
                         <hr>
                         <h6 style="color: blue; margin-left: 20px;">Dar de baja al empleado</h6>
                     </div>
-
+                    <div class="row my-2">
+                        <label for="form.fecha" class="col-auto col-form-label my-1"><strong>Fecha:</strong></label>
+                        <div class="col-6">
+                            {% render_field form.fecha type="date" class="form-control" %}
+                        </div>
+                    </div>
+                    <div class="row my-2">
+                        <label for="form.finiquito" class="col-auto col-form-label my-1"><strong>Finiquito:</strong></label>
+                        <div class="col-6">
+                            {{form.finiquito|add_class:"form-control"}}
+                        </div>
+                    </div>
+                    <div class="row my-2">
+                        <label for="form.liquidacion" class="col-auto col-form-label my-1"><strong>Liquidación:</strong></label>
+                        <div class="col-6">
+                            {{form.liquidacion|add_class:"form-control"}}
+                        </div>
+                    </div>
+                    <div class="row my-2">
+                        <label for="form.motivo" class="col-auto col-form-label my-1"><strong>Motivo:</strong></label>
+                        <div class="col-6">
+                            {{form.motivo|add_class:"form-control"}}
+                        </div>
+                    </div>
+                    <div class="row my-2">
+                        <label for="form.exitosa" class="col-auto col-form-label my-1"><strong>¿Fue exitosa la baja?:</strong></label>
+                        <div class="col-6">
+                            {{form.exitosa|add_class:"form-control"}}
+                        </div>
+                    </div>
+                    <div class="row my-2">
+                        <label for="form.demanda" class="col-auto col-form-label my-1"><strong>Demando:</strong></label>
+                        <div class="col-6">
+                            {{form.demanda|add_class:"form-control"}}
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-auto my-2 .mr-1" style="margin-left: 20px;">
                             <input type="hidden" name="btnSend" id="btnSend" value="0">
-                            <button type="submit" class="btn btn-outline-light " data-bs-dismiss="modal" onclick="confirmAction(event)"><i class="fa-solid fa-cloud-arrow-up"></i> Confirmar</button>
+                            <button type="submit" class="btn btn-outline-light" data-bs-dismiss="modal">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Confirmar
+                            </button>
                         </div>
                         <div class="col-auto my-2">
-                            <a href="#" hx-trigger="click" data-bs-dismiss="modal"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button></a>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         </div>
                     </div>
                 </form>

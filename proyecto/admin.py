@@ -46,11 +46,13 @@ from .models import Empleados_Batch
 from .models import Status_Batch
 from .models import Costos_Batch
 from .models import Bancarios_Batch
+from .models import Datos_baja
 
 class PerfilAdmin(admin.ModelAdmin):
     ordering = ['numero_de_trabajador']
     list_display = ('numero_de_trabajador','nombres','apellidos','id')
     search_fields = ('nombres'),
+    list_filter = ('baja',)
 
 class StatusAdmin(admin.ModelAdmin):
     ordering = ['id']
@@ -141,3 +143,4 @@ admin.site.register(Status_Batch)
 admin.site.register(Costos_Batch)
 admin.site.register(Bancarios_Batch)
 admin.site.register(Vacaciones_anteriores_Batch)
+admin.site.register(Datos_baja)

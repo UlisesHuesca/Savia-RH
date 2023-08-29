@@ -1,0 +1,175 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+{% load tt_extras %}
+
+<html>
+<head>
+{% block title %}Empleados dados de baja{% endblock %}
+</head>
+<body>
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+<hr>
+<hr>
+ <!-- Aqui es el encabezado -->
+    <div class = "row mt-2 bg-white">
+        <form method=POST>
+        {% csrf_token %}
+        <div class="col-12">
+            <div class="card card-body">
+                <h5>Tabla empleados dados de baja</h5>
+                 <div class = "row mt-2 bg-white">
+                    <hr>
+                    <ul class="nav nav-pills">
+                        <li class="nav-item mx-2">
+                            <button type="submit" name="Excel" class="btn btn-outline-success" value='Reporte Excel'>
+                                <i class="fa-solid fa-file-excel fa-2xl"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </form>
+    </div>
+<div class="card card-body">
+            <h5>Filtro de empleados</h5>
+            <hr>
+            <form method="GET" class="row g-3">
+                {% csrf_token %}
+                <label for="perfil_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
+                <div class="col-auto">
+                       {% render_field perfil_filter.form.numero_de_trabajador class="form-control" %}
+                </div>
+                <label for="perfil_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                <div class="col-auto">
+                       {% render_field perfil_filter.form.nombres_apellidos class="form-control" %}
+                </div>
+                <label for="perfil_filter.form.empresa" class="col-sm-auto col-form-label text-right"><strong>Empresa:</strong></label>
+                <div class="col-auto">
+                       {% render_field perfil_filter.form.empresa class="form-control" %}
+                </div>
+                {% if usuario.distrito.distrito == "Matriz" %}
+                <label for="perfil_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
+                <div class="col-auto">
+                       {% render_field perfil_filter.form.distrito class="form-control" %}
+                </div>
+                {% else %}
+                {% endif %}
+                <div class="col-auto">
+                <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            </form>
+</div>
+
+<!-- Aquí empieza la generación de la tabla -->
+<div class = "row mt-2">
+    <div class="col-md-12">
+        <table class="table table-striped table-hover bg-white">
+            <thead class="text-black" style="background-color: #F5F5F5;">
+                <tr style="background-color:#2A628F;color:#ffffff;">
+                    <th scope="col">No. de trabajador</th>
+                    <th scope="col">Empresa</th>
+                    <th scope="col">Distrito</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Fecha de nacimiento</th>
+                    <th scope="col">Correo electrónico</th>
+                    <th scope="col">Proyecto</th>
+                    <th scope="col">Subproyecto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for perfil in salidas_list %}
+                <tr>
+                    <td>{{perfil.numero_de_trabajador}}</td>
+                    <td>{{perfil.empresa}}</td>
+                    <td>{{perfil.distrito}} {{perfil.division}}</td>
+                    <td>{{perfil.nombres}} {{perfil.apellidos}}</td>
+                    <td>{{perfil.fecha_nacimiento}}</td>
+                    <td>{{perfil.correo_electronico}}</td> 
+                    <td>{{perfil.proyecto}}</td>
+                    <td>{{perfil.subproyecto}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        {% if salidas_list.has_previous %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url 1 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-left"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.previous_page_number  'page' request.GET.urlencode %}"><i class="fa-solid fa-angle-left"></i></a></li>
+        {% endif %}
+
+        {% for item in salidas_list.paginator.page_range %}
+            {% if salidas_list.number == item %}
+                <li class="page-item active"><a href="#" class="page-link bg-dark">{{item}}</a></li>
+            {% elif item > salidas_list.number|add:'-2' and item < salidas_list.number|add:'2' %}
+                <li class="page-item "><a class="page-link" style="color:#3E92CC" href="{% my_url item 'page' request.GET.urlencode %}" class="page-link">{{item}}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if salidas_list.paginator.num_pages > salidas_list.number|add:'2' %}
+        <li><a class="page-link" style="color:#3E92CC" href="?page={{salidas_list.number|add:'2'}}">&hellip;</a></li>
+        <li><a style="color:#3E92CC" href="?page={{ item }}">{{item}}</a></li>
+        <li><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}">{{salidas_list.paginator.num_pages}}</a></li>
+        {% endif %}
+
+        {% if salidas_list.has_next %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.next_page_number 'page' request.GET.urlencode %}"><i class="fa-solid fa-chevron-right"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-right"></i></a></a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+<!--Este es el modal-->
+        <div class="modal fade" id ="dialog" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg modal-dialog-centered" id="document" role="document" hx-target="this">
+
+            </div>
+        </div>
+
+<script>
+
+
+
+
+
+
+    var myModal = document.getElementById('dialog')
+
+    myModal.addEventListener('hidden.bs.modal', function (event) {
+    //    location.reload();
+    })
+</script>
+{% endblock %}
+
+</body>
+</html>

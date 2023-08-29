@@ -1,6 +1,6 @@
 from django import forms
-from proyecto.models import Perfil, Status, Costo, DatosBancarios, Bonos, Uniformes, Vacaciones, Economicos, DatosISR, TablaVacaciones, Empleados_Batch, Catorcenas, Proyecto, SubProyecto
-from proyecto.models import Status_Batch, Uniforme, Costos_Batch, Bancarios_Batch, Solicitud_economicos, Solicitud_vacaciones, Temas_comentario_solicitud_vacaciones, Vacaciones_anteriores_Batch
+from proyecto.models import Perfil, Status, Costo, DatosBancarios, Bonos, Uniformes, Vacaciones, Economicos, DatosISR, TablaVacaciones, Empleados_Batch, Catorcenas
+from proyecto.models import Status_Batch, Uniforme, Costos_Batch, Bancarios_Batch, Solicitud_economicos, Solicitud_vacaciones, Vacaciones_anteriores_Batch, Datos_baja
 
 class PerfilForm(forms.ModelForm):
     class Meta:
@@ -20,18 +20,24 @@ class PerfilUpdateForm(forms.ModelForm):
         fields = ['foto','empresa','distrito','nombres',
                 'apellidos','fecha_nacimiento','correo_electronico','proyecto','subproyecto',]
 
+class BajaEmpleadoForm(forms.ModelForm):
+    class Meta:
+        model = Datos_baja
+        fields = ['perfil','fecha','finiquito','liquidacion',
+                'motivo','exitosa','demanda',]
+
 class StatusForm(forms.ModelForm):
     class Meta:
         model = Status
         fields = ['perfil','puesto','registro_patronal','fecha_ingreso','nss','curp','rfc','profesion',
-                'no_cedula','nivel','tipo_de_contrato','ultimo_contrato_vence','tipo_sangre',
+                'no_cedula','fecha_cedula','nivel','tipo_de_contrato','ultimo_contrato_vence','tipo_sangre',
                 'sexo','domicilio','estado_civil','fecha_planta_anterior','fecha_planta','telefono',]
 
 class StatusUpdateForm(forms.ModelForm):
     class Meta:
         model = Status
         fields = ['registro_patronal','puesto','nss','curp','rfc','profesion','fecha_ingreso',
-                'no_cedula','nivel','tipo_de_contrato','ultimo_contrato_vence','tipo_sangre',
+                'no_cedula','fecha_cedula','nivel','tipo_de_contrato','ultimo_contrato_vence','tipo_sangre',
                 'sexo','domicilio','estado_civil','fecha_planta_anterior','fecha_planta','telefono',]
 
 class CostoForm(forms.ModelForm):

@@ -109,11 +109,12 @@
                     <th scope="col">Fecha de planta anterior</th>
                     <th scope="col">Fecha de planta</th>
                     <th scope="col">Periodo vacacional</th>
-                    <th scope="col">Días de vacaciones</th>
-                    <th scope="col">Días disfrutados y/o pagados</th>
+                    <th scope="col">Días disponibles año actual</th>
+                    <th scope="col">Días disfrutados año actual</th>
+                    <th scope="col">Días pendientes año actual</th>
                     <th scope="col">Total pendiente</th>
-                    <th scope="col">Dato creado</th>
-                    <th scope="col">Dato actualizado</th>
+                    <!--<th scope="col">Dato creado</th>-->
+                    <th scope="col">Dato actualizado</th> 
                     <th scope="col">Revisar</th>
                     <th scope="col">Añadir</th>
 
@@ -129,7 +130,8 @@
                     <td>{{descanso.dias_de_vacaciones}}</td>
                     <td>{{descanso.dias_disfrutados}}</td>
                     <td>{{descanso.total_pendiente}}</td>
-                    <td>{{descanso.created_at}}</td>
+                    <td>{{descanso.total_pendiente_status}}</td>
+                    <!--<td>{{descanso.created_at}}</td>-->
                     <td>{{descanso.updated_at}}</td>
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Vacaciones_revisar' descanso.id %}"><i class="fa-solid fa-magnifying-glass"></i></a>
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Vacaciones_update' descanso.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
