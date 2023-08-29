@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import F, Sum
 from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
 
@@ -172,7 +173,7 @@ class Perfil(models.Model):
         costos_perfil = self.status_set.all()
         total =  sum([costo.get_costo for costo in costos_perfil])
         return total
-
+    
     @property
     def fotoURL(self):
         try:
@@ -212,6 +213,7 @@ class Status(models.Model):
     telefono = models.CharField(max_length=50,null=True,blank=True, default='NR')
     profesion = models.CharField(max_length=50,null=True)
     no_cedula = models.CharField(max_length=50,null=True)
+    fecha_cedula = models.DateField(null=True, blank=True)
     nivel = models.ForeignKey(Nivel, on_delete = models.CASCADE, null=True)
     tipo_de_contrato = models.ForeignKey(Contrato, on_delete = models.CASCADE, null=True)
     ultimo_contrato_vence = models.DateField(null=True)
@@ -504,6 +506,13 @@ class Vacaciones(models.Model):
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
     editado = models.CharField(max_length=50,blank=True)
 
+    @property
+    def total_pendiente_status(self):
+        # Calcula la suma del total_pendiente para registros con el mismo status
+        total = Vacaciones.objects.filter(status=self.status).aggregate(models.Sum('total_pendiente'))['total_pendiente__sum']
+        return total or 0
+        
+
     def __str__(self):
         if self.status == None:
             return "Campo vacio"
@@ -581,3 +590,20 @@ class Vacaciones_anteriores_Batch(models.Model):
 
     def __str__(self):
         return f'File id:{self.id}'
+
+class Datos_baja(models.Model):
+    perfil = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True)
+    fecha = models.DateField(null=True)
+    finiquito = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    liquidacion = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    motivo = models.CharField(max_length=50,null=True)
+    exitosa = models.BooleanField(null=True, default=None)
+    demanda = models.BooleanField(null=True, default=None)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
+    editado = models.CharField(max_length=50,blank=True)
+    complete = models.BooleanField(default=False)
+   
+    def __str__(self):
+        return f'Empleado:{self.perfil}'

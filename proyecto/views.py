@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 from django.http import FileResponse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Sum
+from django.db.models import Sum, F
 from django.contrib import messages
 import locale
 import math
@@ -25,8 +25,8 @@ from django.db.models.functions import Concat
 #PDF generator
 from django.db.models import Q
 from .forms import CostoForm, BonosForm, VacacionesForm, EconomicosForm, UniformesForm, DatosBancariosForm, PerfilForm, StatusForm, IsrForm,PerfilUpdateForm
-from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, VacacionesUpdateForm, EconomicosUpdateForm, StatusUpdateForm, CatorcenasForm, EconomicosFormato
-from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, VacacionesFormato
+from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, VacacionesUpdateForm, EconomicosUpdateForm, StatusUpdateForm, CatorcenasForm
+from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, BajaEmpleadoForm
 from .forms import SolicitudEconomicosForm, SolicitudEconomicosUpdateForm, SolicitudVacacionesForm, SolicitudVacacionesUpdateForm, Vacaciones_anteriores_BatchForm
 from .filters import BonosFilter, Costo_historicFilter, PerfilFilter, StatusFilter, BancariosFilter, CostoFilter, VacacionesFilter, EconomicosFilter
 from .filters import CatorcenasFilter, DistritoFilter, SolicitudesVacacionesFilter, SolicitudesEconomicosFilter
@@ -221,6 +221,32 @@ def Perfil_vista(request):
         }
 
     return render(request, 'proyecto/Perfil.html',context)
+
+@login_required(login_url='user-login')
+def Perfil_vista_baja(request):
+    user_filter = UserDatos.objects.get(user=request.user)
+
+    if user_filter.distrito.distrito == 'Matriz':
+        perfiles= Perfil.objects.filter(complete=True, baja=True).order_by("numero_de_trabajador")
+    else:
+        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
+    perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
+    perfiles = perfil_filter.qs
+
+    if request.method =='POST' and 'Excel' in request.POST:
+        return convert_excel_perfil(perfiles)
+
+    p = Paginator(perfiles, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
+    context= {
+        'perfiles':perfiles,
+        'perfil_filter':perfil_filter,
+        'salidas_list':salidas_list,
+        }
+
+    return render(request, 'proyecto/Perfil_baja.html',context)
 
 @login_required(login_url='user-login')
 def FormularioPerfil(request):
@@ -468,6 +494,7 @@ def Status_revisar(request, pk):
 
 @login_required(login_url='user-login')
 def Administrar_tablas(request):
+    puestos = Puesto.objects.all()
     salario = SalarioDatos.objects.get()
     distritos = Distrito.objects.filter(complete = True)
     perfil = Perfil.objects.filter(complete = True)
@@ -490,6 +517,8 @@ def Administrar_tablas(request):
             return excel_reporte_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,)
         if request.method =='POST' and 'Pdf' in request.POST:
             return reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,)
+    #    if request.method =='POST' and 'Excel2' in request.POST:
+    #        return excel_reporte_puestos()
     else:
         if request.method =='POST' and 'Excel' in request.POST:
             return excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,)
@@ -2149,8 +2178,8 @@ def convert_excel_vacaciones(descansos):
     money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
     wb.add_named_style(money_resumen_style)
 
-    columns = ['Empresa','Distrito','Nombre','Fecha de planta anterior','Fecha de planta','Periodo vacacional','Días de vacaciones',
-                'Días disfrutados y/o pagados','Total pendiente','Comentario',]
+    columns = ['Empresa','Distrito','Nombre','Fecha de planta anterior','Fecha de planta','Periodo vacacional','Días disponibles año actual',
+                'Días disfrutados año actual','Días pendientes año actual','Comentario','Total pendiente']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
@@ -2170,21 +2199,25 @@ def convert_excel_vacaciones(descansos):
     (ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
     ws.column_dimensions[get_column_letter(columna_max)].width = 20
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
+    
 
-    rows = descansos.values_list('status__perfil__empresa__empresa','status__perfil__distrito__distrito',Concat('status__perfil__nombres',Value(' '),
-                            'status__perfil__apellidos'),'status__fecha_planta_anterior','status__fecha_planta','periodo','dias_de_vacaciones',
-                            'dias_disfrutados','total_pendiente','comentario')
-
-
+    rows = []
+    for descanso in descansos:
+        total_pendiente_status = descanso.total_pendiente_status  # Calcula el valor aquí
+        row = (descanso.status.perfil.empresa.empresa,descanso.status.perfil.distrito.distrito,f"{descanso.status.perfil.nombres} {descanso.status.perfil.apellidos}",
+            descanso.status.fecha_planta_anterior,descanso.status.fecha_planta,descanso.periodo,descanso.dias_de_vacaciones,
+            descanso.dias_disfrutados,descanso.total_pendiente,descanso.comentario,total_pendiente_status)
+        rows.append(row)
     for row in rows:
         row_num += 1
         for col_num in range(len(row)):
             if col_num < 3:
-                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
+                (ws.cell(row=row_num, column=col_num+1, value=row[col_num])).style = body_style
             if col_num > 3:
-                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
-            if col_num >5:
-                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
+                (ws.cell(row=row_num, column=col_num+1, value=row[col_num])).style = date_style
+            if col_num > 5:
+                (ws.cell(row=row_num, column=col_num+1, value=row[col_num])).style = body_style
+        
     sheet = wb['Sheet']
     wb.remove(sheet)
     wb.save(response)
@@ -2451,8 +2484,8 @@ def convert_excel_status(status):
     money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
     wb.add_named_style(money_resumen_style)
 
-    columns = ['Nombre','# Trabajador','Distrito','Puesto','Registro patronal','NSS','CURP','RFC','Profesión','No. de cédula','Nivel del empleado','Tipo de contrato','Último contrato vence',
-                'Tipo de sangre','Género','Teléfono','Domicilio','Estado civil','Fecha de planta anterior','Fecha de planta actual',]
+    columns = ['Nombre','# Trabajador','Distrito','Puesto','Registro patronal','NSS','CURP','RFC','Profesión','No. de cédula','Fecha expedición de cedula','Nivel del empleado','Tipo de contrato','Último contrato vence',
+                'Tipo de sangre','Género','Teléfono','Domicilio','Estado civil','Fecha de planta anterior','Fecha de planta actual','Fecha de ingreso','Antigüedad años']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
@@ -2467,28 +2500,34 @@ def convert_excel_status(status):
         else:
             ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
 
-
+    fecha_actual = date.today()
     columna_max = len(columns)+2
-
+    
     (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
     (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
     (ws.cell(column = columna_max, row = 3, value='Empleados:')).style = messages_style
+    (ws.cell(column = columna_max, row = 4, value='Generado: ' + str(fecha_actual))).style = messages_style
 
     ws.column_dimensions[get_column_letter(columna_max)].width = 20
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
 
     rows = status.values_list(Concat('perfil__nombres',Value(' '),'perfil__apellidos'),'perfil__numero_de_trabajador','perfil__distrito__distrito','puesto__puesto','registro_patronal__patronal','nss','curp','rfc','profesion','no_cedula',
-                                        'nivel','tipo_de_contrato__contrato','ultimo_contrato_vence','tipo_sangre__sangre','sexo__sexo','telefono','domicilio','estado_civil__estado_civil',
-                                        'fecha_planta_anterior','fecha_planta',)
+                                        'fecha_cedula','nivel','tipo_de_contrato__contrato','ultimo_contrato_vence','tipo_sangre__sangre','sexo__sexo','telefono','domicilio','estado_civil__estado_civil',
+                                        'fecha_planta_anterior','fecha_planta','fecha_ingreso')
     #for row in rows:
     #    if row == datetime.date(6000, 1, 1):
     #        row = "Especial"
+    
     for row in rows:
         row_num += 1
         for col_num in range(len(row)):
-            if col_num < 12:
+            if col_num < 10:
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
-            if col_num == 12:
+            if col_num == 10:
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
+            if col_num < 13 and col_num > 10:
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
+            if col_num == 13:
                 value=row[col_num]
                 if value == datetime.date(6000, 1, 1):
                     (ws.cell(row = row_num, column = col_num+1, value= "Especial")).style = body_style
@@ -2500,11 +2539,14 @@ def convert_excel_status(status):
                     (ws.cell(row = row_num, column = col_num+1, value= "Sin fecha")).style = body_style
                 else:
                     (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
-            if col_num > 12:
+            if col_num > 13:
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
-            if col_num >= 18:
+            if col_num >= 19:
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
-
+        if row[col_num] != None:
+            antiguedad = (fecha_actual.year - row[col_num].year)
+            (ws.cell(row = row_num, column = col_num+2, value=antiguedad)).style = body_style
+                
     (ws.cell(column = columna_max +1, row=3, value = row_num-1)).style = messages_style
 
     sheet = wb['Sheet']
@@ -4506,7 +4548,52 @@ def excel_reporte_especifico(distrito_seleccionado,perfill,statuss,bancarioss,co
     wb.save(response)
 
     return(response)
+"""
+def excel_reporte_puestos():
+    puesto = Puesto.objects.all()
+    response= HttpResponse(content_type = "application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Puestos'+'_'+ str(datetime.date.today())+'.xlsx'
+    wb = Workbook()
+    ws = wb.create_sheet(title='Reporte')
+    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name = "head_style")
+    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
+    head_style.fill = PatternFill("solid", fgColor = '00003366')
+    wb.add_named_style(head_style)
+    #Create body style and adding to workbook
+    body_style = NamedStyle(name = "body_style")
+    body_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(body_style)
+    #Create messages style and adding to workbook
+    messages_style = NamedStyle(name = "mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size = 11)
+    wb.add_named_style(messages_style)
+    #Create date style and adding to workbook
+    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
+    date_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(date_style)
+    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+    money_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(money_style)
+    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
+    wb.add_named_style(money_resumen_style)
 
+    # Encabezado de las columnas
+    columns = ['Puesto', 'Complete']
+    ws.append(columns)
+    row_num = 1
+    for row in puesto:
+        row_num += 1
+        ws.cell(row=row_num, column=1, value=row.puesto).style = body_style
+        ws.cell(row=row_num, column=2, value=row.complete).style = body_style
+        
+    sheet = wb['Sheet']
+    wb.remove(sheet)
+    wb.save(response)
+
+    return(response)
+"""
 def reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,):
     #Configuration of the PDF object
     buf = io.BytesIO()
@@ -4795,16 +4882,23 @@ def upload_batch_vacaciones_anteriores(request):
 def Baja_empleado(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     empleado = Perfil.objects.get(id=pk)
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        empleado.baja = True
-        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-        empleado.editado = str("B:"+nombre.nombres+" "+nombre.apellidos)
-        empleado.save()
-        messages.success(request, f'El empleado {empleado.nombres} {empleado.apellidos} se ha dado de baja')
-        return redirect('Perfil')
+    form = BajaEmpleadoForm()
+    if request.method == 'POST':
+        form = BajaEmpleadoForm(request.POST)
+        if form.is_valid():
+            form.instance.perfil = empleado 
+            form.instance.complete = True
+            form.save()
+            empleado.baja = True
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            empleado.editado = str("B:"+nombre.nombres+" "+nombre.apellidos)
+            empleado.save()
+            messages.success(request, f'El empleado {empleado.nombres} {empleado.apellidos} se ha dado de baja en el Sistema')
+            return redirect('Perfil')
 
     context = {
         'empleado': empleado,
+        'form':form,
     }
 
     return render(request, 'proyecto/Baja_empleado.html', context)

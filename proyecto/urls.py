@@ -10,6 +10,7 @@ urlpatterns = [
     path('...', views.Principal, name='Principal'),
 
     path('Perfil', views.Perfil_vista, name='Perfil'),
+    path('Perfil_baja', views.Perfil_vista_baja, name='Perfil_baja'),
     path('Status', views.Status_vista, name='Status'),
     path('Formulario_Perfil', views.FormularioPerfil, name='Formulario_perfil'),
     path('Formulario_Status', views.FormularioStatus, name='Formulario_status'),
@@ -28,7 +29,7 @@ urlpatterns = [
     path('Catorcenas/update/<int:pk>/', views.CatorcenasUpdate, name='Catorcenas_update'),
     path('Tabla_ISR', views.Tabla_isr, name='Tabla_isr'),
     path('ISR/update/<int:pk>/', views.IsrUpdate, name='Isr_update'),
-    path('Tabla_Vacaciones', views.Tabla_dias_vacaciones, name='Tabla_dias_vacaciones'),
+    path('Tabla_dias_vacaciones', views.Tabla_dias_vacaciones, name='Tabla_dias_vacaciones'),
     path('Vacaciones_dias/update/<int:pk>/', views.Dias_VacacionesUpdate, name='Dias_Vacaciones_update'),
 
     path('Tabla_Costo', views.TablaCosto, name='Tabla_costo'),
