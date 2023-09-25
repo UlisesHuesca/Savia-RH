@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.http import FileResponse
 from django.contrib.auth.decorators import login_required
@@ -12,8 +12,8 @@ locale.setlocale( locale.LC_ALL, '' )
 
 from .models import DatosISR, Costo, TablaVacaciones, Perfil, Status, Uniformes, DatosBancarios, Bonos, Vacaciones, Economicos, Puesto, Empleados_Batch, RegistroPatronal, Banco, TablaFestivos
 from .models import Status_Batch, Empresa, Distrito, Nivel, Contrato, Sangre, Sexo, Civil, UserDatos, Catorcenas, Uniforme, Tallas, Ropa, SubProyecto, Proyecto,Costos_Batch, Bancarios_Batch, Tallas
-from .models import Seleccion, SalarioDatos, FactorIntegracion, TablaCesantia, Solicitud_economicos, Solicitud_vacaciones
-from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados, Vacaciones_anteriores_Batch, Dia_vacacion
+from .models import Seleccion, SalarioDatos, FactorIntegracion, TablaCesantia, Solicitud_economicos, Solicitud_vacaciones, Empleado_cv
+from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados, Vacaciones_anteriores_Batch, Dia_vacacion, Datos_baja
 import csv
 import json
 
@@ -25,9 +25,9 @@ from django.db.models.functions import Concat
 #PDF generator
 from django.db.models import Q
 from .forms import CostoForm, BonosForm, VacacionesForm, EconomicosForm, UniformesForm, DatosBancariosForm, PerfilForm, StatusForm, IsrForm,PerfilUpdateForm
-from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, VacacionesUpdateForm, EconomicosUpdateForm, StatusUpdateForm, CatorcenasForm
+from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, VacacionesUpdateForm, EconomicosUpdateForm, StatusUpdateForm, CatorcenasForm, BajaEmpleadoUpdate
 from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, BajaEmpleadoForm
-from .forms import SolicitudEconomicosForm, SolicitudEconomicosUpdateForm, SolicitudVacacionesForm, SolicitudVacacionesUpdateForm, Vacaciones_anteriores_BatchForm
+from .forms import SolicitudEconomicosForm, SolicitudEconomicosUpdateForm, SolicitudVacacionesForm, SolicitudVacacionesUpdateForm, Vacaciones_anteriores_BatchForm, CvAgregar
 from .filters import BonosFilter, Costo_historicFilter, PerfilFilter, StatusFilter, BancariosFilter, CostoFilter, VacacionesFilter, EconomicosFilter
 from .filters import CatorcenasFilter, DistritoFilter, SolicitudesVacacionesFilter, SolicitudesEconomicosFilter
 from decimal import Decimal
@@ -57,7 +57,7 @@ from reportlab.lib.pagesizes import letter,A4,landscape
 import io
 from reportlab.lib import colors
 from reportlab.lib.colors import Color, black, blue, red, white
-from reportlab.platypus import BaseDocTemplate, Frame, Paragraph, NextPageTemplate, PageBreak, PageTemplate,Table, SimpleDocTemplate,TableStyle, KeepInFrame
+from reportlab.platypus import BaseDocTemplate, Frame, Paragraph, NextPageTemplate, PageBreak, PageTemplate,Table, SimpleDocTemplate,TableStyle, KeepInFrame, Spacer
 import textwrap
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
@@ -228,13 +228,15 @@ def Perfil_vista_baja(request):
 
     if user_filter.distrito.distrito == 'Matriz':
         perfiles= Perfil.objects.filter(complete=True, baja=True).order_by("numero_de_trabajador")
+        perfiles= Datos_baja.objects.filter(perfil__in=perfiles, complete=True).order_by("fecha")
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
+        perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True).order_by("numero_de_trabajador")
     perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
     perfiles = perfil_filter.qs
 
     if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_perfil(perfiles)
+        return convert_excel_perfil_baja(perfiles)
 
     p = Paginator(perfiles, 50)
     page = request.GET.get('page')
@@ -246,7 +248,7 @@ def Perfil_vista_baja(request):
         'salidas_list':salidas_list,
         }
 
-    return render(request, 'proyecto/Perfil_baja.html',context)
+    return render(request, 'proyecto/Perfiles_baja.html',context)
 
 @login_required(login_url='user-login')
 def FormularioPerfil(request):
@@ -1268,7 +1270,7 @@ def Empleado_Costo(request, pk):
     costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
     costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
     if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(costo)
+        return reporte_pdf_costo_detalles(costo,bonototal)
 
     context = {
         'costo':costo,
@@ -2443,6 +2445,89 @@ def convert_excel_perfil(perfiles):
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
             if col_num > 4:
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
+
+    (ws.cell(column = columna_max +1, row=3, value = row_num - 1)).style = messages_style
+
+    sheet = wb['Sheet']
+    wb.remove(sheet)
+    wb.save(response)
+
+    return(response)
+
+def convert_excel_perfil_baja(perfiles):
+    #datos_baja = Datos_baja.objects.filter(perfil__in=perfiles).order_by("perfil__numero_de_trabajador")
+    response= HttpResponse(content_type = "application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Reporte_empleados_bajas_' + str(datetime.date.today())+'.xlsx'
+    wb = Workbook()
+    ws = wb.create_sheet(title='Reporte')
+    #Comenzar en la fila 1
+    row_num = 1
+
+    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name = "head_style")
+    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
+    head_style.fill = PatternFill("solid", fgColor = '00003366')
+    wb.add_named_style(head_style)
+    #Create body style and adding to workbook
+    body_style = NamedStyle(name = "body_style")
+    body_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(body_style)
+    #Create messages style and adding to workbook
+    messages_style = NamedStyle(name = "mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size = 11)
+    wb.add_named_style(messages_style)
+    #Create date style and adding to workbook
+    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
+    date_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(date_style)
+    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+    money_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(money_style)
+    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
+    wb.add_named_style(money_resumen_style)
+
+    columns = ['Nombre','Número de trabajador','Empresa','Distrito','Fecha de nacimiento','Correo electrónico','Proyecto','Subproyecto','Fecha baja','Finiquito','Liquidación','Motivo','Exitosa']
+
+    for col_num in range(len(columns)):
+        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
+        if col_num == 0:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        elif col_num > 0 and col_num < 5:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 12
+        elif col_num > 4 and col_num < 7:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 25
+        else:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
+
+
+    columna_max = len(columns)+2
+
+    (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
+    (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    (ws.cell(column = columna_max, row = 3, value='Empleados:')).style = messages_style
+
+    ws.column_dimensions[get_column_letter(columna_max)].width = 20
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
+
+    rows = perfiles.values_list(Concat('perfil__nombres',Value(' '),'perfil__apellidos'),'perfil__numero_de_trabajador','perfil__empresa__empresa','perfil__distrito__distrito',
+                                        'perfil__fecha_nacimiento','perfil__correo_electronico','perfil__proyecto__proyecto','perfil__subproyecto__subproyecto','fecha','finiquito',
+                                        'liquidacion','motivo','exitosa')
+
+
+    for row in rows:
+        row_num += 1
+        for col_num in range(len(row)):
+            if col_num < 4:
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
+            if col_num == 4:
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
+            if col_num > 4:
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
+            if col_num == 8:
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
+            if col_num > 8:
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style               
 
     (ws.cell(column = columna_max +1, row=3, value = row_num - 1)).style = messages_style
 
@@ -4867,7 +4952,7 @@ def upload_batch_vacaciones_anteriores(request):
                     status.complete_economicos = True
                     status.save()
             else:
-                messages.error(request, f'El empleado no existe dentro de la base de datos, empleado #{row[0]}')
+                messages.error(request, f'No se ha encontrado el empleado, empleado #{row[0]}')
 
         empleados_list.activated = True
         empleados_list.save()
@@ -4895,6 +4980,10 @@ def Baja_empleado(request, pk):
             empleado.save()
             messages.success(request, f'El empleado {empleado.nombres} {empleado.apellidos} se ha dado de baja en el Sistema')
             return redirect('Perfil')
+            
+        else:
+            messages.error(request, 'Error al llenar el formulario')
+
 
     context = {
         'empleado': empleado,
@@ -4902,6 +4991,32 @@ def Baja_empleado(request, pk):
     }
 
     return render(request, 'proyecto/Baja_empleado.html', context)
+
+@login_required(login_url='user-login')
+def Baja_update(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
+
+    item = Datos_baja.objects.get(id=pk)
+    form = BajaEmpleadoForm(instance=item)  # Aquí inicializamos el formulario con los datos del item
+
+    if request.method == 'POST':
+        form = BajaEmpleadoForm(request.POST, instance=item)  # Aquí también debemos usar 'instance'
+        if form.is_valid():
+            nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
+            item.editado = str("B:" + nombre.nombres + " " + nombre.apellidos)
+            form.save()
+            messages.success(request, f'Cambios guardados con éxito')
+            return redirect('Perfil_baja')
+            
+        else:
+            messages.error(request, 'Error al llenar el formulario')
+
+    context = {
+        'item': item,
+        'form': form,
+    }
+
+    return render(request, 'proyecto/Baja_empleado_update.html', context)
 
 @login_required(login_url='user-login')
 def Antiguedad(request, pk): #Comprobar que el empleado si puede entrar a los link de solcitud si tiene la antiguedad y evitar error
@@ -4938,3 +5053,214 @@ def Antiguedad(request, pk): #Comprobar que el empleado si puede entrar a los li
     else:
         messages.error(request, 'El usuario no cuenta con una fecha de planta para poder realizar la solicitud')
     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+@login_required(login_url='user-login')
+def Cv_datos(request, pk):
+
+    status = Status.objects.get(id=pk)
+    datos = Empleado_cv.objects.filter(status=status).order_by("fecha_fin")
+
+    if request.method =='POST' and 'PDF' in request.POST:
+        return generar_curp_pdf(datos,status)
+    
+    context = {
+        'status':status,
+        'datos':datos,
+        }
+
+    return render(request, 'proyecto/Cv_datos.html',context)
+
+def generar_curp_pdf(datos,status):
+    #Configuration of the PDF object
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=letter)
+    
+    now = datetime.date.today()
+    fecha = str(now)
+    #Colores utilizados
+    azul = Color(0.16015625,0.5,0.72265625)
+    rojo = Color(0.59375, 0.05859375, 0.05859375)
+    naranja = Color(1, 0.5, 0)
+    gris = Color(0.75, 0.75, 0.75)
+    c.setFillColor(gris)
+    c.rect(0, 0, 900, 20, fill=True)
+    c.rect(0, 0, 20, 900, fill=True)
+    #c.setFillColor(naranja)
+    #c.rect(550, 750, 100, 100, fill=True)
+
+
+
+
+    #Encabezado
+    c.setFillColor(black)
+    c.setLineWidth(.2)
+    c.setFont('Helvetica',10)
+    c.drawString(460,760,'Fecha:')
+    c.drawString(500,760,fecha)
+
+    #c.setFillColor(white)
+    #c.setLineWidth(.2)
+    #c.setFont('Helvetica',10)
+    #c.drawCentredString(295,755,'Curriculum vitae')
+    c.setFillColor(azul)
+    c.setFont('Helvetica-Bold',23)
+    c.drawString(40,710,status.perfil.nombres)
+    c.drawString(40,680,status.perfil.apellidos)
+    c.setFillColor(black)
+    c.setFont('Helvetica',10)
+    c.drawString(40,660,'Lugar de nacimiento:')
+    if status.lugar_nacimiento:
+        c.drawString(140,660,status.lugar_nacimiento)
+    c.drawString(40,640,'Fecha de nacimiento:')
+    if status.perfil.fecha_nacimiento:
+        edad = now.year - status.perfil.fecha_nacimiento.year - ((now.month, now.day) < (status.perfil.fecha_nacimiento.month, status.perfil.fecha_nacimiento.day))
+        c.drawString(140,640,str(status.perfil.fecha_nacimiento))
+        c.drawString(250,640,'Edad:')
+        c.drawString(280,640,str(edad))
+    c.drawString(40,620,'Número de INE:')
+    if status.numero_ine:
+        c.drawString(120,620,"status.numero_ine")
+    c.drawString(40,600,'RFC:')
+    if status.rfc:
+        c.drawString(120,600,"status.rfc")
+    c.drawString(40,580,'Curp:')
+    if status.curp:
+        c.drawString(120,580,"status.curp")
+
+    #icono = status.perfil.fotoURL
+    #if icono:
+    #    c.drawInlineImage(icono, 400, 600, 5 * cm, 5 * cm)
+    #else:
+    if status.sexo.sexo == "Masculino":
+        c.drawInlineImage('static/images/perfil/Masculino.png',400,580, 5 * cm, 5 * cm) 
+    elif status.sexo.sexo == "Femenino":
+        c.drawInlineImage('static/images/perfil/Femenino.png',400,580, 5 * cm, 5 * cm)
+    c.line(40,550,300,550) #Linea 1
+    c.setFont('Helvetica-Bold',14)
+    c.setFillColor(azul)
+    c.drawString(40,530,'Experiencia')
+    c.setFillColor(black)
+    c.setFont('Helvetica',10)
+    c.drawString(65,515,'Fecha')
+    data =[]
+    high = 460
+    data.append(['''Inicio''','''Fin''','''Cargo''', '''Puesto''','''Empresa''',])
+    for dato in datos: #Salen todos los datos
+        fecha_inicio_str = dato.fecha_inicio.strftime('%Y-%m-%d')
+        fecha_fin_str = dato.fecha_fin.strftime('%Y-%m-%d')
+        puesto = str(dato.puesto)
+        empresa = str(dato.empresa)
+        styles = getSampleStyleSheet()
+        fila = [
+            Paragraph(fecha_inicio_str, styles['Normal']),
+            Paragraph(fecha_fin_str, styles['Normal']),
+            Paragraph(dato.comentario, styles['Normal']),
+            Paragraph(puesto, styles['Normal']),
+            Paragraph(empresa, styles['Normal'])
+        ]
+        data.append(fila)
+        high = high - 18
+
+    # Añadir un espacio en blanco (un espacio en blanco del tamaño de una línea)
+    data.append([Spacer(1, 18)] * 5)
+    #Propiedades de la tabla
+    width, height = letter
+    table = Table(data, colWidths=[2.5 * cm, 2.5 * cm, 7 * cm, 3.5 * cm, 2.5 * cm], repeatRows=1)
+    table.setStyle(TableStyle([ #estilos de la tabla
+        #ENCABEZADO
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('TEXTCOLOR',(0,0),(-1,0), gris),
+        ('FONTSIZE',(0,0),(-1,0), 10),
+        ('BACKGROUND',(0,0),(-1,0), white),
+        #CUERPO
+        ('TEXTCOLOR',(0,1),(-1,-1), colors.black),
+        ('FONTSIZE',(0,1),(-1,-1), 10),
+        ]))
+    table.wrapOn(c, width, height)
+    table.drawOn(c, 30, high)
+    
+    c.line(40,280,300,280) #Linea 2
+    c.setFont('Helvetica-Bold',14)
+    c.setFillColor(azul)
+    c.drawString(40,260,'Formación')
+    c.setFillColor(black)
+    c.setFont('Helvetica',10)
+    c.drawString(40,240,'Profesión:')
+    if status.profesion:
+        c.drawString(90,240,status.profesion)
+    c.drawString(40,220,'No. Cedula:')
+    if status.no_cedula:
+        c.drawString(95,220,status.no_cedula)
+    c.drawString(40,200,'fecha_cedula:')
+    if status.fecha_cedula:
+        c.drawString(95,200,status.fecha_cedula)
+    c.drawString(40,180,'Escuelas donde egreso:')
+    if status.escuela:
+        c.drawString(150,180,status.escuela)
+    """
+    c.line(310,300,580,300) #Linea 3
+    c.setFont('Helvetica-Bold',14)
+    c.setFillColor(azul)
+    c.drawString(310,280,'Comunicación')
+    c.setFillColor(black)
+    c.setFont('Helvetica',10)
+    c.line(40,200,300,200) #Linea 4
+    c.setFont('Helvetica-Bold',14)
+    c.setFillColor(azul)
+    c.drawString(40,180,'Liderazgo')
+    c.setFillColor(black)
+    c.setFont('Helvetica',10)
+    c.line(310,200,580,200) #Linea 5
+    c.setFont('Helvetica-Bold',14)
+    c.setFillColor(azul)
+    c.drawString(310,180,'Referencias')
+    c.setFillColor(black)
+    c.setFont('Helvetica',10)
+    """
+    c.line(40,100,40,60) #Linea 6
+    c.setFont('Helvetica-Bold',14)
+    c.setFillColor(azul)
+    c.drawString(45,95,'Contacto')
+    c.setFillColor(black)
+    c.setFont('Helvetica',10)
+    c.drawString(45,80,'Telefono:')
+    c.drawString(90,80,status.telefono)
+    c.drawString(45,70,'Dirección:')
+    c.drawString(90,70,status.domicilio)
+    c.drawString(45,60,'Correo electronico:')
+    c.drawString(135,60,status.perfil.correo_electronico)
+
+    c.save()
+    c.showPage()
+    buf.seek(0)
+
+    return FileResponse(buf, as_attachment=True, filename='CV_empleado.pdf')
+
+@login_required(login_url='user-login')
+def Cv_agregar(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
+    status = Status.objects.get(id=pk)
+    puestos = Puesto.objects.all()
+    form = CvAgregar()
+    if request.method == 'POST':
+        form = CvAgregar(request.POST)
+        if form.is_valid():
+            nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
+            form.instance.editado = str("B:" + nombre.nombres + " " + nombre.apellidos)
+            form.instance.status = status
+            form.instance.complete = True
+            form.save()
+            messages.success(request, f'Se agrego el dato al empleado: {status.perfil.nombres} {status.perfil.apellidos}')
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+        else:
+            messages.error(request, 'Error al llenar el formulario')
+
+
+    context = {
+        'status': status,
+        'form':form,
+        'puestos':puestos,
+    }
+
+    return render(request, 'proyecto/Cv_agregar.html', context)

@@ -98,23 +98,29 @@
                     <th scope="col">Empresa</th>
                     <th scope="col">Distrito</th>
                     <th scope="col">Nombre</th>
-                    <th scope="col">Fecha de nacimiento</th>
-                    <th scope="col">Correo electrónico</th>
+                    <th scope="col">Fecha de baja</th>
+                    <th scope="col">Finiquito</th>
+                    <th scope="col">Liquidación</th>
+                    <th scope="col">Exitosa</th>
                     <th scope="col">Proyecto</th>
                     <th scope="col">Subproyecto</th>
+                    <th scope="col">Actualizar</th>
                 </tr>
             </thead>
             <tbody>
                 {% for perfil in salidas_list %}
                 <tr>
-                    <td>{{perfil.numero_de_trabajador}}</td>
-                    <td>{{perfil.empresa}}</td>
-                    <td>{{perfil.distrito}} {{perfil.division}}</td>
-                    <td>{{perfil.nombres}} {{perfil.apellidos}}</td>
-                    <td>{{perfil.fecha_nacimiento}}</td>
-                    <td>{{perfil.correo_electronico}}</td> 
-                    <td>{{perfil.proyecto}}</td>
-                    <td>{{perfil.subproyecto}}</td>
+                    <td>{{perfil.perfil.numero_de_trabajador}}</td>
+                    <td>{{perfil.perfil.empresa}}</td>
+                    <td>{{perfil.perfil.distrito}} {{perfil.division}}</td>
+                    <td>{{perfil.perfil.nombres}} {{perfil.perfil.apellidos}}</td>
+                    <td>{{perfil.fecha}}</td>
+                    <td>{{perfil.finiquito}}</td> 
+                    <td>{{perfil.liquidacion}}</td> 
+                    <td>{{perfil.exitosa}}</td> 
+                    <td>{{perfil.perfil.proyecto}}</td>
+                    <td>{{perfil.perfil.subproyecto}}</td>
+                    <td><a class="btn btn-outline-info btn-block mx-auto" type="button" data-bs-toggle="modal" data-bs-target="#dialog" hx-target="#document" hx-get="{% url 'Baja_empleado_update' perfil.id %}"><i class="fa-solid fa-user-minus">Actualizar</i></a></a></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -166,7 +172,7 @@
     var myModal = document.getElementById('dialog')
 
     myModal.addEventListener('hidden.bs.modal', function (event) {
-    //    location.reload();
+        location.reload();
     })
 </script>
 {% endblock %}

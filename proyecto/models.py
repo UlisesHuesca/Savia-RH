@@ -128,9 +128,15 @@ class DatosISR(models.Model):
             return "Campo vacio"
         return f'{self.liminf} - {self.limsup} - {self.cuota} - {self.excedente} - {self.p_ingresos} - {self.g_ingresos} - {self.subsidio}'
 
-class TipoPerfil(models.Model):
+class TipoPerfil(models.Model): #Boleanos para filtrar lo que puede hacer cada usuario
     nombre = models.CharField(max_length=50,null=True)
-    admin = models.BooleanField(null=True, default=False)
+    admin = models.BooleanField(null=True, default=False) #RH
+    usuario = models.BooleanField(null=True, default=False)
+    empleados = models.BooleanField(null=True, default=False) #Perfil Status_
+    autorizacion = models.BooleanField(null=True, default=False)
+    tablas_empleados = models.BooleanField(null=True, default=False) #Datos bancarios a economicos
+    info_general = models.BooleanField(null=True, default=False)
+    solicitudes = models.BooleanField(null=True, default=False)
 
     def __str__(self):
         return f'{self.nombre}, admin: {self.admin} '
@@ -211,8 +217,11 @@ class Status(models.Model):
     curp = models.CharField(max_length=50,null=True)
     rfc = models.CharField(max_length=50,null=True)
     telefono = models.CharField(max_length=50,null=True,blank=True, default='NR')
-    profesion = models.CharField(max_length=50,null=True)
+    profesion = models.CharField(max_length=100,null=True) #Aumentado a 100
     no_cedula = models.CharField(max_length=50,null=True)
+    escuela = models.CharField(max_length=100,null=True, blank=True) #Agregado
+    lugar_nacimiento = models.CharField(max_length=50,null=True, blank=True) #Agregado
+    numero_ine = models.CharField(max_length=50,null=True,blank=True) #Agregado
     fecha_cedula = models.DateField(null=True, blank=True)
     nivel = models.ForeignKey(Nivel, on_delete = models.CASCADE, null=True)
     tipo_de_contrato = models.ForeignKey(Contrato, on_delete = models.CASCADE, null=True)
@@ -593,12 +602,11 @@ class Vacaciones_anteriores_Batch(models.Model):
 
 class Datos_baja(models.Model):
     perfil = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True)
-    fecha = models.DateField(null=True)
+    fecha = models.DateField(null=True) #blank=True
     finiquito = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     liquidacion = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     motivo = models.CharField(max_length=50,null=True)
-    exitosa = models.BooleanField(null=True, default=None)
-    demanda = models.BooleanField(null=True, default=None)
+    exitosa = models.BooleanField(null=True, default=None) 
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
@@ -607,3 +615,20 @@ class Datos_baja(models.Model):
    
     def __str__(self):
         return f'Empleado:{self.perfil}'
+
+class Empleado_cv(models.Model):
+    status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
+    fecha_inicio = models.DateField(null=True) #blank=True
+    fecha_fin = models.DateField(null=True) #blank=True
+    puesto = models.ForeignKey(Puesto, on_delete = models.CASCADE, null=True)
+    distrito = models.ForeignKey(Distrito, on_delete = models.CASCADE, null=True)
+    empresa = models.ForeignKey(Empresa, on_delete = models.CASCADE, null=True)
+    comentario = models.CharField(max_length=100,null=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
+    editado = models.CharField(max_length=50,blank=True)
+    complete = models.BooleanField(default=False)
+   
+    def __str__(self):
+        return f'Empleado:{self.status}'

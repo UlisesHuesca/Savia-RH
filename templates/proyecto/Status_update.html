@@ -50,8 +50,11 @@
                                     <th scope="col">NSS</th>
                                     <th scope="col">CURP</th>
                                     <th scope="col">RFC</th>
+                                    <th scope="col">Nació</th>
+                                    <th scope="col"># INE</th>
                                     <th scope="col">Teléfono</th>
                                     <th scope="col">Profesión</th>
+                                    <th scope="col">Escuelas</th>
                                     <th scope="col">No. Cédula</th>
                                     <th scope="col">Fecha expedición de cedula</th>
                                     <th scope="col">Nivel</th>
@@ -79,8 +82,11 @@
                                     <td>{{registro.nss}}</td>
                                     <td>{{registro.curp}}</td>
                                     <td>{{registro.rfc}}</td>
+                                    <td>{{registro.lugar_nacimiento}}</td>
+                                    <td>{{registro.numero_ine}}</td>
                                     <td>{{registro.telefono}}</td>
                                     <td>{{registro.profesion}}</td>
+                                    <td>{{registro.escuela}}</td>
                                     <td>{{registro.no_cedula}}</td>
                                     <td>{{registro.fecha_cedula}}</td>
                                     <td>{{registro.nivel}}</td>
@@ -133,6 +139,18 @@
                                 </div>
                             </div>
                             <div class="row my-2">
+                                <label for="form.lugar_nacimiento" class="col-auto col-form-label my-1"><strong>Lugar de nacimiento (Dato para CV):</strong></label>
+                                <div class="col-2">
+                                    {{form.lugar_nacimiento|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.numero_ine" class="col-auto col-form-label my-1"><strong>Número de INE (Dato para CV):</strong></label>
+                                <div class="col-2">
+                                    {{form.numero_ine|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
                                 <label for="form.profesion" class="col-auto col-form-label my-1"><strong>Profesión:</strong></label>
                                 <div class="col-2">
                                     <div class="input-group">
@@ -153,6 +171,12 @@
                                             <option valor="{{puesto.id}}" value="{{puesto.puesto}}"></option>
                                         {% endfor %}
                                     </datalist>
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.escuela" class="col-auto col-form-label my-1"><strong>Escuelas donde egreso (Dato para CV):</strong></label>
+                                <div class="col-2">
+                                    {{form.escuela|add_class:"form-control"}}
                                 </div>
                             </div>
                             <div class="row my-2">

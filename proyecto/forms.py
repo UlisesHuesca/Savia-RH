@@ -1,7 +1,7 @@
 from django import forms
 from proyecto.models import Perfil, Status, Costo, DatosBancarios, Bonos, Uniformes, Vacaciones, Economicos, DatosISR, TablaVacaciones, Empleados_Batch, Catorcenas
 from proyecto.models import Status_Batch, Uniforme, Costos_Batch, Bancarios_Batch, Solicitud_economicos, Solicitud_vacaciones, Vacaciones_anteriores_Batch, Datos_baja
-
+from proyecto.models import Empleado_cv
 class PerfilForm(forms.ModelForm):
     class Meta:
         model = Perfil
@@ -23,8 +23,14 @@ class PerfilUpdateForm(forms.ModelForm):
 class BajaEmpleadoForm(forms.ModelForm):
     class Meta:
         model = Datos_baja
-        fields = ['perfil','fecha','finiquito','liquidacion',
-                'motivo','exitosa','demanda',]
+        fields = ['fecha','finiquito','liquidacion',
+                'motivo','exitosa',]
+
+class BajaEmpleadoUpdate(forms.ModelForm):
+    class Meta:
+        model = Datos_baja
+        fields = ['fecha','finiquito','liquidacion',
+                'motivo','exitosa',]
 
 class StatusForm(forms.ModelForm):
     class Meta:
@@ -38,7 +44,14 @@ class StatusUpdateForm(forms.ModelForm):
         model = Status
         fields = ['registro_patronal','puesto','nss','curp','rfc','profesion','fecha_ingreso',
                 'no_cedula','fecha_cedula','nivel','tipo_de_contrato','ultimo_contrato_vence','tipo_sangre',
-                'sexo','domicilio','estado_civil','fecha_planta_anterior','fecha_planta','telefono',]
+                'sexo','domicilio','estado_civil','fecha_planta_anterior','fecha_planta','telefono','escuela','lugar_nacimiento',
+                'numero_ine',]
+
+class CvAgregar(forms.ModelForm):
+    class Meta:
+        model = Empleado_cv
+        fields = ['fecha_inicio','fecha_fin','puesto',
+                'distrito','empresa','comentario',]
 
 class CostoForm(forms.ModelForm):
     class Meta:
