@@ -9,7 +9,7 @@
             content: "₡ "; /* Agrega el signo de peso y un espacio */
         }
     </style>
-{% block title %} Baja empleado {% endblock %}
+{% block title %} Agregar dato CV {% endblock %}
 </head>
 <body>
 {% block content %}
@@ -46,39 +46,45 @@
     <form id="baja_empleado_form" hx-post="{{request.path}}" class="modal-content">
     <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title">Dar de baja al empleado</h5>
+            <h5 class="modal-title">Agregar dato al CV del empleado</h5>
             <button class="btn-close cerrar" type="button" id="cerrar1" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" style="color:white">
-            <span class="h7">Empleado: {{empleado.nombres}} {{empleado.apellidos}}</span>
+            <span class="h7">Empleado: {{status.perfil.nombres}} {{status.perfil.pellidos}}</span>
             <br>
             <div>
                 {% csrf_token %}
-                    <label for="form.fecha" class="col-auto col-form-label"><strong>Fecha:</strong></label>
+                    <label for="form.fecha_inicio" class="col-auto col-form-label"><strong>Fecha inicio:</strong></label>
                     <div class="col-sm-8">
-                        {% render_field form.fecha type="date" class="form-control" %}
+                        {% render_field form.fecha_inicio type="date" class="form-control" %}
                     </div>
-                    <label for="form.finiquito" class="col-auto col-form-label my-1"><strong>Finiquito:</strong></label>
-                    <div class="col-6">
-                        <div class="input-group">
-                            <span class="input-group-text">$ </span>
-                            {{form.finiquito|add_class:"form-control"}}
+                    <label for="form.fecha_fin" class="col-auto col-form-label"><strong>Fecha fin:</strong></label>
+                    <div class="col-sm-8">
+                        {% render_field form.fecha_fin type="date" class="form-control" %}
+                    </div>
+                    <label for="form.puesto" class="col-auto col-form-label my-1"><strong>Puesto del empleado:</strong></label>
+                        <div class="col-5 d-none">
+                            {{form.puesto|add_class:"form-control"}}
                         </div>
-                    </div>
-                    <label for="form.liquidacion" class="col-auto col-form-label my-1"><strong>Liquidación:</strong></label>
+                        <div class="col-5">
+                        <input type="text" list="puesto" id="txt_puesto" valor="{{puesto.id}}" placeholder="Puestos..." class="form-control">
+                        <datalist id="puesto" name='puesto'>
+                            {% for puesto in puestos %}
+                                <option valor="{{puesto.id}}" value="{{puesto.puesto}}"></option>
+                            {% endfor %}
+                        </datalist>
+                        </div>
+                    <label for="form.distrito" class="col-auto col-form-label my-1"><strong>Distrito:</strong></label>
                     <div class="col-6">
-                        <div class="input-group">
-                            <span class="input-group-text">$ </span>
-                            {{form.liquidacion|add_class:"form-control"}}
-                            </div>
+                        {{form.distrito|add_class:"form-control"}}
                     </div>
-                    <label for="form.motivo" class="col-auto col-form-label my-1"><strong>Motivo:</strong></label>
+                    <label for="form.empresa" class="col-auto col-form-label my-1"><strong>Empresa:</strong></label>
                     <div class="col-12">
-                        {{ form.motivo|add_class:"form-control"}}
+                        {{ form.empresa|add_class:"form-control"}}
                     </div>
-                    <label for="form.exitosa" class="col-auto col-form-label my-1"><strong>¿Exitosa la baja?:</strong></label>
+                    <label for="form.comentario" class="col-auto col-form-label my-1"><strong>Comentario:</strong></label>
                     <div class="col-12">
-                        {{ form.exitosa|add_class:"form-control"}}
+                        {{ form.comentario|add_class:"form-control"}}
                     </div>
             </div>
         </div>
@@ -103,6 +109,25 @@
     </div>
 </div>
 <script>
+document.getElementById("txt_puesto").addEventListener("change", (event)=>{
+    var select = document.getElementById("txt_puesto");
+    var browserChildren = document.getElementById('puesto').children;
+    var other_select = document.getElementById('id_puesto');
+    var cont = 0;
+
+    for(let i = 0; i < browserChildren.length; i++){
+        if (browserChildren[i].value === select.value){
+            let id = browserChildren[i].getAttribute('valor');
+            other_select.value = id;
+            cont = 1;
+        }
+    }
+    console.log(select.value)
+    //El cont = 0 es un indicador/bandera si encuentra al menos una similitud en el for no se activa
+    if ((!select.value) || (cont === 0)){
+        other_select.value = 0;
+    }
+});
 document.getElementById('verificar').addEventListener('click', function() {
     // Intentar enviar el formulario incluso si no es válido
     var form = document.getElementById('baja_empleado_form');

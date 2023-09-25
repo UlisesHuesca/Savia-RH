@@ -18,10 +18,13 @@ urlpatterns = [
 
     path('Perfil/update/<int:pk>/', views.PerfilUpdate, name='Perfil_update'),
     path('Perfil/Baja/<int:pk>/', views.Baja_empleado, name='Baja_empleado'),  
+    path('Perfil/Baja/update<int:pk>/', views.Baja_update, name='Baja_empleado_update'),  
     path('Perfil/revisar/<int:pk>/', views.Perfil_revisar, name='Perfil_revisar'),
     path('Status/update/<int:pk>/', views.StatusUpdate, name='Status_update'),
     path('Status/revisar/<int:pk>/', views.Status_revisar, name='Status_revisar'),
     path('upload_Status', views.upload_batch_status, name='Upload_status'),
+    path('Status/CV/<int:pk>/', views.Cv_datos, name='Cv_datos'),
+    path('CV/Agregar/<int:pk>/', views.Cv_agregar, name='Cv_agregar'),
 
     path('Administrar', views.Administrar_tablas, name='Administrar_tablas'),
     path('Tabla_catorcenas', views.Tabla_catorcenas, name='Tabla_catorcenas'),

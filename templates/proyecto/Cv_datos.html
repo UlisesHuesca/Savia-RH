@@ -1,0 +1,108 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+<hr>
+<div class="container card card-body">
+        <div class="columns is-mobile">
+            <div class="column is-half is-offset-one-quarter">
+                <h3 class="title is-size-3">CV del empleado en la empresa</h3>
+                <h7 class="title is-size-3">{{status.perfil.nombres}} {{status.perfil.apellidos}}</h7>
+                <br>
+                <br>
+                <form method=POST>
+                {% csrf_token %}
+                <ul class="nav nav-pills">
+                    <li class="nav-item mx-2">
+                        <a class="btn btn-outline-info btn-block mx-auto" type="button" data-bs-toggle="modal" data-bs-target="#dialog" hx-target="#document" hx-get="{% url 'Cv_agregar' status.id %}"><i class="fa-solid fa-file-circle-plus">Agregar Dato</i></a>
+                    </li>
+                    <li class="nav-item mx-2">
+                        <button type="submit" name="PDF" class="btn btn-outline-danger" value='Reporte PDF'>
+                            <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                        </button>
+                    </li> 
+                </ul>
+                </form>
+                <hr>
+                <h5 class="title is-size-3">Puestos del empleado</h5>
+                <div class='table-responsive'>
+                    <table class="table table-ligth table-striped mx-1">
+                        <thead>
+                            <tr>
+                                <th scope="col">Fecha inicio</th>
+                                <th scope="col">Fecha fin</th>
+                                <th scope="col">Puesto</th>
+                                <th scope="col">Distrito</th>
+                                <th scope="col">Empresa</th>
+                                <th scope="col">Comentario/Cargo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dato in datos %}
+                            <tr>
+                                <td>{{dato.fecha_inicio}}</td>
+                                <td>{{dato.fecha_fin}}</td>
+                                <td>{{dato.puesto}}</td>
+                                <td>{{dato.distrito}}</td>
+                                <td>{{dato.empresa}}</td>
+                                <td>{{dato.comentario}}</td>
+                            </tr>
+                        </tbody>
+                            {% endfor %}
+                    </table>
+                </div>
+            </div>
+            <hr>
+            {% if usuario.tipo.admin == False %}
+                <div class="d-none">
+            {% else %}
+                <div>
+            {% endif %}
+                <a href="{% url 'Status' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
+            </div>
+        </div>
+    </div>
+<!--Este es el modal-->
+        <div class="modal fade" id ="dialog" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg modal-dialog-centered" id="document" role="document" hx-target="this">
+
+            </div>
+        </div>
+<script>
+    var myModal = document.getElementById('dialog')
+
+    myModal.addEventListener('hidden.bs.modal', function (event) {
+        location.reload();
+    })
+
+</script>
+{% endblock %}

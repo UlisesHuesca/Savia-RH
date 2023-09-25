@@ -47,6 +47,7 @@ from .models import Status_Batch
 from .models import Costos_Batch
 from .models import Bancarios_Batch
 from .models import Datos_baja
+from .models import Empleado_cv
 
 class PerfilAdmin(admin.ModelAdmin):
     ordering = ['numero_de_trabajador']
@@ -144,3 +145,4 @@ admin.site.register(Costos_Batch)
 admin.site.register(Bancarios_Batch)
 admin.site.register(Vacaciones_anteriores_Batch)
 admin.site.register(Datos_baja)
+admin.site.register(Empleado_cv)

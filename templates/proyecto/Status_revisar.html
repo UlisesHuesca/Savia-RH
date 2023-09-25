@@ -32,12 +32,13 @@
 
 <hr>
 <hr>
-{% if status_fijo.id == estado.id %}
+{% if usuario_fijo.id == empleado.id %}
     <div>
-{% elif usuario.tipo.admin == True and usuario.distrito == estado.perfil.distrito %}
+{% elif usuario.tipo.admin == True and usuario.distrito == empleado.distrito %}
+    <div>
+{% elif usuario.tipo.empleados == True %}
     <div>
 {% elif usuario.tipo.admin == True and usuario.distrito.distrito == 'Matriz' %}
-    <div>
 {% else %}
     &nbsp;
     <div style="text-align: center;">
@@ -149,10 +150,10 @@
                                 <img class="img-thumbnail" src="{{estado.perfil.fotoURL}}"  alt="Imagen de Usuario">
                             </div>
                             <hr>
-                            {% if usuario.tipo.admin == False %}
-                                <div class="d-none">
-                            {% else %}
+                            {% if usuario.tipo.admin == True or usuario.tipo.empleados == True %} 
                                 <div>
+                            {% else %}
+                                <div class="d-none">
                             {% endif %}
                                 <a href="{% url 'Status' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
                             </div>

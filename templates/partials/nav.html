@@ -45,7 +45,7 @@
                 </div>
                 <div class="offcanvas-body">
                     <div>
-                        {% if usuario_fijo.numero_de_trabajador == None %}
+                        {% if usuario_fijo.numero_de_trabajador == None or usuario.tipo.usuario == False %}
                         <div class="d-none">
                         {% else %}
                         <div>
@@ -75,16 +75,17 @@
                             <div class="dropdown-divider"></div>
                         {% endif %}
                         </div>
-                        {% if usuario.tipo.admin == False %}
-                        <div class="d-none">
-                        {% else %}
+                        {% if usuario.tipo.empleados == True %}
                         <div>
-                        {% endif %}
                         <h6 class="dropdown-header">Información de los empleados</h6>
                         <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Perfil' %}">Tabla Perfiles</a>
                             <a class="dropdown-item" href="{% url 'Status' %}">Tabla Status</a>
                             <hr>
+                        <div>   
+                        {% endif %}
+                        {% if usuario.tipo.autorizacion == True %}
+                        <div>
                             <h6 class="dropdown-header">Autorización de solicitudes</h6>
                             <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="{% url 'Solicitudes_vacaciones' %}">
@@ -103,9 +104,11 @@
                                     <span class="sr-only">unread messages</span>
                                     {% endif %}
                                 </a>
-                            <!--<a class="dropdown-item" href="{% url 'Tabla_isr' %}">Tabla datos ISR</a>-->
-                            <!--<a class="dropdown-item" href="{% url 'Tabla_dias_vacaciones' %}">Tabla de días de vacaciones disponibles</a>-->
-                            <div class="dropdown-divider"></div>
+                                <div class="dropdown-divider"></div>
+                        <div>
+                        {% endif %}
+                        {% if usuario.tipo.tablas_empleados == True %}
+                        <div>
                             <h6 class="dropdown-header">Tablas datos empleados</h6>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Tabla_datosbancarios' %}">Datos bancarios</a>
@@ -115,11 +118,18 @@
                             <a class="dropdown-item" href="{% url 'Tabla_uniformes' %}">Uniformes</a>
                             <a class="dropdown-item" href="{% url 'Tabla_economicos' %}">Días económicos</a>
                             <div class="dropdown-divider"></div>
+                        {% if usuario.tipo.info_general == True %}
+                        <div>
                             <h6 class="dropdown-header">Información general del sistema</h6>
                             <hr>
                             <a class="dropdown-item" href="{% url 'Administrar_tablas' %}">Datos generales</a>
                             <div class="dropdown-divider"></div>
                         </div>
+                        {% endif %}
+
+                        {% endif %}
+                        {% if usuario.tipo.solicitudes == True %}
+                        <div>
                             {% if usuario_fijo.numero_de_trabajador == None or usuario_fijo.baja == True %}
                             <div>
                             {% else %}
@@ -139,6 +149,9 @@
                             <div class="dropdown-divider"></div>
                             {% endif %}
                             {% endif %}
+                        <div>
+                        {% endif %}
+
                     </div>
                 </div>
             </div>

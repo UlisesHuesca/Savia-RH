@@ -57,6 +57,7 @@
                                <i class="fa-solid fa-file-pdf fa-2xl"></i>
                             </button>
                         </li> -->
+                        {% if usuario.tipo.admin != False %}
                         <li class="nav-item mx-2">
                             <a type="button" class="btn btn-outline-info" href="{% url 'Formulario_perfil' %}">
                                 <i class="fa-solid fa-user-plus"></i>
@@ -70,6 +71,7 @@
                         <li class="nav-item mx-2">
                             <a href="{% url 'Perfil_baja' %}" class="btn btn-primary" target="_blank"><i class="fa-solid fa-square-up-right"></i> Tabla empleados dados de baja</a>  
                         </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
@@ -121,10 +123,12 @@
                     <th scope="col">Proyecto</th>
                     <th scope="col">Subproyecto</th>
                     <th scope="col">Detalle</th>
-                    {% if usuario_fijo.distrito.distrito == "Matriz" %}
+                    {% if usuario_fijo.distrito.distrito == "Matriz" and usuario.tipo.admin == True %}
                     <th scope="col">Baja</th>
                     {% endif %}
+                    {% if usuario.tipo.admin == True %}
                     <th scope="col">Editar</th>
+                    {% endif %}
 
                 </tr>
             </thead>
@@ -139,11 +143,13 @@
                     <td>{{perfil.correo_electronico}}</td> 
                     <td>{{perfil.proyecto}}</td>
                     <td>{{perfil.subproyecto}}</td>
-                    <td><a class="btn btn-outline-info" id="btnRevisar" type="button" href="{% url 'Perfil_revisar' perfil.id %}"><i class="fa-solid fa-address-card"></i></a>
-                    {% if usuario_fijo.distrito.distrito == "Matriz" %}
-                    <td><a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d" data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document" hx-get="{% url 'Baja_empleado' perfil.id %}"><i class="fa-solid fa-user-minus"></i></a>
+                    <td><a class="btn btn-outline-info" id="btnRevisar" type="button" href="{% url 'Perfil_revisar' perfil.id %}"><i class="fa-solid fa-address-card"></i></a></td>
+                    {% if usuario_fijo.distrito.distrito == "Matriz" and usuario.tipo.admin == True %}
+                    <td><a class="btn btn-outline-info btn-block mx-auto" type="button" data-bs-toggle="modal" data-bs-target="#dialog" hx-target="#document" hx-get="{% url 'Baja_empleado' perfil.id %}"><i class="fa-solid fa-user-minus">Baja</i></a></a></td>
                     {% endif %}
+                    {% if usuario.tipo.admin == True %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Perfil_update' perfil.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -177,7 +183,6 @@
         {% endif %}
     </ul>
 </nav>
-
 <!--Este es el modal-->
         <div class="modal fade" id ="dialog" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog">
             <div class="modal-dialog modal-lg modal-dialog-centered" id="document" role="document" hx-target="this">
@@ -195,7 +200,7 @@
     var myModal = document.getElementById('dialog')
 
     myModal.addEventListener('hidden.bs.modal', function (event) {
-    //    location.reload();
+        location.reload();
     })
 </script>
 {% endblock %}
