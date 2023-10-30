@@ -52,11 +52,6 @@
                                 <i class="fa-solid fa-file-excel fa-2xl"></i>
                             </button>
                         </li>
-                    <!--    <li class="nav-item mx-2">
-                            <button type="button" class="btn btn-outline-danger">
-                               <i class="fa-solid fa-file-pdf fa-2xl"></i>
-                            </button>
-                        </li> -->
                         <li class="nav-item mx-2">
                             <a type="button" class="btn btn-outline-info" href="{% url 'Formulario_datosbancarios' %}">
                                 <i class="fa-solid fa-user-plus"></i>
@@ -64,7 +59,17 @@
                         </li>
                         <li class="nav-item mx-2">
                             <a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d" data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document" hx-get="{% url 'Upload_bancarios' %}">
-                                <i class="fa-solid fa-file-arrow-up"> CARGA MASIVA</i>
+                                <i class="fa-solid fa-file-arrow-up"> CARGA Bancarios</i>
+                            </a>
+                        </li>
+                        <!--<li class="nav-item mx-2">
+                            <button type="submit" name="Excel_formato" class="btn btn-outline-danger" value='Formato_excel'>
+                               <i class="fa-solid fa-file-export">Formato Bonos</i>
+                            </button>
+                        </li> -->
+                        <li class="nav-item mx-2">
+                            <a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d" data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document" hx-get="{% url 'Upload_bonos_catorcena' %}">
+                                <i class="fa-solid fa-file-arrow-up"> CARGA Bonos</i>
                             </a>
                         </li>
                     </ul>
@@ -76,7 +81,7 @@
 <div class="card card-body">
             <h5>Filtro datos bancarios</h5>
             <hr>
-            <form method="GET" class="row g-3">
+            <form method="GET" class="row g-3" id="filtro-form">
                 {% csrf_token %}
                 <label for="bancario_filter.form.nombres_apellidos" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
                 <div class="col-auto">
@@ -97,6 +102,11 @@
                 <div class="col-auto">
                        {% render_field bancario_filter.form.banco class="form-control" %}
                 </div>
+                <label for="bancario_filter.form.baja" class="col-sm-auto col-form-label text-right">
+                    <strong>Baja:</strong></label>
+                <div class="col-auto">
+                    {% render_field bancario_filter.form.baja class="form-control" %}
+                </div>
                 <div class="col-auto">
                 <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
@@ -115,7 +125,9 @@
                     <th scope="col">No. de tarjeta</th>
                     <th scope="col">Clabe interbancaria</th>
                     <th scope="col">Banco</th>
+                    {% if  baja == 'False' %}
                     <th scope="col">Editar</th>
+                    {% endif %} 
                 </tr>
             </thead>
             <tbody>
@@ -127,7 +139,9 @@
                     <td>{{bancario.numero_de_tarjeta}}</td>
                     <td>{{bancario.clabe_interbancaria}}</td>
                     <td>{{bancario.banco}}</td>
-                    <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Bancarios_update' bancario.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    {% if baja == 'False' %}
+                        <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Bancarios_update' bancario.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    {% endif %} 
                 </tr>
                 {% endfor %}
             </tbody>
@@ -176,6 +190,9 @@
     myModal.addEventListener('hidden.bs.modal', function (event) {
     //    location.reload();
     })
+    if (performance.navigation.type == 1) {
+        document.getElementById('filtro-form').submit();
+    }
 </script>
 {% endblock %}
 

@@ -58,20 +58,28 @@
                     <div class="col-sm-8">
                         {% render_field form.fecha type="date" class="form-control" %}
                     </div>
-                    <label for="form.finiquito" class="col-auto col-form-label my-1"><strong>Finiquito:</strong></label>
-                    <div class="col-6">
-                        <div class="input-group">
-                            <span class="input-group-text">$ </span>
-                            {{form.finiquito|add_class:"form-control"}}
-                        </div>
-                    </div>
-                    <label for="form.liquidacion" class="col-auto col-form-label my-1"><strong>Liquidación:</strong></label>
-                    <div class="col-6">
-                        <div class="input-group">
-                            <span class="input-group-text">$ </span>
-                            {{form.liquidacion|add_class:"form-control"}}
-                            </div>
-                    </div>
+                    <label for="opcion" class="col-auto col-form-label my-1"><strong>Opción:</strong></label>
+<div class="col-12">
+    <select id="opcion" class="form-control">
+        <option value="finiquito">Finiquito</option>
+        <option value="liquidacion">Liquidación</option>
+    </select>
+</div>
+<label for="form.finiquito" class="col-auto col-form-label my-1" id="label_finiquito" style="display: none;"><strong>Finiquito:</strong></label>
+<div class="col-6" id="form_finiquito" style="display: none;">
+    <div class="input-group">
+        <span class="input-group-text">$ </span>
+        {{form.finiquito|add_class:"form-control"}}
+    </div>
+</div>
+
+<label for="form.liquidacion" class="col-auto col-form-label my-1" id="label_liquidacion" style="display: none;"><strong>Liquidación:</strong></label>
+<div class="col-6" id="form_liquidacion" style="display: none;">
+    <div class="input-group">
+        <span class="input-group-text">$ </span>
+        {{form.liquidacion|add_class:"form-control"}}
+    </div>
+</div>
                     <label for="form.motivo" class="col-auto col-form-label my-1"><strong>Motivo:</strong></label>
                     <div class="col-12">
                         {{ form.motivo|add_class:"form-control"}}
@@ -113,7 +121,27 @@ document.getElementById('verificar').addEventListener('click', function() {
         document.getElementById('crear').click();
     }
 });
+document.getElementById('opcion').addEventListener('change', function() {
+    var opcionSeleccionada = this.value;
+    var labelFiniquito = document.getElementById('label_finiquito');
+    var labelLiquidacion = document.getElementById('label_liquidacion');
+    var formFiniquito = document.getElementById('form_finiquito');
+    var formLiquidacion = document.getElementById('form_liquidacion');
+
+    if (opcionSeleccionada === 'finiquito') {
+        labelFiniquito.style.display = 'block';
+        labelLiquidacion.style.display = 'none';
+        formFiniquito.style.display = 'block';
+        formLiquidacion.style.display = 'none';
+    } else if (opcionSeleccionada === 'liquidacion') {
+        labelLiquidacion.style.display = 'block';
+        labelFiniquito.style.display = 'none';
+        formLiquidacion.style.display = 'block';
+        formFiniquito.style.display = 'none';
+    }
+});
 </script>
 {% endblock %}
 </body>
 </html>
+

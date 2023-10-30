@@ -349,11 +349,13 @@ def Status_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        status= Status.objects.filter(complete=True, perfil__baja=False).order_by("perfil__numero_de_trabajador")
+        status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
     else:
-        status = Status.objects.filter(perfil__distrito = user_filter.distrito, complete=True, perfil__baja=False).order_by("perfil__numero_de_trabajador")
+        status = Status.objects.filter(perfil__distrito = user_filter.distrito, complete=True).order_by("perfil__numero_de_trabajador")
     status_filter = StatusFilter(request.GET, queryset=status)
+
     status = status_filter.qs
+
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_status(status)
 
@@ -366,8 +368,9 @@ def Status_vista(request):
         'status':status,
         'status_filter':status_filter,
         'salidas_list':salidas_list,
+        'baja': request.GET.get('baja', False)
         }
-
+    
     return render(request, 'proyecto/Status.html',context)
 
 @login_required(login_url='user-login')
@@ -609,9 +612,9 @@ def Tabla_uniformes(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        status= Status.objects.filter(complete=True, perfil__baja=False).order_by("perfil__numero_de_trabajador")
+        status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito)
         status= Status.objects.filter(complete=True,perfil__id__in=perfil.all()).order_by("perfil__numero_de_trabajador")
 
     status_filter = StatusFilter(request.GET, queryset=status)
@@ -627,6 +630,7 @@ def Tabla_uniformes(request):
         'status':status,
         'status_filter':status_filter,
         'salidas_list':salidas_list,
+        'baja': request.GET.get('baja', False)
         }
 
     return render(request, 'proyecto/Tabla_uniformes.html',context)
@@ -1285,9 +1289,9 @@ def TablaCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        costos= Costo.objects.filter(complete=True,created_at__year=año, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+        costos= Costo.objects.filter(complete=True,created_at__year=año).order_by("status__perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
         costos = Costo.objects.filter(status__perfil__id__in=perfil.all(),created_at__year=año, complete=True).order_by("status__perfil__numero_de_trabajador")
 
     costo_filter = CostoFilter(request.GET, queryset=costos)
@@ -1369,7 +1373,7 @@ def TablaCosto(request):
         costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
         costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
 
-    context = {'costos':costos,'costo_filter':costo_filter,'salidas_list':salidas_list,}
+    context = {'costos':costos,'costo_filter':costo_filter,'salidas_list':salidas_list, 'baja': request.GET.get('baja', False)}
 
     return render(request, 'proyecto/Tabla_costo.html',context)
 
@@ -1379,9 +1383,9 @@ def TablaBonos(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        bonos= Bonos.objects.filter(complete=True,mes_bono__year=año, costo__status__perfil__baja=False).order_by("costo__status__perfil__numero_de_trabajador")
+        bonos= Bonos.objects.filter(complete=True,mes_bono__year=año).order_by("costo__status__perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
         bonos = Bonos.objects.filter(costo__status__perfil__id__in=perfil.all(),mes_bono__year=año, complete=True).order_by("costo__status__perfil__numero_de_trabajador")
 
     bono_filter = BonosFilter(request.GET, queryset=bonos)
@@ -1404,6 +1408,7 @@ def TablaBonos(request):
         'bonos':bonos,
         'bono_filter':bono_filter,
         'salidas_list':salidas_list,
+        'baja': request.GET.get('baja', False)
         }
 
     return render(request, 'proyecto/BonosTabla.html',context)
@@ -1633,12 +1638,12 @@ def Tabla_Vacaciones(request): #Ya esta
             empleado.save()
 
     if user_filter.distrito.distrito == 'Matriz':
-        descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual, status__perfil__baja=False).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
     #elif user_filter.distrito.distrito == 'Poza Rica':
     #    perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
     #    descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo__in=["2022", "2023"]).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
         descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
 
     vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
@@ -1654,6 +1659,7 @@ def Tabla_Vacaciones(request): #Ya esta
         'descansos':descansos,
         'vacaciones_filter':vacaciones_filter,
         'salidas_list':salidas_list,
+        'baja': request.GET.get('baja', False)
         }
 
     return render(request, 'proyecto/TablaVacaciones.html',context)
@@ -1809,14 +1815,14 @@ def Tabla_Economicos(request): #Ya esta
             empleado.save()
 
     if user_filter.distrito.distrito == 'Matriz':
-        economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+        economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
         #economicost= economicos.last()
-        economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+        economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        economicos = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=False,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+        economicos = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
         #economicost = economicos.last()
-        economicoss = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=True,created_at__year=año_actual, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+        economicoss = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
     #economicos= Economicos.objects.filter(complete=True).annotate(Sum('dias_disfrutados'))
     economico_filter = EconomicosFilter(request.GET, queryset=economicos)
     economicos = economico_filter.qs
@@ -1840,6 +1846,7 @@ def Tabla_Economicos(request): #Ya esta
         'economico_filters':economico_filters,
         'salidas_list':salidas_list,
         'salidas_listt':salidas_listt,
+        'baja': request.GET.get('baja', False)
         }
 
     return render(request, 'proyecto/Tabla_economicos.html',context)
@@ -1864,9 +1871,9 @@ def Tabla_Datosbancarios(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        bancarios= DatosBancarios.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+        bancarios= DatosBancarios.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
         bancarios = DatosBancarios.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
     bancario_filter = BancariosFilter(request.GET, queryset=bancarios)
     bancarios = bancario_filter.qs
@@ -1883,6 +1890,7 @@ def Tabla_Datosbancarios(request):
         'bancarios':bancarios,
         'bancario_filter':bancario_filter,
         'salidas_list':salidas_list,
+        'baja': request.GET.get('baja', False)
         }
 
     return render(request, 'proyecto/Tabla_Datosbancarios.html',context)
@@ -2036,7 +2044,7 @@ def convert_excel_bancarios(bancarios):
     money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
     wb.add_named_style(money_resumen_style)
 
-    columns = ['Empresa','Distrito','Nombre','No. de cuenta','No. de tarjeta','Clabe interbancaria','Banco']
+    columns = ['Empresa','Distrito','Nombre','No. de cuenta','No. de tarjeta','Clabe interbancaria','Banco','Bono de la catorcena']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
@@ -2058,7 +2066,7 @@ def convert_excel_bancarios(bancarios):
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
 
     rows = bancarios.values_list('status__perfil__empresa__empresa','status__perfil__distrito__distrito',Concat('status__perfil__nombres',Value(' '),
-                                'status__perfil__apellidos'),'no_de_cuenta','numero_de_tarjeta','clabe_interbancaria','banco')
+                                'status__perfil__apellidos'),'no_de_cuenta','numero_de_tarjeta','clabe_interbancaria','banco__banco')
 
 
     for row in rows:
@@ -2181,35 +2189,23 @@ def convert_excel_vacaciones(descansos):
     wb.add_named_style(money_resumen_style)
 
     columns = ['Empresa','Distrito','Nombre','Fecha de planta anterior','Fecha de planta','Periodo vacacional','Días disponibles año actual',
-                'Días disfrutados año actual','Días pendientes año actual','Comentario','Total pendiente']
-
-    for col_num in range(len(columns)):
-        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
-        if col_num < 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
-        if col_num == 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
-        else:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
-
-
-    columna_max = len(columns)+2
-
-    (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
-    (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    (ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
-    (ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
-    ws.column_dimensions[get_column_letter(columna_max)].width = 20
-    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
-    
+                'Días disfrutados año actual','Días pendientes año actual','Comentario','Total pendiente',]
 
     rows = []
     for descanso in descansos:
-        total_pendiente_status = descanso.total_pendiente_status  # Calcula el valor aquí
+        # Consulta para obtener vacaciones con total_pendiente != 0
+        vacaciones_pendientes = Vacaciones.objects.filter(status=descanso.status, total_pendiente__gt=0,).annotate(Sum('total_pendiente'))
+        
+        total_pendiente_status = descanso.total_pendiente_status  # Calcula el valor aquí total pendiente total
         row = (descanso.status.perfil.empresa.empresa,descanso.status.perfil.distrito.distrito,f"{descanso.status.perfil.nombres} {descanso.status.perfil.apellidos}",
-            descanso.status.fecha_planta_anterior,descanso.status.fecha_planta,descanso.periodo,descanso.dias_de_vacaciones,
-            descanso.dias_disfrutados,descanso.total_pendiente,descanso.comentario,total_pendiente_status)
+            descanso.status.fecha_planta_anterior,descanso.status.fecha_planta,descanso.periodo,descanso.dias_de_vacaciones,descanso.dias_disfrutados,
+            descanso.total_pendiente,descanso.comentario,total_pendiente_status)
+        if vacaciones_pendientes.exists():
+            for vacacion_pendiente in vacaciones_pendientes:
+                # Añade los valores de total_pendiente y periodo al row original
+                row += (vacacion_pendiente.total_pendiente, vacacion_pendiente.periodo)
         rows.append(row)
+    max_col = 0
     for row in rows:
         row_num += 1
         for col_num in range(len(row)):
@@ -2219,7 +2215,30 @@ def convert_excel_vacaciones(descansos):
                 (ws.cell(row=row_num, column=col_num+1, value=row[col_num])).style = date_style
             if col_num > 5:
                 (ws.cell(row=row_num, column=col_num+1, value=row[col_num])).style = body_style
-        
+        if col_num > max_col:
+            max_col = col_num
+
+    dynamic_columns = []
+    for i in range(14, max_col):
+        dynamic_columns.extend([f'Pendiente', f'Periodo'])
+    columns = columns + dynamic_columns
+
+    for col_num in range(len(columns)):
+        (ws.cell(row = 1, column = col_num+1, value=columns[col_num])).style = head_style
+        if col_num < 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
+        if col_num == 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        else:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+
+
+    (ws.cell(column = 2, row = row_num + 2, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
+    (ws.cell(column = 2, row = row_num + 3, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    (ws.cell(column = 2, row = row_num + 4, value='Algún dato')).style = messages_style
+    (ws.cell(column = 2 + 1, row = row_num + 5, value = 'alguna sumatoria')).style = money_resumen_style
+
+    
     sheet = wb['Sheet']
     wb.remove(sheet)
     wb.save(response)
@@ -2975,6 +2994,44 @@ def upload_batch_bancarios(request):
         }
 
     return render(request,'proyecto/upload_batch_bancarios.html', context)
+
+@login_required(login_url='user-login')
+def upload_batch_bonos(request): #Bonos en la tabla de bancarios
+
+    form = Bancarios_BatchForm(request.POST or None, request.FILES or None)
+
+    if form.is_valid():
+        form.save()
+        form = Bancarios_BatchForm()
+        """bancarios_list = Bancarios_Batch.objects.get(activated = False)
+        f = open(bancarios_list.file_name.path, 'r')
+        reader = csv.reader(f)
+        next(reader) #Advance past the reader
+
+        for row in reader:
+            if Status.objects.filter(perfil__numero_de_trabajador = row[0], perfil__distrito__distrito = row[1]):
+                status = Status.objects.get(perfil__numero_de_trabajador = row[0], perfil__distrito__distrito = row[1])
+                if DatosBancarios.objects.filter(status__perfil__numero_de_trabajador=row[0], status__perfil__distrito__distrito = row[1]):
+                    messages.error(request,f'El empleado #{row[0]} ya existe dentro de la base de datos')
+                else:
+                    if Banco.objects.filter(banco = row[5]):
+                        banco = Banco.objects.get(banco = row[5])
+                        status.complete_bancarios = True
+                        bancarios = DatosBancarios(status=status, no_de_cuenta=row[2], numero_de_tarjeta=row[3], clabe_interbancaria=row[4],banco=banco,complete=True,)
+                        bancarios.save()
+                    else:
+                        messages.error(request,f'El banco no existe dentro de la base de datos, empleado #{row[0]}')
+            else:
+                messages.error(request,f'El empleado no existe dentro de la base de datos, empleado #{row[0]}')
+        bancarios_list.activated = True
+        bancarios_list.save()
+        status.save()"""
+
+    context = {
+        'form': form,
+        }
+
+    return render(request,'proyecto/upload_batch_bonos.html', context) #tabla de bancarios esta el view del batch
 
 def reporte_pdf_uniformes(uniformes, pk):
     orden = Uniformes.objects.get(id=pk)
