@@ -68,6 +68,11 @@
                 </div>
                 {% else %}
                 {% endif %}
+                <label for="status_filter.form.baja" class="col-sm-auto col-form-label text-right">
+                    <strong>Baja:</strong></label>
+                <div class="col-auto">
+                    {% render_field status_filter.form.baja class="form-control" %}
+                </div>
                 <div class="col-auto">
                 <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
@@ -84,7 +89,9 @@
                     <th scope="col">Nombre</th>
                     <th scope="col">Distrito</th>
                     <th scope="col">Detalles</th>
+                    {% if baja == 'False' %}
                     <th scope="col">Crear</th>
+                    {% endif %} 
                 </tr>
             </thead>
             <tbody>
@@ -94,7 +101,9 @@
                     <td>{{statu.perfil.nombres}} {{statu.perfil.apellidos}}</td>
                     <td>{{statu.perfil.distrito}}</td>
                     <td><a class="btn btn-outline-info" id="btnOrden" type="button" href="{% url 'Uniformes_completados_revisar' statu.id %}"><i class="fa-solid fa-shirt"></i></a>
+                    {% if baja == 'False' %}
                     <td><a class="btn btn-outline-info" id="btnOrden" type="button" href="{% url 'Orden_uniformes' statu.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    {% endif %} 
                 </tr>
                 {% endfor %}
             </tbody>

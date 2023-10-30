@@ -93,6 +93,15 @@
                 </div>
                 {% else %}
                 {% endif %}
+                <label for="bono_filter.form.baja" class="col-sm-auto col-form-label text-right">
+                    <strong>Baja:</strong></label>
+                <div class="col-auto">
+                    {% render_field bono_filter.form.baja class="form-control" %}
+                </div>
+                <label for="bono_filter.form.numero_catorcena" class="col-sm-auto col-form-label text-right"><strong>Catorcena #:</strong></label>
+                <div class="col-auto">
+                     {% render_field bono_filter.form.numero_catorcena class="form-control" %}
+                </div>
                 <div class="col-auto">
                 <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
@@ -111,8 +120,9 @@
                     <th scope="col">Fecha del bono</th>
                     <th scope="col">Fecha de modificación</th>
                     <th scope="col">Bono total</th>
+                    {% if baja == 'False' %}
                     <th scope="col">Editar</th>
-
+                    {% endif %} 
                 </tr>
             </thead>
             <tbody>
@@ -125,7 +135,9 @@
                     <td>{{bono.fecha_bono}}</td>
                     <td>{{bono.updated_at}}</td>
                     <td>{{bono.monto}}</td>
+                    {% if baja == 'False' %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Bonos_update' bono.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    {% endif %} 
                 </tr>
                 {% endfor %}
             </tbody>

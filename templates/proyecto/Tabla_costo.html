@@ -123,7 +123,7 @@
 <div class="card card-body">
             <h5>Filtro costos</h5>
             <hr>
-            <form method="GET" class="row g-3">
+            <form method="GET" class="row g-3" id="filtro-form">
                 {% csrf_token %}
                 <label for="costo_filter.form.perfil__numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
                 <div class="col-sm-1">
@@ -144,6 +144,11 @@
                 </div>
                 {% else %}
                 {% endif %}
+                <label for="costo_filter.form.baja" class="col-sm-auto col-form-label text-right">
+                    <strong>Baja:</strong></label>
+                <div class="col-auto">
+                    {% render_field costo_filter.form.baja class="form-control" %}
+                </div>
             <!--    <label for="costo_filter.form.proyecto" class="col-sm-auto col-form-label text-right"><strong>Proyecto:</strong></label>
                 <div class="col-auto">
                        {% render_field costo_filter.form.proyecto class="form-control" %}
@@ -189,9 +194,13 @@
                     <th class="th_check d-none" scope="col">Gasolina</th>
                     <th scope="col">Total costo mensual para la empresa</th>
                     <th scope="col">Total Bonos catorcena actual</th>
+                    {% if baja == 'False' %}
                     <th scope="col">Registro</th>
+                    {% endif %} 
                     <th scope="col">Detalle</th>
+                    {% if baja == 'False' %}
                     <th scope="col">Editar</th>
+                    {% endif %} 
                 </tr>
             </thead>
             <tbody>
@@ -222,9 +231,13 @@
                     <td class="td_check d-none">{{costo.gasolina}}</td>
                     <td>{{costo.total_costo_empresa}}</td>
                     <td>{{costo.total_apoyosbonos_agregcomis}}</td>
+                    {% if baja == 'False' %}
                     <td><a class="btn btn-outline-info" type="button" href="{% url 'render_report' costo.id %}"><i class="fa-solid fa-list"></i></a></td>
+                    {% endif %} 
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_revisar' costo.id %}"><i class="fas fa-sack-dollar"></i></a></td>
+                    {% if baja == 'False' %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_update' costo.id %}"><i class="fa-solid fa-pen-to-square"></i></a></td>
+                    {% endif %} 
                 </tr>
                 {% endfor %}
             </tbody>
@@ -267,6 +280,10 @@
     </div>
 </div>
 <script>
+    if (performance.navigation.type == 1) {
+        document.getElementById('filtro-form').submit();
+    }
+
 ;(function(){
     const modal = new bootstrap.Modal(document.getElementById('dialog'))
 
@@ -311,6 +328,8 @@ var myModal = document.getElementById('dialog')
 myModal.addEventListener('hidden.bs.modal', function (event) {
 //    location.reload();
 })
+
+
 </script>
 {% endblock %}
 

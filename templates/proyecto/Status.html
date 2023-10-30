@@ -84,7 +84,7 @@
 <div class="card card-body">
     <h5>Filtro Status de empleados</h5>
     <hr>
-    <form method="GET" class="row g-3">
+    <form method="GET" class="row g-3" id="formularioBusqueda">
         {% csrf_token %}
         <label for="status_filter.form.perfil__numero_de_trabajador"
             class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
@@ -113,8 +113,13 @@
         <div class="col-auto">
             {% render_field status_filter.form.tipo_de_contrato class="form-control" %}
         </div>
+        <label for="status_filter.form.baja" class="col-sm-auto col-form-label text-right">
+            <strong>Baja:</strong></label>
         <div class="col-auto">
-            <button class="btn btn-outline-success" type="submit" value="Buscar"><i
+            {% render_field status_filter.form.baja class="form-control" %}
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-outline-success" type="submit" value="Buscar" id="buscarBtn"><i
                     class="fa-solid fa-magnifying-glass"></i></button>
         </div>
     </form>
@@ -142,11 +147,11 @@
                     <th scope="col">Teléfono</th>
                     <th scope="col">Domicilio completo</th>
                     <th scope="col">Estado civil</th>
-                    {% if usuario.tipo.admin == True %}
+                    {% if usuario.tipo.admin == True and baja == 'False' %}
                     <th scope="col">CV</th>     
                     {% endif %}   
                     <th scope="col">Detalle</th>
-                    {% if usuario.tipo.admin == True %}
+                    {% if usuario.tipo.admin == True and baja == 'False' %}
                     <th scope="col">Editar</th>
                     {% endif %}
                 </tr>
@@ -180,15 +185,16 @@
                     <td>{{estado.telefono}}</td>
                     <td>{{estado.domicilio}}</td>
                     <td>{{estado.estado_civil}}</td>
-                    {% if usuario.tipo.admin == True %}
+                    {% if usuario.tipo.admin == True and baja == 'False' %}
                     <td><a class="btn btn-outline-info" id="btnRevisar" type="button"
                             href="{% url 'Cv_datos' estado.id %}"><i class="fa-solid fa-book"></i></a>
                     </td>
+                    
                     {% endif %}
                     <td><a class="btn btn-outline-info" id="btnRevisar" type="button"
                             href="{% url 'Status_revisar' estado.id %}"><i class="fa-solid fa-address-card"></i></a>
                     </td>
-                    {% if usuario.tipo.admin == True %}
+                    {% if usuario.tipo.admin == True and baja == 'False' %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button"
                             href="{% url 'Status_update' estado.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
                     </td>
@@ -238,10 +244,13 @@
     var myModal = document.getElementById('dialog')
 
     myModal.addEventListener('hidden.bs.modal', function (event) {
-    //    location.reload();
+        location.reload();
     })
 
-</script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('buscarBtn').click();
+    });
+
 {% endblock %}
 
 </body>

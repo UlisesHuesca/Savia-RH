@@ -57,6 +57,7 @@ urlpatterns = [
     path('Tabla_DatosBancarios', views.Tabla_Datosbancarios, name='Tabla_datosbancarios'),
     path('upload_Bancarios', views.upload_batch_bancarios, name='Upload_bancarios'),
     path('Empleado/Datos_bancarios/<int:pk>/', views.Empleado_Datosbancarios, name='Empleado_bancarios'),
+    path('upload_Bonos_catorcena', views.upload_batch_bonos, name='Upload_bonos_catorcena'),
 
     path('Formulario_Bonos', views.FormularioBonos, name='Formulario_bonos'),
     path('Tabla_Bonos', views.TablaBonos, name='Tabla_bonos'),
