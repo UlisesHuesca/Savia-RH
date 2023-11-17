@@ -1,0 +1,471 @@
+[
+    {
+        "model": "esquema.categoria",
+        "pk": 1,
+        "fields": {
+            "nombre": "bono varillero"
+        }
+
+    },
+
+
+
+    {
+        "model": "esquema.subcategoria",
+        "pk": 1,
+        "fields": {
+            "esquema_categoria_id": 1,
+            "nombre":"bono evic extracción"
+        }
+
+    },
+    {
+        "model": "esquema.subcategoria",
+        "pk": 2,
+        "fields": {
+            "esquema_categoria_id": 1,
+            "nombre":"bono evic introducción"
+        }
+
+    },
+    {
+        "model": "esquema.subcategoria",
+        "pk": 3,
+        "fields": {
+            "esquema_categoria_id": 1,
+            "nombre":"control de pozo"
+        }
+
+    },
+    {
+        "model": "esquema.subcategoria",
+        "pk": 4,
+        "fields": {
+            "esquema_categoria_id": 1,
+            "nombre":"retiro de medio árbol"
+        }
+
+    },
+    {
+        "model": "esquema.subcategoria",
+        "pk": 5,
+        "fields": {
+            "esquema_categoria_id": 1,
+            "nombre":"cambio de varilla pulida/preventor/estopero"
+        }
+
+    },
+
+
+
+
+    {
+        "model": "esquema.esquema",
+        "pk": 1,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":138,
+            "distrito_id":4,
+            "importe":570.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 2,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":138,
+            "distrito_id":2,
+            "importe":300.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 3,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":138,
+            "distrito_id":6,
+            "importe":540.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 4,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":138,
+            "distrito_id":5,
+            "importe":540.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 5,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":176,
+            "distrito_id":4,
+            "importe":385.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 6,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":176,
+            "distrito_id":2,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 7,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":176,
+            "distrito_id":6,
+            "importe":360.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 8,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":176,
+            "distrito_id":5,
+            "importe":360.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 9,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":177,
+            "distrito_id":4,
+            "importe":205.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 10,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":177,
+            "distrito_id":2,
+            "importe":120.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 11,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":177,
+            "distrito_id":6,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 12,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":177,
+            "distrito_id":5,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 13,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":178,
+            "distrito_id":4,
+            "importe":205.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 14,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":178,
+            "distrito_id":2,
+            "importe":120.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 15,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":178,
+            "distrito_id":6,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 16,
+        "fields": {
+            "esquema_subcategoria_id": 1,
+            "puesto_id":178,
+            "distrito_id":5,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 17,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":138,
+            "distrito_id":4,
+            "importe":690.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 18,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":138,
+            "distrito_id":2,
+            "importe":420.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 19,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":138,
+            "distrito_id":6,
+            "importe":600.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 20,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":138,
+            "distrito_id":5,
+            "importe":600.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 21,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":176,
+            "distrito_id":4,
+            "importe":445.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 22,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":176,
+            "distrito_id":2,
+            "importe":270.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 23,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":176,
+            "distrito_id":6,
+            "importe":420.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 24,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":176,
+            "distrito_id":5,
+            "importe":420.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 25,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":177,
+            "distrito_id":4,
+            "importe":205.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 26,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":177,
+            "distrito_id":2,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 27,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":177,
+            "distrito_id":6,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 28,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":177,
+            "distrito_id":5,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 25,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":177,
+            "distrito_id":4,
+            "importe":205.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 26,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":177,
+            "distrito_id":2,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 27,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":177,
+            "distrito_id":6,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 28,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":177,
+            "distrito_id":5,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 29,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":178,
+            "distrito_id":4,
+            "importe":205.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 30,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":178,
+            "distrito_id":2,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 31,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":178,
+            "distrito_id":6,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 32,
+        "fields": {
+            "esquema_subcategoria_id": 2,
+            "puesto_id":178,
+            "distrito_id":5,
+            "importe":180.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 33,
+        "fields": {
+            "esquema_subcategoria_id": 3,
+            "puesto_id":138,
+            "distrito_id":4,
+            "importe":305.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 34,
+        "fields": {
+            "esquema_subcategoria_id": 3,
+            "puesto_id":138,
+            "distrito_id":2,
+            "importe":120.00
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 35,
+        "fields": {
+            "esquema_subcategoria_id": 3,
+            "puesto_id":138,
+            "distrito_id":6,
+            "importe":null
+        }
+    },
+    {
+        "model": "esquema.esquema",
+        "pk": 36,
+        "fields": {
+            "esquema_subcategoria_id": 3,
+            "puesto_id":138,
+            "distrito_id":5,
+            "importe":null
+        }
+    }
+
+
+   
+
+
+
+   
+
+
+]

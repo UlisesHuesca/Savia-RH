@@ -22,11 +22,18 @@ class Esquema(models.Model):
     esquema_subcategoria = models.ForeignKey(Subcategoria,on_delete=models.CASCADE,null=False)
     puesto = models.ForeignKey(Puesto,on_delete=models.CASCADE,null=False)
     distrito = models.ForeignKey(Distrito,on_delete=models.CASCADE,null=False)
-    importe = models.DecimalField(max_digits=6,decimal_places=2,null=False)#Se filtra la información para no ser mostrada
+    importe = models.DecimalField(max_digits=6,decimal_places=2,null=True)#Se filtra la información para no ser mostrada
 
     def __str__(self):
-        return self.esquema_subcategoria
+        if self.esquema_subcategoria ==None:
+            return "Campo vacio"
+        return f'{self.subcategoria.nombre}'
 
+    """
+    def __str__(self):
+        return self.esquema_subcategoria
+    """
+    
 #Quien realiza la solicitud
 class Solicitud(models.Model):
     puesto = models.ForeignKey(Puesto,on_delete=models.CASCADE,null=False)
@@ -37,7 +44,7 @@ class Solicitud(models.Model):
 class EsquemaSolicitado(models.Model):
     solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,null=False)
     trabajador = models.ForeignKey(Perfil,on_delete=models.CASCADE,null=False)
-    Esquema = models.ForeignKey(Esquema,on_delete=models.CASCADE,null=False)
+    esquema = models.ForeignKey(Esquema,on_delete=models.CASCADE,null=False)
     cantidad = models.DecimalField(max_digits=6,decimal_places=2,null=False)
     fecha = models.DateTimeField(null=False,auto_now_add=True)
     
