@@ -48,7 +48,10 @@ INSTALLED_APPS = [
     'django_filters',
     "django_htmx",
     'crispy_forms',
+    'crispy_bootstrap4',
 ]
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -61,6 +64,8 @@ MIDDLEWARE = [
     'simple_history.middleware.HistoryRequestMiddleware',
     "django_htmx.middleware.HtmxMiddleware",
 ]
+
+
 
 ROOT_URLCONF = 'mysite.urls'
 
