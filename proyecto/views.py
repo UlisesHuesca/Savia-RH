@@ -228,10 +228,11 @@ def Perfil_vista_baja(request):
 
     if user_filter.distrito.distrito == 'Matriz':
         perfiles= Perfil.objects.filter(complete=True, baja=True).order_by("numero_de_trabajador")
-        perfiles= Datos_baja.objects.filter(perfil__in=perfiles, complete=True).order_by("fecha")
+        perfiles= Datos_baja.objects.filter(perfil__in=perfiles, complete=True, pasado=False).order_by("fecha")
+        
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
-        perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True).order_by("numero_de_trabajador")
+        perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True, pasado=False).order_by("numero_de_trabajador")
     perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
     perfiles = perfil_filter.qs
 
@@ -636,9 +637,12 @@ def Tabla_uniformes(request):
     return render(request, 'proyecto/Tabla_uniformes.html',context)
 
 @login_required(login_url='user-login')
-def Orden_uniformes(request, pk):
+def Orden_uniformes(request, pk): #Crear orden luego de añadir los elementos en el "Carrito"
+    # Se obtiene el objeto 'Status' correspondiente al 'pk' proporcionado en la URL.
     status = Status.objects.get(id=pk)
+    # Se intenta obtener o crear una instancia de 'Uniformes' asociada a este 'Status'.
     orden, created=Uniformes.objects.get_or_create(complete=False, status=status)
+    # Si hay elementos seleccionados, se filtran las ropas disponibles para excluir las ya seleccionadas.
     if Seleccion.objects.filter(status = status,seleccionado=True,):
         seleccion = Seleccion.objects.filter(status = status, seleccionado=True,)
         ropas = Ropa.objects.filter(complete=True)
@@ -646,18 +650,23 @@ def Orden_uniformes(request, pk):
             ropas = ropas.exclude(ropa=dato.ropa.ropa)
     else:
         ropas = Ropa.objects.filter(complete=True,)
+    # Se obtienen las tallas disponibles y se crea una instancia de 'UniformesForm'.
     tallas = Tallas.objects.all()
     form = UniformesForm(instance=orden)
+    # Se crea una instancia de 'UniformeForm' para usar en la plantilla.
     form_uniforme = UniformeForm()
+    # Se obtienen los uniformes pedidos asociados a esta orden.
     uniformes_pedidos = Uniforme.objects.filter(orden=orden)
-
+    # Si la solicitud es un POST y se presionó el botón "crear".
     if request.method == 'POST' and  "crear" in request.POST:
         form = UniformesForm(request.POST, instance=orden)
+        # Se verifica si se añadió al menos un elemento a la orden.
         if uniformes_pedidos.count() == 0:
             messages.error(request, 'Debe añadir al menos un elemento a la Orden')
         else:
             empleado = Status.objects.get(id=pk)
             if form.is_valid():
+                # Se actualizan algunas propiedades y se guarda la orden.
                 messages.success(request, 'Orden realizada con exito')
                 empleado.complete_uniformes = True
                 orden.complete = True
@@ -683,8 +692,10 @@ def Orden_uniformes(request, pk):
     return render(request, 'proyecto/Uniformes_ordenes.html',context)
 
 @login_required(login_url='user-login')
-def update_uniformes(request, pk):
+def update_uniformes(request, pk): #Sección"Carrito" donde se añaden más elementos a la orden 
+    # Se carga la data JSON enviada en la solicitud.
     data= json.loads(request.body)
+    # Se obtienen los valores necesarios de la data.
     action = data['action']
     orden_id = int(data['orden_id'])
     #ropa_id = int(data['uniforme']) Se DESFAZA AL FILTRARLO INSERVIBLE
@@ -694,12 +705,14 @@ def update_uniformes(request, pk):
 
     talla = Tallas.objects.get(id = talla_id) #talla
     prenda = Ropa.objects.get(id = talla.ropa.id) #prenda
-
+    # Se obtiene o crea un objeto Seleccion asociado al status y prenda.
     seleccionado, created = Seleccion.objects.get_or_create(status = orden.status, ropa = prenda) #Seleccionado
     ropa = Ropa.objects.get(id = talla.ropa.id)
     talla = Tallas.objects.get(id=talla_id)
+    # Se obtiene o crea un objeto Uniforme asociado a la orden, prenda y talla.
     producto, created = Uniforme.objects.get_or_create(orden = orden, ropa = ropa, talla = talla)
     if action == "add":
+        # Si la acción es "add", se actualiza la cantidad y se marca como seleccionado y completa.
         producto.cantidad = cantidad
         seleccionado.seleccionado = True
         producto.complete = True
@@ -707,6 +720,7 @@ def update_uniformes(request, pk):
         seleccionado.save()
         messages.success(request,f'Se agregan {producto.cantidad} {producto.ropa} a la orden')
     if action == "remove":
+        # Si la acción es "remove", se marca como no seleccionado y se elimina el objeto Uniforme.
         seleccionado.seleccionado = False
         producto.delete()
         seleccionado.save()
@@ -5028,11 +5042,12 @@ def Baja_empleado(request, pk):
     if request.method == 'POST':
         form = BajaEmpleadoForm(request.POST)
         if form.is_valid():
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
             form.instance.perfil = empleado 
             form.instance.complete = True
+            form.instance.editado = str("B:"+nombre.nombres+" "+nombre.apellidos)
             form.save()
             empleado.baja = True
-            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
             empleado.editado = str("B:"+nombre.nombres+" "+nombre.apellidos)
             empleado.save()
             messages.success(request, f'El empleado {empleado.nombres} {empleado.apellidos} se ha dado de baja en el Sistema')
@@ -5321,3 +5336,67 @@ def Cv_agregar(request, pk):
     }
 
     return render(request, 'proyecto/Cv_agregar.html', context)
+
+@login_required(login_url='user-login')
+def SelectBonosSoli(request):
+    user_filter = UserDatos.objects.get(user=request.user)
+    context = {
+    }
+
+    return render(request, 'proyecto/seleccion_bonos.html', context)
+
+@login_required(login_url='user-login')
+def Solicitud_Bono_Varillero(request):
+    user_filter = UserDatos.objects.get(user=request.user)
+
+    context= {
+        }
+
+    return render(request, 'proyecto/Varillero_Solicitud.html',context)
+
+@login_required(login_url='user-login')
+def Reingreso(request, pk):
+    empleado = Perfil.objects.get(id=pk)
+    status = Status.objects.get(perfil=empleado)
+    anterior = Datos_baja.objects.filter(perfil=empleado).last()
+    ahora = datetime.date.today()
+    puestos = Puesto.objects.all()
+    subproyectos = SubProyecto.objects.all()
+    form2 = StatusUpdateForm(instance=status)
+
+    if request.method == 'POST':
+        form = PerfilUpdateForm(request.POST, request.FILES, instance=empleado)
+        form2 = StatusUpdateForm(request.POST, request.FILES, instance=status)
+        if empleado.foto and empleado.foto.size > 2097152:
+            messages.error(request,'El tamaño del archivo es mayor de 2 MB')
+        elif empleado.fecha_nacimiento >= ahora:
+            messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
+        elif form.is_valid() and form2.is_valid():
+            empleado = form.save(commit=False)
+            status = form2.save(commit=False)
+            user_filter = UserDatos.objects.get(user=request.user)
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            empleado.editado = str("Reingreso:"+nombre.nombres+" "+nombre.apellidos)
+            status.editado = str("Reingreso:"+nombre.nombres+" "+nombre.apellidos)
+            empleado.baja = False
+            empleado.save()
+            status.save()
+            anterior.pasado=True
+            anterior.save()
+            messages.success(request, f'Empleado: {empleado.nombres} {empleado.apellidos}, dado de alta')
+            return redirect('Perfil')
+    else:
+        form = PerfilUpdateForm(instance=empleado)
+        form2 = StatusUpdateForm(instance=status)
+
+    context = {
+        'form':form,
+        'form2':form2,
+        'empleado':empleado,
+        'status':status,
+        'subproyectos':subproyectos,
+        'puestos':puestos,
+        }
+
+
+    return render(request, 'proyecto/ReingresoForm.html',context)

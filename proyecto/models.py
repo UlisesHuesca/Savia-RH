@@ -169,7 +169,7 @@ class Perfil(models.Model):
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
-    editado = models.CharField(max_length=50,blank=True)
+    editado = models.CharField(max_length=100,blank=True)
 
     class Meta:
         unique_together = ('numero_de_trabajador', 'distrito',)
@@ -243,7 +243,7 @@ class Status(models.Model):
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
-    editado = models.CharField(max_length=50,blank=True)
+    editado = models.CharField(max_length=100,blank=True)
 
     @property
     def get_costo(self):
@@ -375,6 +375,21 @@ class Bonos(models.Model):
             return "Campo vacio"
         return f'{self.costo.status.perfil.nombres} {self.costo.status.perfil.apellidos} {self.fecha_bono}'
 
+class Solicitud_bonos(models.Model):
+    status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
+    periodo = models.CharField(max_length=50,null=True)
+    fecha_inicio = models.DateField(null=True)
+    fecha_fin = models.DateField(null=True)
+
+    autorizar = models.BooleanField(null=True, default=None)
+    comentario_rh = models.CharField(max_length=100,null=True, blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    complete = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.temas} id: {self.id} Status: {self.status} Fecha solicitud: {self.created_at} Días: {self.fecha_inicio} a {self.fecha_fin}'
+    
 class Catorcenas(models.Model):
     catorcena = models.IntegerField(null=True, default=0)
     fecha_inicial = models.DateField(null=True)
@@ -387,6 +402,7 @@ class Catorcenas(models.Model):
         unique_together = ('catorcena', 'fecha_inicial',)
 
 class Ropa(models.Model):
+
     ropa = models.CharField(max_length=50,null=True)
     complete = models.BooleanField(default=False)
     seleccionado = models.BooleanField(default=False)
@@ -394,7 +410,7 @@ class Ropa(models.Model):
     def __str__(self):
         return f'{self.ropa}'
 
-class Seleccion(models.Model):
+class Seleccion(models.Model): #Selecciones para evitar se repitan por empleado
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     ropa = models.ForeignKey(Ropa, on_delete = models.CASCADE, null=True)
     seleccionado = models.BooleanField(default=False)
@@ -410,7 +426,7 @@ class Tallas(models.Model):
     def __str__(self):
         return f'Ropa: {self.ropa}, Talla: {self.talla}'
 
-class Uniformes(models.Model):
+class Uniformes(models.Model): #Solicitud general
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     fecha_pedido = models.DateField(null=True)
     #uniformes_totales = models.IntegerField(null=True, default=0)
@@ -424,7 +440,7 @@ class Uniformes(models.Model):
             return "Campo vacio"
         return f'{self.status.perfil.nombres} {self.status.perfil.apellidos}'
 
-class Uniforme(models.Model):
+class Uniforme(models.Model): #Solicitud individual (Ordenes)
     orden = models.ForeignKey(Uniformes, on_delete = models.CASCADE, null=True)
     talla = models.ForeignKey(Tallas, on_delete = models.CASCADE, null=True)
     ropa = models.ForeignKey(Ropa, on_delete = models.CASCADE, null=True)
@@ -434,7 +450,9 @@ class Uniforme(models.Model):
 
     def __str__(self):
         return f'Ropa: {self.ropa} Talla: {self.talla} Cantidad: {self.cantidad}'
+    
 
+    
 class Trabajos_encomendados(models.Model):
     asunto1 = models.CharField(max_length=100,null=True,blank=True)
     estado1 = models.CharField(max_length=100,null=True,blank=True)
@@ -611,6 +629,7 @@ class Datos_baja(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
     editado = models.CharField(max_length=50,blank=True)
+    pasado = models.BooleanField(default=False)
     complete = models.BooleanField(default=False)
    
     def __str__(self):

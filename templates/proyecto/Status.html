@@ -69,7 +69,7 @@
                         <li class="nav-item mx-2">
                             <a type="button" class="btn btn-outline-light" style="background-color:#9a9b9d"
                                 data-bs-toggle="modal" data-bs-target='#dialog' hx-target="#document"
-                                hx-get="{% url 'Upload_status' %}">
+                                hx-get="{% url 'Solicitudes_bonos' %}">
                                 <i class="fa-solid fa-file-arrow-up"> CARGA MASIVA</i>
                             </a>
                         </li>
@@ -104,10 +104,10 @@
         </div>
         {% else %}
         {% endif %}
-        <label for="status_filter.form.profesion" class="col-sm-auto col-form-label text-right"><strong>Profesión:</strong></label>
+        <!--<label for="status_filter.form.profesion" class="col-sm-auto col-form-label text-right"><strong>Profesión:</strong></label>
         <div class="col-auto">
             {% render_field status_filter.form.profesion class="form-control" %}
-        </div>
+        </div>-->
         <label for="status_filter.form.tipo_de_contrato" class="col-sm-auto col-form-label text-right">
             <strong>Contrato:</strong></label>
         <div class="col-auto">

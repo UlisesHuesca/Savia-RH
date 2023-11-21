@@ -19,6 +19,7 @@ urlpatterns = [
     path('Perfil/update/<int:pk>/', views.PerfilUpdate, name='Perfil_update'),
     path('Perfil/Baja/<int:pk>/', views.Baja_empleado, name='Baja_empleado'),  
     path('Perfil/Baja/update<int:pk>/', views.Baja_update, name='Baja_empleado_update'),  
+    path('Perfil/Reingreso<int:pk>/', views.Reingreso, name='Reingreso'),  
     path('Perfil/revisar/<int:pk>/', views.Perfil_revisar, name='Perfil_revisar'),
     path('Status/update/<int:pk>/', views.StatusUpdate, name='Status_update'),
     path('Status/revisar/<int:pk>/', views.Status_revisar, name='Status_revisar'),
@@ -89,6 +90,8 @@ urlpatterns = [
     path('Solicitudes_economicos', views.Tabla_solicitud_economicos, name='Solicitudes_economicos'),
     path('Solicitudes_economicos_formato/<int:pk>/', views.PdfFormatoEconomicos, name='Solicitudes_economicos_formato'), #genera el pdf
     path('Solicitud_economico_autorizar/<int:pk>/', views.solicitud_economico_verificar, name='solicitud-economico-update'),
+    path('Solicitudes_bonos', views.SelectBonosSoli, name='Solicitudes_bonos'),
+    path('Solicitud_bono_varillero', views.Solicitud_Bono_Varillero, name='Solicitud_varillero'),
 
     path('Solicitudes_revisadas/Empleado', views.Solicitudes_revisar_empleado, name='Solicitudes_vista_empleado'), #Vista empleado generar pdf
     path('antiguedad/<int:pk>/', views.Antiguedad, name='antiguedad'),

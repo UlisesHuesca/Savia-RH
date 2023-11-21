@@ -3,7 +3,7 @@
 {% load widget_tweaks %}
 <html>
 <head>
-{% block title %} Orden Uniforme {% endblock %}
+{% block title %} Sol. Bono Varillero {% endblock %}
 </head>
 <body>
 {% block content %}
@@ -42,20 +42,55 @@
             <div class="card-header mb-2">
             <!-- Aqui faltaria el encabezado de los filtros -->
 
-                <h5>Orden de uniformes</h5>
-                <h5>Empleado: {{status.perfil.nombres}} {{status.perfil.apellidos}}</h5>
+                <h4>Solicitud Bono Varillero</h4>
             </div>
-            <h6>Uniformes totales:</h6>
+            <h5>Datos de la solicitud:</h5>
             <form method="POST">
             <div>
                 {% csrf_token %}
                 <div class="row my-2">
-                    <label for="form.fecha_pedido" class="col-auto col-form-label"><strong>Fecha de la orden:</strong></label>
+                    <label for="form.fecha_pedido" class="col-auto col-form-label"><strong>Fecha de la solicitud:</strong></label>
                     <div class="col-4">
                         <div class="input-group">
                         <span class="input-group-text" id=""><i class="fa-solid fa-calendar-day"></i></span>
-                        {% render_field form.fecha_pedido type="date" class="form-control" %}
+
+                        </div>
                     </div>
+                </div>
+                <div class="row my-2">
+                    <label for="form.fecha_pedido" class="col-auto col-form-label"><strong>Tipo de Bono:</strong></label>
+                    <div class="col-4">
+                        <div class="input-group">
+                        <span class="input-group-text" id=""></span>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="row my-2">
+                    <label for="form.fecha_pedido" class="col-auto col-form-label"><strong>Distrito:</strong></label>
+                    <div class="col-4">
+                        <div class="input-group">
+                        <span class="input-group-text" id=""></span>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="row my-2">
+                    <label for="form.fecha_pedido" class="col-auto col-form-label"><strong>Evidencia (aST):</strong></label>
+                    <div class="col-4">
+                        <div class="input-group">
+                        <span class="input-group-text" id=""></span>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="row my-2">
+                    <label for="form.fecha_pedido" class="col-auto col-form-label"><strong>Evidencia (Reporte Cronologico):</strong></label>
+                    <div class="col-4">
+                        <div class="input-group">
+                        <span class="input-group-text" id=""></span>
+
+                        </div>
                     </div>
                 </div>
             </div>
@@ -74,7 +109,7 @@
                     <!--<label class="col-auto col-form-label"><strong>Productos:</strong></label>-->
                     <div class="col-sm-4">
                         <div class="selector input-group mb-3">
-                            <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-shirt"></i></span>
+                            <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-helmet-safety"> Puesto</i></span>
                             <select class="form-select form-select-sm" style="font-size:1.1rem" id="ropa">
                                 <option id="default_sel">      </option>
                                 {% for ropa in ropas %}
@@ -93,7 +128,7 @@
                     </div>
                     <div class="col-sm-4">
                         <div class="selector input-group mb-3">
-                            <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-hashtag"></i></span>
+                            <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-user"> Empleado</i></span>
                             <select class="form-select form-select-sm" style="font-size:1.1rem" id="talla">
                                 <option id="default_sel">      </option>
                                 {% for talla in tallas %}
@@ -112,14 +147,9 @@
                         {{form_uniforme.talla|add_class:"form-select"}}
                         </div>
                     </div>
-
-                    <label for="form_uniforme.cantidad" class="col-auto col-form-label my-1"><strong>Cantidad:</strong></label>
-                    <div class="col-sm-2">
-                        {{form_uniforme.cantidad|add_class:"form-control"}}
-                    </div>
                     <div class="col-sm-2">
                     <a class="btn btn-success update-uniformes" id="update-uniformes" name="uniformes">
-                        <i class="fa-solid fa-circle-plus"></i>
+                        <i class="fa-solid fa-circle-plus">agregar</i>
                     </a>
                     </div>
                 </div>
@@ -128,9 +158,9 @@
             <table class="table table-light table-striped table-hover mx-2">
             <thead>
                 <tr>
-                    <th scope="col">Uniforme</th>
-                    <th scope="col">Talla</th>
-                    <th scope="col">Cantidad</th>
+                    <th scope="col">Empleado</th>
+                    <th scope="col">Puesto</th>
+                    <th scope="col">Distrito</th>
                     <th scope="col" class="col-sm-2">Acción</th>
                 </tr>
             </thead>
@@ -148,7 +178,7 @@
             <table class="table table-light table-striped mx-1">
             <tbody>
                 <tr>
-                    <th scope="col">Cantidad recibida:</th>
+                    <th scope="col">Empleados restantes para generar la orden:</th>
                     <td scope="col" id="">  </td>
                 </tr>
             </tbody>

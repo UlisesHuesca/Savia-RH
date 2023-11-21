@@ -1,0 +1,108 @@
+{% extends 'partials/base.html'%}
+{% load static %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+{% block title %}Selección Bonos{% endblock %}
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+</head>
+<hr>
+<hr>
+
+<body>
+    <div class="container">
+        <div class="row my-4 mx-auto text-center">
+            <div class="card">
+                <div class="card-header bg-light text-dark">
+                    <strong>
+                        Bonos Solicitudes Disponibles:
+                    </strong>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <a class="text-decoration-none text-dark" href="{% url 'Solicitud_varillero' %}">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4>Bono Varillero <i class="fa-solid fa-pen-to-square"></i></h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a class="text-decoration-none text-dark" href="">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4>Pendiente... <i class="fa-solid fa-pen-to-square"></i></h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a class="text-decoration-none text-dark" href="">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4>Pendiente... <i class="fa-solid fa-pen-to-square"></i></h4>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <a class="text-decoration-none text-dark" href="">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4>Pendiente... <i class="fa-solid fa-pen-to-square"></i></h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a class="text-decoration-none text-dark" href="">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4>Pendiente... <i class="fa-solid fa-pen-to-square"></i></h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a class="text-decoration-none text-dark" href="">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4>Pendiente... <i class="fa-solid fa-pen-to-square"></i></h4>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="text-center mt-4">
+        <a class="btn btn-primary" href="">Pendiente...</a>
+    </div>
+</body>
+{% endblock %}
+
+</html>
