@@ -58,9 +58,35 @@
 
 
 
+    {
+        "model":"proyecto.puesto",
+        "pk":176,
+        "fields":{
+            "puesto":"Llave"
+        }
+    },
+    {
+        "model":"proyecto.puesto",
+        "pk":177,
+        "fields":{
+            "puesto":"Piso 1"
+        }
+    },
+    {
+        "model":"proyecto.puesto",
+        "pk":178,
+        "fields":{
+            "puesto":"Piso 2"
+        }
+    },
+
+
+
+
+
 
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 1,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -70,7 +96,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 2,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -80,7 +106,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 3,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -90,7 +116,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 4,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -100,7 +126,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 5,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -110,7 +136,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 6,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -120,7 +146,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 7,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -130,7 +156,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 8,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -140,7 +166,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 9,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -150,7 +176,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 10,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -160,7 +186,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 11,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -170,7 +196,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 12,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -180,7 +206,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 13,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -190,7 +216,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 14,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -200,7 +226,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 15,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -210,7 +236,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 16,
         "fields": {
             "esquema_subcategoria_id": 1,
@@ -220,7 +246,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 17,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -230,7 +256,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 18,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -240,7 +266,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 19,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -250,7 +276,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 20,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -260,7 +286,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 21,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -270,7 +296,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 22,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -280,7 +306,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 23,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -290,7 +316,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 24,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -300,7 +326,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 25,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -310,7 +336,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 26,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -320,7 +346,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 27,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -330,7 +356,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 28,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -340,7 +366,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 25,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -350,7 +376,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 26,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -360,7 +386,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 27,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -370,7 +396,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 28,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -380,7 +406,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 29,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -390,7 +416,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 30,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -400,7 +426,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 31,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -410,7 +436,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 32,
         "fields": {
             "esquema_subcategoria_id": 2,
@@ -420,7 +446,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 33,
         "fields": {
             "esquema_subcategoria_id": 3,
@@ -430,7 +456,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 34,
         "fields": {
             "esquema_subcategoria_id": 3,
@@ -440,7 +466,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 35,
         "fields": {
             "esquema_subcategoria_id": 3,
@@ -450,7 +476,7 @@
         }
     },
     {
-        "model": "esquema.esquema",
+        "model": "esquema.bono",
         "pk": 36,
         "fields": {
             "esquema_subcategoria_id": 3,

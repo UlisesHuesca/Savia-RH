@@ -1,0 +1,53 @@
+{% extends 'partials/base.html' %}
+
+
+{% block title %}
+    Bonos Varilleros
+{% endblock title %}
+    
+
+
+{% block content %}
+<div class="container-fluid margen-alto">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header d-flex justify-content-between">
+                    <div class="card-title"><h5>Bonos Varilleros</h5></div>
+                    <a href="#" class="btn btn-outline-primary"><i class="fas fa-plus"></i> Crear solicitud de bono</a>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr class="tabla-encabezado">
+                                <th>Folio</th>
+                                <th>Nombre</th>
+                                <th>Bono</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                               
+                                <td>736483</td>
+                                <td>Carlos</td>
+                                <td>$500.00</td>
+                                <td>En rebición</td>
+                            </tr>
+                            <tr>
+                                <td scope="row"></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer">
+
+                </div>
+              </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+    

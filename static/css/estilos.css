@@ -1,0 +1,14 @@
+.margen-alto{
+    margin-top: 100px;
+}
+
+.tabla-encabezado{
+    background-color:#2A628F;
+    color:#ffffff;
+}
+
+@media only screen and (max-width: 600px) {
+    .margen-alto{
+        margin-top: 200px;
+    }
+}
