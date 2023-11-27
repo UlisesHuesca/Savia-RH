@@ -1,0 +1,100 @@
+{% extends 'partials/base.html' %}
+
+
+{% block title %}
+    Crear Solicitud - Bonos Varilleros
+{% endblock title %}
+    
+
+{% block content %}
+<div class="container-fluid margen-alto">
+    <form>
+        <div class="row">
+            {% comment %} Supervisor crea la solicitud  {% endcomment %}
+            <div class="col-12 col-md-4">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h4>Solicitud</h4>
+                    </div>
+                    <div class="card-body">         
+                        <label for="" class="text-muted mb-1">Supervisor</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
+                            <input type="text" value=" {{solicitante.nombres}} {{solicitante.apellidos}} " class="form-control bg-white" placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
+                        </div>
+                        <label for="" class="text-muted mb-1">Distrito</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon1"><i class="fas fa-location-dot"></i></span>
+                            <input type="text" value="{{solicitante.distrito.distrito}}" class="form-control bg-white" placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
+                        </div> 
+                        <label for="" class="text-muted mb-1">Bono</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon1"><i class="fas fa-sack-dollar"></i></span>
+                            <select name="bono" id="bono" class="form-control">
+                            <option value="" disabled selected class="text-capitalize">-Seleccione un Bono-</option>
+                            {% for subcategoria in subcategorias %}  
+                                <option class="text-capitalize" value="{{ subcategoria.id }}"><span class="text-capitalize">{{ subcategoria.nombre }}</span></option>
+                            {% endfor %}
+                            </select>   
+                        </div>
+                        <label for="" class="text-muted mb-1">Total</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon1"><i class="fas fa-dollar-sign"></i></span>
+                            <input type="text" value="0.00" class="form-control bg-white" placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
+                        </div> 
+                    </div>
+                </div>
+            </div>
+            {% comment %} Asignar los bonos a la solicitud  {% endcomment %}
+            <div class="col-12 col-md-8 my-3 my-sm-0">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h5>Agregar Bonos</h5>
+                    </div>
+                    <div class="card-body row">
+                            <div class="col-md-3">
+                              <label for="inputEmail4" class="form-label">Empleado</label>
+                              <input type="email" class="form-control" id="inputEmail4">
+                            </div>
+                            <div class="col-md-3">
+                              <label for="inputPassword4" class="form-label">Puesto</label>
+                              <input type="password" class="form-control" id="inputPassword4">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="inputPassword4" class="form-label">Cantidad $</label>
+                                <input type="text" class="form-control bg-white" id="inputPassword4" readonly value="500.00">
+                            </div>
+                           
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Empleado</th>
+                                        <th>Puesto</th>
+                                        <th>Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td scope="row"></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td scope="row"></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock content %}
+    

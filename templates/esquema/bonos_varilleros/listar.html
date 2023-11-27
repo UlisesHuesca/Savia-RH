@@ -14,7 +14,7 @@
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between">
                     <div class="card-title"><h5>Bonos Varilleros</h5></div>
-                    <a href="#" class="btn btn-outline-primary"><i class="fas fa-plus"></i> Crear solicitud de bono</a>
+                    <a href="{% url 'crearSolicitudBonosVarilleros' %}" class="btn btn-outline-primary" style="background: 2A628F;"><i class="fas fa-plus"></i> Crear solicitud de bono</a>
                 </div>
                 <div class="card-body table-responsive">
                     <table class="table">
@@ -32,7 +32,7 @@
                                 <td>736483</td>
                                 <td>Carlos</td>
                                 <td>$500.00</td>
-                                <td>En rebición</td>
+                                <td>En revisión</td>
                             </tr>
                             <tr>
                                 <td scope="row"></td>
@@ -49,5 +49,6 @@
         </div>
     </div>
 </div>
+
 {% endblock content %}
     

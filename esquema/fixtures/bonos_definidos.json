@@ -3,7 +3,8 @@
         "model": "esquema.categoria",
         "pk": 1,
         "fields": {
-            "nombre": "bono varillero"
+            "nombre": "bono varillero",
+            "slug":"bonos_varillero"
         }
 
     },
@@ -55,6 +56,26 @@
         }
 
     },
+
+    {
+        "model": "esquema.tiporequerimiento",
+        "pk": 1,
+        "fields": {
+            "nombre":"ast"
+        }
+
+    },
+    {
+        "model": "esquema.tiporequerimiento",
+        "pk": 2,
+        "fields": {
+            "nombre":"reporte cronológico de actividades"
+        }
+
+    },
+
+
+
 
 
 

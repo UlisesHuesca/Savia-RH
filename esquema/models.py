@@ -41,12 +41,13 @@ class Solicitud(models.Model):
     total = models.DecimalField(max_digits=10,decimal_places=2,null=False) 
     fecha = models.DateTimeField(null=False,auto_now_add=True)
     
-class BonoSolicitado:
+class BonoSolicitado(models.Model):
     solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,null=False) 
     trabajador = models.ForeignKey(Perfil,on_delete=models.CASCADE,null=False)
     puesto = models.ForeignKey(Puesto,on_delete=models.CASCADE,null=False)
     distrito = models.ForeignKey(Distrito,on_delete=models.CASCADE,null=False)
     cantidad = models.DecimalField(max_digits=10,decimal_places=2,null=False) 
+    fecha = models.DateTimeField(null=False,auto_now_add=True)
         
 #Se definen los tipos de requerimientos que existen para el bono (AST, reporte cronologico...)  
 class TipoRequerimiento(models.Model):
