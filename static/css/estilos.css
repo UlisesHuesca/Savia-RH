@@ -23,6 +23,10 @@
     text-decoration: none;
 }
 
+.asterisk{
+    color: #F44334;
+}
+
 @media only screen and (max-width: 600px) {
     .margen-alto{
         margin-top: 200px;

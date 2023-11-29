@@ -1,70 +1,134 @@
 {% extends 'partials/base.html' %}
 
+{% load widget_tweaks %}
+
+
+{% load static %}
 
 {% block title %}
-    Crear Solicitud - Bonos Varilleros
+Crear Solicitud - Bonos Varilleros
 {% endblock title %}
-    
+
 
 {% block content %}
 <div class="container-fluid margen-alto">
     <form>
+        {% csrf_token %}
         <div class="row">
-            {% comment %} Supervisor crea la solicitud  {% endcomment %}
+            {% comment %} Supervisor crea la solicitud {% endcomment %}
             <div class="col-12 col-md-4">
                 <div class="card shadow">
                     <div class="card-header">
                         <h4>Solicitud</h4>
+                        {{usuario.distrito.id}}
                     </div>
-                    <div class="card-body">         
+                    <div class="card-body">
+                        <label for="folio" class="text-muted mb-1">Folio</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
+                            <input type="text" value="{{folio}}"
+                                class="form-control bg-white" placeholder="Nombre" aria-label="nombre"
+                                aria-describedby="basic-addon1" id="folio" name="folio"readonly>
+                        </div>
                         <label for="" class="text-muted mb-1">Supervisor</label>
                         <div class="input-group mb-3">
                             <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
-                            <input type="text" value=" {{solicitante.nombres}} {{solicitante.apellidos}} " class="form-control bg-white" placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
+                            <input type="text" value="{{solicitante.nombres}} {{solicitante.apellidos}} "
+                                class="form-control bg-white" placeholder="Nombre" aria-label="nombre"
+                                aria-describedby="basic-addon1" readonly>
                         </div>
                         <label for="" class="text-muted mb-1">Distrito</label>
                         <div class="input-group mb-3">
                             <span class="input-group-text" id="basic-addon1"><i class="fas fa-location-dot"></i></span>
-                            <input type="text" value="{{solicitante.distrito.distrito}}" class="form-control bg-white" placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
-                        </div> 
-                        <label for="" class="text-muted mb-1">Bono</label>
+                            <input type="text" value="{{solicitante.distrito.distrito}}" class="form-control bg-white"
+                                placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
+                        </div>
+                        <label for="" class="text-muted mb-1">Bono</label><span class="asterisk">&#42;</span>
                         <div class="input-group mb-3">
                             <span class="input-group-text" id="basic-addon1"><i class="fas fa-sack-dollar"></i></span>
+                            {% render_field solicitudForm.bono class="form-control text-capitalize" id="bono" %}
+                            {% comment %}                        
                             <select name="bono" id="bono" class="form-control">
-                            <option value="" disabled selected class="text-capitalize">-Seleccione un Bono-</option>
-                            {% for subcategoria in subcategorias %}  
-                                <option class="text-capitalize" value="{{ subcategoria.id }}"><span class="text-capitalize">{{ subcategoria.nombre }}</span></option>
-                            {% endfor %}
-                            </select>   
+                                <option value="" disabled selected class="text-capitalize">-Seleccione un Bono-</option>
+                                {% for subcategoria in subcategorias %}
+                                <option class="text-capitalize" value="{{ subcategoria.id }}"><span
+                                        class="text-capitalize">{{ subcategoria.nombre }}</span></option>
+                                {% endfor %}
+                            </select>
+                            {% endcomment %}
                         </div>
+                        
+                        {% comment %}
                         <label for="" class="text-muted mb-1">Total</label>
                         <div class="input-group mb-3">
                             <span class="input-group-text" id="basic-addon1"><i class="fas fa-dollar-sign"></i></span>
-                            <input type="text" value="0.00" class="form-control bg-white" placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
-                        </div> 
+                            <input type="text" value="0.00" class="form-control bg-white" placeholder="Nombre"
+                                aria-label="nombre" aria-describedby="basic-addon1" readonly>
+                        </div>
+                         {% endcomment %}
                     </div>
                 </div>
             </div>
-            {% comment %} Asignar los bonos a la solicitud  {% endcomment %}
+            {% comment %} Asignar los bonos a la solicitud {% endcomment %}
             <div class="col-12 col-md-8 my-3 my-sm-0">
                 <div class="card shadow">
                     <div class="card-header">
                         <h5>Agregar Bonos</h5>
                     </div>
-                    <div class="card-body row">
-                            <div class="col-md-3">
-                              <label for="inputEmail4" class="form-label">Empleado</label>
-                              <input type="email" class="form-control" id="inputEmail4">
+                    <div class="card-body">
+
+                        <div class="row">
+                            <div class="col-md-5">
+                                <label for="empleado" class="form-label fw-bold">Empledo<span
+                                        class="asterisk">&#42;</span></label>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
+                                    {% render_field bonoSolicitadoForm.trabajador class="form-control" id="empleado" %}
+                                    {% comment %}
+                                    <select name="empleado" id="empleado" class="form-control">
+                                        <option value="" disabled selected class="text-capitalize">-Seleccionar-
+                                        </option>
+                                        {% for empleado in empleados %}
+                                        <option class="text-capitalize" value="{{ empleado.id }}"><span
+                                                class="text-capitalize">{{ empleado.nombres }}
+                                                {{empleado.apellidos}}</span></option>
+                                        {% endfor %}
+                                    </select>
+                                    {% endcomment %}
+                                </div>
                             </div>
                             <div class="col-md-3">
-                              <label for="inputPassword4" class="form-label">Puesto</label>
-                              <input type="password" class="form-control" id="inputPassword4">
+                                <label for="puesto" class="form-label fw-bold">Puesto<span
+                                        class="asterisk">&#42;</span></label>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text" id="basic-addon1"><i
+                                            class="fas fa-helmet-safety"></i></span>
+                                    {% render_field bonoSolicitadoForm.puesto class="form-control" id="puesto" %}
+                                    {% comment %}
+                                    <select name="puesto" id="puesto" class="form-control">
+                                        <option value="" disabled selected class="text-capitalize">-Seleccionar-
+                                        </option>    
+                                        {% for puesto in puestos %}
+                                        <option class="text-capitalize" value="{{ puesto.id }}"><span
+                                                class="text-capitalize">{{ puesto.puesto }}</span></option>
+                                        {% endfor %}
+                                           
+                                    </select>
+                                    {% endcomment %}
+                                </div>
                             </div>
                             <div class="col-md-3">
-                                <label for="inputPassword4" class="form-label">Cantidad $</label>
-                                <input type="text" class="form-control bg-white" id="inputPassword4" readonly value="500.00">
+                                <label for="cantidad" class="form-label fw-bold">Cantidad</label>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text" id="basic-addon1"><i
+                                            class="fa fa-dollar-sign"></i></span>
+                                    <input type="text" class="form-control bg-white" value="" id="cantidad" readonly>
+                                </div>
                             </div>
-                           
+                            <div class="col-md-1" style="margin-top: 30px;">
+                                <button id="btnAgregar" type="submit" class="btn btn-success" title="Agregar Bono"><i class="fas fa-plus"></i></button>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -96,5 +160,7 @@
         </div>
     </form>
 </div>
+
+<script src="{% static 'js/esquema/bono_varillero/crear_solicitud.js' %}"></script>
+
 {% endblock content %}
-    
