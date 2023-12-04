@@ -9,27 +9,39 @@
 Crear Solicitud - Bonos Varilleros
 {% endblock title %}
 
-
 {% block content %}
 <div class="container-fluid margen-alto">
-    <form>
+    {% comment %}Un mensaje de alerta{% endcomment %}
+    {% if messages %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {% for message in messages %}
+        <strong>{{ message }}</strong> 
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <form action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" novalidate>
         {% csrf_token %}
         <div class="row">
             {% comment %} Supervisor crea la solicitud {% endcomment %}
             <div class="col-12 col-md-4">
                 <div class="card shadow">
                     <div class="card-header">
-                        <h4>Solicitud</h4>
-                        {{usuario.distrito.id}}
+                        <h4><a href="#"></a> Solicitud</h4>
                     </div>
                     <div class="card-body">
+                        {% comment %} Folio {% endcomment %}
                         <label for="folio" class="text-muted mb-1">Folio</label>
                         <div class="input-group mb-3">
-                            <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
-                            <input type="text" value="{{folio}}"
-                                class="form-control bg-white" placeholder="Nombre" aria-label="nombre"
-                                aria-describedby="basic-addon1" id="folio" name="folio"readonly>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
+                                <input type="text" name="folio" value="{{folio}}"
+                                    class="form-control bg-white" placeholder="Nombre" aria-label="nombre"
+                                    aria-describedby="basic-addon1" readonly>
+                            </div>
                         </div>
+                        <small class="text-danger">{{ solicitudForm.folio.errors }}</small>
                         <label for="" class="text-muted mb-1">Supervisor</label>
                         <div class="input-group mb-3">
                             <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
@@ -44,121 +56,108 @@ Crear Solicitud - Bonos Varilleros
                                 placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
                         </div>
                         <label for="" class="text-muted mb-1">Bono</label><span class="asterisk">&#42;</span>
-                        <div class="input-group mb-3">
+                        {% comment %} Bono {% endcomment %}
+                        <div class="input-group">
                             <span class="input-group-text" id="basic-addon1"><i class="fas fa-sack-dollar"></i></span>
                             {% render_field solicitudForm.bono class="form-control text-capitalize" id="bono" %}
-                            {% comment %}                        
-                            <select name="bono" id="bono" class="form-control">
-                                <option value="" disabled selected class="text-capitalize">-Seleccione un Bono-</option>
-                                {% for subcategoria in subcategorias %}
-                                <option class="text-capitalize" value="{{ subcategoria.id }}"><span
-                                        class="text-capitalize">{{ subcategoria.nombre }}</span></option>
-                                {% endfor %}
-                            </select>
-                            {% endcomment %}
                         </div>
-                        
-                        {% comment %}
-                        <label for="" class="text-muted mb-1">Total</label>
-                        <div class="input-group mb-3">
-                            <span class="input-group-text" id="basic-addon1"><i class="fas fa-dollar-sign"></i></span>
-                            <input type="text" value="0.00" class="form-control bg-white" placeholder="Nombre"
-                                aria-label="nombre" aria-describedby="basic-addon1" readonly>
-                        </div>
-                         {% endcomment %}
+                        <small class="text-danger">{{ solicitudForm.bono.errors }}</small>
                     </div>
                 </div>
             </div>
             {% comment %} Asignar los bonos a la solicitud {% endcomment %}
             <div class="col-12 col-md-8 my-3 my-sm-0">
-                <div class="card shadow">
-                    <div class="card-header">
+                <div class="card shadow-lg">
+                    <div class="card-header d-flex justify-content-between">
                         <h5>Agregar Bonos</h5>
+                        <a href="{% url 'listarBonosVarilleros' %}" class="btn btn-light btn-lg volver" title="volver"><i class="fas fa-arrow-left"></i></a>
+                      
                     </div>
                     <div class="card-body">
-
                         <div class="row">
                             <div class="col-md-5">
-                                <label for="empleado" class="form-label fw-bold">Empledo<span
+                                <label for="empleado" class="form-label fw-bold">Empleado<span
                                         class="asterisk">&#42;</span></label>
-                                <div class="input-group mb-3">
+                                {% comment %} Empleado {% endcomment %}
+                                <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
                                     {% render_field bonoSolicitadoForm.trabajador class="form-control" id="empleado" %}
-                                    {% comment %}
-                                    <select name="empleado" id="empleado" class="form-control">
-                                        <option value="" disabled selected class="text-capitalize">-Seleccionar-
-                                        </option>
-                                        {% for empleado in empleados %}
-                                        <option class="text-capitalize" value="{{ empleado.id }}"><span
-                                                class="text-capitalize">{{ empleado.nombres }}
-                                                {{empleado.apellidos}}</span></option>
-                                        {% endfor %}
-                                    </select>
-                                    {% endcomment %}
                                 </div>
+                                <small class="text-danger">{{ bonoSolicitadoForm.trabajador.errors }}</small>
                             </div>
+                            {% comment %} Empleado {% endcomment %}
                             <div class="col-md-3">
                                 <label for="puesto" class="form-label fw-bold">Puesto<span
                                         class="asterisk">&#42;</span></label>
-                                <div class="input-group mb-3">
+                                <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1"><i
                                             class="fas fa-helmet-safety"></i></span>
                                     {% render_field bonoSolicitadoForm.puesto class="form-control" id="puesto" %}
-                                    {% comment %}
-                                    <select name="puesto" id="puesto" class="form-control">
-                                        <option value="" disabled selected class="text-capitalize">-Seleccionar-
-                                        </option>    
-                                        {% for puesto in puestos %}
-                                        <option class="text-capitalize" value="{{ puesto.id }}"><span
-                                                class="text-capitalize">{{ puesto.puesto }}</span></option>
-                                        {% endfor %}
-                                           
-                                    </select>
-                                    {% endcomment %}
                                 </div>
+                                <small class="text-danger">{{ bonoSolicitadoForm.puesto.errors }}</small>
                             </div>
                             <div class="col-md-3">
-                                <label for="cantidad" class="form-label fw-bold">Cantidad</label>
-                                <div class="input-group mb-3">
+                                <label for="cantidad" class="form-label fw-bold">Cantidad <span
+                                    class="asterisk">&#42;</span></label></label>
+                                <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1"><i
                                             class="fa fa-dollar-sign"></i></span>
-                                    <input type="text" class="form-control bg-white" value="" id="cantidad" readonly>
+                                    {% render_field bonoSolicitadoForm.cantidad class="form-control bg-white" id="cantidad" %}
                                 </div>
+                                <small class="text-danger">{{ bonoSolicitadoForm.cantidad.errors }}</small>
                             </div>
                             <div class="col-md-1" style="margin-top: 30px;">
                                 <button id="btnAgregar" type="submit" class="btn btn-success" title="Agregar Bono"><i class="fas fa-plus"></i></button>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Empleado</th>
-                                        <th>Puesto</th>
-                                        <th>Cantidad</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td scope="row"></td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td scope="row"></td>
-                                        <td></td>
-                                        <td></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                </form>
+            </div>
+                
+            {% if datos_bonos_solicitud|length == 0 %}
+
+            {% else %}
+            <div class="col-12 mt-3 mb-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Bonos solicitados</h5>
+                    </div>
+                    <div class="card-body table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr class="tabla-encabezado">
+                                    <th>Empleado</th>
+                                    <th>Puesto</th>
+                                    <th>Cantidad</th>
+                                    <th style="width: 10%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bono in datos_bonos_solicitud  %}
+                                <tr>
+                                    <td>{{bono.trabajador}}</td>
+                                    <td>{{bono.puesto}}</td>
+                                    <td>${{bono.cantidad}}</td>
+                                    <td><button type="button" class="btn btn-danger btn-sm" title="Quitar un bono de la solicitud"><i class="fas fa-minus"></i></button></td>
+                                </tr>
+                                {% endfor %}
+                                
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                  
+                                    <td colspan="3" class="fw-bold">Total: ${{total}}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
             </div>
+                                  
+            {% endif %}
+                    
+            
         </div>
-    </form>
 </div>
 
 <script src="{% static 'js/esquema/bono_varillero/crear_solicitud.js' %}"></script>

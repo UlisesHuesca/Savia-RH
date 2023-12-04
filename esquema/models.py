@@ -34,7 +34,7 @@ class Bono(models.Model):
     
 #El bono que pasara a revisión
 class Solicitud(models.Model):
-    folio = models.IntegerField(null=False, unique=True)
+    folio = models.BigIntegerField(null=False, unique=True)
     #supervisor quien realiza la solicitud
     solicitante = models.ForeignKey(Perfil,on_delete=models.CASCADE,null=False) 
     bono = models.ForeignKey(Subcategoria,on_delete=models.CASCADE,null=False)

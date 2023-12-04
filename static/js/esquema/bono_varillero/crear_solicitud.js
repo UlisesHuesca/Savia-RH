@@ -68,6 +68,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
     });
 
     /**Registro de la solicitud */
+    /*
     async function agregarBonoSolicitud(folio,bono,empleado,puesto,cantidad){
         try {
             var response = await fetch('/esquema/bonos_varillero/crear_solicitud/',{
@@ -117,6 +118,8 @@ document.addEventListener("DOMContentLoaded", (e) => {
         agregarBonoSolicitud(folio,bono,empleado,puesto,cantidad)
 
     });
+
+    */
 
    
 
