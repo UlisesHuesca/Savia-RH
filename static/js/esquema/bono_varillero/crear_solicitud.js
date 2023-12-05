@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", (e) => {
+
     /**Mensajes de alerta*/
     function mensajeBonoNa(){
         document.getElementById('cantidad').setAttribute('value','') 
@@ -8,8 +9,6 @@ document.addEventListener("DOMContentLoaded", (e) => {
             icon: "warning",
         })
     }
-
-
 
     /**Seleccionar esquema bono */
     async function solicitarEsquemaBono(bono,puesto){
@@ -42,6 +41,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
         }
     }
 
+    //para cargar la cantidad del bono cuando se seleccione alguno puesto o bono
     var puestoSelect = document.getElementById("puesto");
     var bonoSelect = document.getElementById("bono");
 
@@ -67,33 +67,43 @@ document.addEventListener("DOMContentLoaded", (e) => {
 
     });
 
-    /**Registro de la solicitud */
-    /*
-    async function agregarBonoSolicitud(folio,bono,empleado,puesto,cantidad){
+    /**Remover bono de la solicitud*/
+    async function removerBono(bonoId){
         try {
-            var response = await fetch('/esquema/bonos_varillero/crear_solicitud/',{
+            console.log(bonoId)
+            console.log("entra al async")
+            var respuesta= await fetch(`/esquema/remover_bono/${bonoId}/`,{
+            //var respuesta= await fetch('/esquema/remover_bono/',{
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
                     'Content-Type': 'application/json',
                 },
                 body:JSON.stringify({
-                    'folio':folio,
-                    'bono':bono,
-                    'empleado':empleado,
-                    'puesto':puesto,
-                    'cantidad':cantidad
+                    'bonoId':bonoId,
                 }),
             });
 
-            const datos = await response.json();
-            console.log(datos)
+            const datos = await respuesta.json();
             
+            if (respuesta.status === 200) {
+                console.log(datos)
+                //eliminar la fila
+                const renderizar = document.querySelectorAll(`[data-id="${datos.bono_id}"]`)
+                renderizar[0].remove()
+                //renderizar el total en html
+                document.getElementById('total').textContent = datos.total
 
+            }else{
+                Swal.fire({
+                    title: "Error",
+                    text: "No existe este bono en nuestros registros",
+                    icon: "warning",
+                })
+            }
 
         } catch (error) {
             console.log(error)
-            document.getElementById('cantidad').value = ''
             Swal.fire({
                 title: "Error",
                 text: "No se pudo procesar la solicitud",
@@ -103,25 +113,43 @@ document.addEventListener("DOMContentLoaded", (e) => {
         }
     }
 
-    var agregar = document.getElementById("btnAgregar")
-    agregar.addEventListener("click",function (e) {
-        e.preventDefault()
+    tabla = document.getElementById("tabla")
+    if (tabla) {
+        addEventListener("click", async function(e){
+            //hacer click en el boton eliminar
+            if(e.target.classList.contains("btn-danger") || e.target.classList.contains("fa-minus")){
+                
+                //vericar la clase que contiene para obtener el id del bono
+                if (e.target.classList.contains("btn-danger")){
+                    elemento = e.target.parentNode.parentNode
+                    bonoId = elemento.getAttribute('data-id');
+                }else{
+                    elemento = e.target.parentNode.parentNode.parentNode
+                    bonoId = elemento.getAttribute('data-id');
+                }
 
-        folio = document.getElementById('folio').value
-        bono = document.getElementById('bono').value
-        empleado = document.getElementById('empleado').value
-        puesto = document.getElementById('puesto').value
-        cantidad = document.getElementById('cantidad').value
+                //mensaje de confirmacion para eliminar
+                if (bonoId > 0){
+                    Swal.fire({
+                    title: "¿Desea quitar este bono?",
+                    text: "No se puede deshacer esta acción",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#3085d6",
+                    cancelButtonColor: "#696969",
+                    confirmButtonText: "Aceptar",
+                    cancelButtonText: "Cancelar"
+                  }).then((result) => {
+                    if (result.isConfirmed) {
+                        removerBono(bonoId)
+                    }
+                });
+                }
 
-        //console.log(bono,empleado,puesto,cantidad)
+            }
+        });
+    }
 
-        agregarBonoSolicitud(folio,bono,empleado,puesto,cantidad)
-
-    });
-
-    */
-
-   
 
 
 });

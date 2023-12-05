@@ -21,7 +21,7 @@ Crear Solicitud - Bonos Varilleros
     </div>
     {% endif %}
     
-    <form action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" novalidate>
+    <form action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST">
         {% csrf_token %}
         <div class="row">
             {% comment %} Supervisor crea la solicitud {% endcomment %}
@@ -102,7 +102,7 @@ Crear Solicitud - Bonos Varilleros
                                 <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1"><i
                                             class="fa fa-dollar-sign"></i></span>
-                                    {% render_field bonoSolicitadoForm.cantidad class="form-control bg-white" id="cantidad" %}
+                                    {% render_field bonoSolicitadoForm.cantidad class="form-control bg-white" id="cantidad"%}
                                 </div>
                                 <small class="text-danger">{{ bonoSolicitadoForm.cantidad.errors }}</small>
                             </div>
@@ -123,7 +123,7 @@ Crear Solicitud - Bonos Varilleros
                         <h5>Bonos solicitados</h5>
                     </div>
                     <div class="card-body table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table class="table table-striped table-hover" id="tabla">
                             <thead>
                                 <tr class="tabla-encabezado">
                                     <th>Empleado</th>
@@ -134,7 +134,7 @@ Crear Solicitud - Bonos Varilleros
                             </thead>
                             <tbody>
                                 {% for bono in datos_bonos_solicitud  %}
-                                <tr>
+                                <tr data-id="{{bono.id}}">
                                     <td>{{bono.trabajador}}</td>
                                     <td>{{bono.puesto}}</td>
                                     <td>${{bono.cantidad}}</td>
@@ -146,7 +146,7 @@ Crear Solicitud - Bonos Varilleros
                             <tfoot>
                                 <tr>
                                   
-                                    <td colspan="3" class="fw-bold">Total: ${{total}}</td>
+                                    <td colspan="3" class="fw-bold">Total: $<span id="total">{{total}}</span> </td>
                                 </tr>
                             </tfoot>
                         </table>

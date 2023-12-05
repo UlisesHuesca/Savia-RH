@@ -31,6 +31,7 @@ class BonoSolicitadoForm(forms.ModelForm):
         self.fields['puesto'].queryset = Puesto.objects.filter(pk__in=[176,177,178,138])
         #para que la cantidad no sea editable
         self.fields['cantidad'].widget.attrs['readonly'] = 'readonly'
+        #self.fields['cantidad'].widget.attrs['required'] = 'required'
   
     
     
