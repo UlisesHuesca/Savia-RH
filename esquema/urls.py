@@ -7,5 +7,5 @@ urlpatterns = [
     path('bonos_varillero/crear_solicitud/', views.crearSolicitudBonosVarilleros, name="crearSolicitudBonosVarilleros"),
     path('solicitar_esquema_bonos/',views.solicitarEsquemaBono),
     path('remover_bono/<int:bono_id>/',views.removerBono),
-    
+    path('cargar_archivos/',views.cargarArchivos,name="cargarArchivos"),   
 ]

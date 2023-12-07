@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import FileExtensionValidator
+from django.core.exceptions import ValidationError
 
 #se importa los modelos de la otra app
 from proyecto.models import Distrito,Perfil,Puesto
@@ -37,7 +38,7 @@ class Solicitud(models.Model):
     folio = models.BigIntegerField(null=False, unique=True)
     #supervisor quien realiza la solicitud
     solicitante = models.ForeignKey(Perfil,on_delete=models.CASCADE,null=False) 
-    bono = models.ForeignKey(Subcategoria,on_delete=models.CASCADE,null=False)
+    bono = models.ForeignKey(Subcategoria,on_delete=models.CASCADE,null=True)#hacerlo nulo para relacionar con la foto
     total = models.DecimalField(max_digits=10,decimal_places=2,null=False) 
     fecha = models.DateTimeField(null=False,auto_now_add=True)
     
@@ -48,17 +49,17 @@ class BonoSolicitado(models.Model):
     distrito = models.ForeignKey(Distrito,on_delete=models.CASCADE,null=False)
     cantidad = models.DecimalField(max_digits=10,decimal_places=2,null=False) 
     fecha = models.DateTimeField(null=False,auto_now_add=True)
-        
-#Se definen los tipos de requerimientos que existen para el bono (AST, reporte cronologico...)  
-class TipoRequerimiento(models.Model):
-    nombre = models.CharField(max_length=100,null=False)
+
+def validar_size(value):
+    filesize = value.size
+    if filesize >  5 * 512 * 512:  # 10 MB
+        raise ValidationError('El tamaño del archivo no puede ser mayor a 10 MB.')
     
 #Se pueden subir imagenes o pdf al esquema bono solicitado
 class Requerimiento(models.Model):
-    tipo_requerimiento = models.ForeignKey(TipoRequerimiento,on_delete=models.CASCADE,null=False)
     solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,null=False)
     fecha = models.DateTimeField(null=False,auto_now_add=True)
-    url = models.FileField(upload_to="archivos/",max_length=254,validators=[FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
+    url = models.FileField(upload_to="bonos/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
     
     
     

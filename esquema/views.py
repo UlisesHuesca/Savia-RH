@@ -3,9 +3,6 @@ from django.shortcuts import render,redirect
 from django.contrib.auth.decorators import login_required
 #se importa los modelos de la otra app
 from django.shortcuts import get_object_or_404
-from proyecto.models import Distrito,Perfil,Puesto,UserDatos
-from .models import Categoria,Subcategoria,Bono,Solicitud,BonoSolicitado
-from .forms import SolicitudForm, BonoSolicitadoForm
 from django.http import JsonResponse
 from django.core.serializers import serialize
 import json
@@ -13,6 +10,10 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.contrib import messages
 from django.db.models import Sum
+import logging
+from proyecto.models import Distrito,Perfil,Puesto,UserDatos
+from .models import Categoria,Subcategoria,Bono,Solicitud,BonoSolicitado,Requerimiento
+from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -47,13 +48,12 @@ def crearSolicitudBonosVarilleros(request):
         solicitudForm = SolicitudForm(request.POST)      
         bonoSolicitadoForm = BonoSolicitadoForm(request.POST)
         #se hace una consulta con los empleados del distrito que pertenecen
-        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id ).order_by('nombres') 
+        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).order_by('nombres')
         #se carga el formulario en automatico definiendo filtros
         bonoSolicitadoForm.fields["trabajador"].queryset = empleados 
         
         #validación de los formularios
         if solicitudForm.is_valid() and bonoSolicitadoForm.is_valid():
-                         
             #obtener los datos de los formularios
             bono = solicitudForm.cleaned_data['bono']
             trabajador = bonoSolicitadoForm.cleaned_data['trabajador']
@@ -65,7 +65,7 @@ def crearSolicitudBonosVarilleros(request):
             #verifica si el folio ya existe - es para agregar mas bonos a la misma solicitud en el mismo flujo
             if verificar_solicitud is not None:  
                 #Existe la solicitud
-                empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id ).order_by('nombres')
+                empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).order_by('nombres')
                 #le paso el form vacio para que puede agregar mas bonos
                 bonoSolicitadoForm = BonoSolicitadoForm()
                 bonoSolicitadoForm.fields["trabajador"].queryset = empleados
@@ -180,7 +180,11 @@ def crearSolicitudBonosVarilleros(request):
         #se obtienen los bonos que pertenecen al bono varillero y se ordenan por nombre
         solicitudForm = SolicitudForm()
         #se obtienen los empleados por distrito, se refiere que solamente el supervisor puede ver de su distrito
-        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id ).order_by('nombres')
+       
+        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).order_by('nombres')
+        
+        #formulario para la carga de archivos
+        requerimientoForm = RequerimientoForm()
         #se llama el formulario para el bono que se va a solicitar
         bonoSolicitadoForm = BonoSolicitadoForm()
         #se filtra por distrito
@@ -191,9 +195,42 @@ def crearSolicitudBonosVarilleros(request):
             'solicitante':solicitante,
             'solicitudForm':solicitudForm,
             'bonoSolicitadoForm':bonoSolicitadoForm,
+            'requerimientoForm':requerimientoForm,
             'folio':folio
         }
         return render(request,'esquema/bonos_varilleros/crear_solicitud.html',contexto)
+
+@login_required(login_url='user-login')
+def cargarArchivos(request):
+    if request.method == "POST":
+        #print(datetime.now())
+        requerimientoForm = RequerimientoForm(request.POST, request.FILES)
+        archivos = request.FILES.getlist('file')
+        if requerimientoForm.is_valid():
+            #requerimientoForm.save()
+            
+            #se crea la solicitud
+            solicitud = Solicitud.objects.create(
+                folio = 1,
+                solicitante_id = 1360,
+                bono_id = 1,
+                total = 0.00,
+                fecha = datetime.now(),
+            )
+            
+            #se crea el requerimiento
+            for archivo,x in archivos:  
+                requerimiento = requerimientoForm.save(commit=False)
+                requerimiento.fecha = datetime.now()
+                requerimiento.url = archivo
+                requerimiento.solicitud_id = 1
+                requerimiento.save()
+                #file = Requerimiento(url=archivo)
+                #file.save()
+            
+            return HttpResponse('Fotos subidas correctamente')
+        else:
+            return HttpResponse("error de validacion")
 
 #para remover bonos agregados
 @login_required(login_url='user-login')

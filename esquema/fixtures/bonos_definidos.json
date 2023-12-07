@@ -10,7 +10,7 @@
     },
 
 
-
+    
     {
         "model": "esquema.subcategoria",
         "pk": 1,
@@ -56,26 +56,6 @@
         }
 
     },
-
-    {
-        "model": "esquema.tiporequerimiento",
-        "pk": 1,
-        "fields": {
-            "nombre":"ast"
-        }
-
-    },
-    {
-        "model": "esquema.tiporequerimiento",
-        "pk": 2,
-        "fields": {
-            "nombre":"reporte cronológico de actividades"
-        }
-
-    },
-
-
-
 
 
 
