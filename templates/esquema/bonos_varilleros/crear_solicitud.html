@@ -35,8 +35,8 @@ Crear Solicitud - Bonos Varilleros
                             </div>
                             <div class="card-body">
                                 <div class="btn-group" role="group" aria-label="Basic example">
-                                    {% render_field requerimientoForm.url class="form-control form-control-sm" %}
-                                    <button type="submit" class="btn btn-primary btn-sm w-25" title="Subir Archivos" multiple><i class="fas fa-arrow-up-from-bracket"></i> Subir</button>
+                                    {% render_field requerimientoForm.url class="form-control form-control-sm" accept=".png, .jpg, .jpeg .pdf" %}
+                                    <button type="submit" class="btn btn-primary btn-sm w-25" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> Subir</button>
                                 </div>
                                 <small class="text-danger">{{ requerimientoForm.url.errors }}</small>
                             </div>

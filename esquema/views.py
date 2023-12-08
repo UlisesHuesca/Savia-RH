@@ -203,11 +203,10 @@ def crearSolicitudBonosVarilleros(request):
 @login_required(login_url='user-login')
 def cargarArchivos(request):
     if request.method == "POST":
-        #print(datetime.now())
         requerimientoForm = RequerimientoForm(request.POST, request.FILES)
-        archivos = request.FILES.getlist('file')
+        archivos = request.FILES.getlist('url')
+        
         if requerimientoForm.is_valid():
-            #requerimientoForm.save()
             
             #se crea la solicitud
             solicitud = Solicitud.objects.create(
@@ -218,16 +217,20 @@ def cargarArchivos(request):
                 fecha = datetime.now(),
             )
             
-            #se crea el requerimiento
-            for archivo,x in archivos:  
-                requerimiento = requerimientoForm.save(commit=False)
-                requerimiento.fecha = datetime.now()
-                requerimiento.url = archivo
-                requerimiento.solicitud_id = 1
-                requerimiento.save()
-                #file = Requerimiento(url=archivo)
-                #file.save()
+            for archivo in archivos:
+                Requerimiento.objects.create(
+                    solicitud_id = 6,
+                    fecha = datetime.now(),
+                    url = archivo,
+                )
             
+            """se almacena un archivo
+            requerimiento = requerimientoForm.save(commit=False)
+            requerimiento.fecha = datetime.now()
+            #requerimiento.url = archivo
+            requerimiento.solicitud_id = 5
+            requerimiento.save()
+            """            
             return HttpResponse('Fotos subidas correctamente')
         else:
             return HttpResponse("error de validacion")

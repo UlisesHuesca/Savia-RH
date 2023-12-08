@@ -2,6 +2,7 @@ from django import forms
 from django.shortcuts import render,get_object_or_404
 from proyecto.models import Perfil,UserDatos
 from .models import Solicitud,BonoSolicitado,Subcategoria,Puesto,Requerimiento
+from datetime import datetime
 
 def usuarioLogueado(request):
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
@@ -37,6 +38,8 @@ class RequerimientoForm(forms.ModelForm):
     class Meta:
         model = Requerimiento
         fields = ['url']
+    
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
