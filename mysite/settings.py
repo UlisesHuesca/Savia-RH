@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-r9fy(pk86$+m$yra4u*dua2%u(8xp9e-t^(3q3ibft-oj6c+zk'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True #True es para ver la pantalla amarilla, False para ver el 404
@@ -27,6 +29,8 @@ DEBUG = True #True es para ver la pantalla amarilla, False para ver el 404
 USE_L10N = False
 
 ALLOWED_HOSTS = ['*']
+
+load_dotenv()
 
 
 # Application definition
@@ -117,8 +121,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'saviarh',
-        'USER': 'root',
-        'PASSWORD': '12345678',
+        'USER': os.getenv('DATABASE_USER'),
+        'PASSWORD': os.getenv('DATABASE_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '',
     }
