@@ -52,15 +52,17 @@ class BonoSolicitado(models.Model):
 
 def validar_size(value):
     filesize = value.size
-    if filesize >  5 * 512 * 512:  # 10 MB
-        raise ValidationError('El tamaño del archivo no puede ser mayor a 10 MB.')
+    #if filesize >  5 * 2048 * 2048:  # 10 MB
+    if filesize >  5 * 512 * 512:  # 2.5 MB
+        raise ValidationError('El tamaño del archivo no puede ser mayor a 2.5 MB.')    
+    
     
 #Se pueden subir imagenes o pdf al esquema bono solicitado
 class Requerimiento(models.Model):
     solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,null=False)
     fecha = models.DateTimeField(null=False,auto_now_add=True)
     url = models.FileField(upload_to="bonos/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
-    
+
     
     
     

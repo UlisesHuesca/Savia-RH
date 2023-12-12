@@ -1,12 +1,19 @@
 {% extends 'partials/base.html' %}
 
 {% load widget_tweaks %}
-
 {% load static %}
 
 {% block title %}
 Crear Solicitud - Bonos Varilleros
 {% endblock title %}
+
+
+{% block css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css">
+{% endblock css %}
+    
+
 
 {% block content %}
 <div class="container-fluid margen-alto">
@@ -21,13 +28,12 @@ Crear Solicitud - Bonos Varilleros
         </div>
         {% endif %}
 
-        
-
         <div class="row">
            
                 {% comment %} Supervisor crea la solicitud {% endcomment %}
                 <div class="col-12 col-md-4">
-                    <form action="{% url 'cargarArchivos' %}" method="POST" enctype="multipart/form-data" novalidate>
+                  
+                    <form id="archivosForm" class="" action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" enctype="multipart/form-data" novalidate>
                         {% csrf_token %}
                         <div class="card mb-3">
                             <div class="card-header">
@@ -35,13 +41,15 @@ Crear Solicitud - Bonos Varilleros
                             </div>
                             <div class="card-body">
                                 <div class="btn-group" role="group" aria-label="Basic example">
-                                    {% render_field requerimientoForm.url class="form-control form-control-sm" accept=".png, .jpg, .jpeg .pdf" %}
-                                    <button type="submit" class="btn btn-primary btn-sm w-25" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> Subir</button>
-                                </div>
+                                    {% render_field requerimientoForm.url class="form-control form-control-sm" id="archivos" accept=".png, .jpg, .jpeg .pdf" %}
+                                    <input type="hidden" name="valor" value="{{folio}}">
+                                    <button id="subirArchivos" name="btn_archivos" type="submit" class="btn btn-primary btn-sm w-25" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> <span class="">Subir</span></button>
+                                </div><br>
                                 <small class="text-danger">{{ requerimientoForm.url.errors }}</small>
                             </div>
                         </div>
                     </form>
+                    
                     
                     <form action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" novalidate>
                         {% csrf_token %}
@@ -74,7 +82,7 @@ Crear Solicitud - Bonos Varilleros
                                 <input type="text" value="{{solicitante.distrito.distrito}}" class="form-control bg-white"
                                     placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
                             </div>
-                            <label for="" class="text-muted mb-1">Bono</label><span class="asterisk">&#42;</span>
+                            <label for="" class="text-muted mb-1">Bono</label>
                             {% comment %} Bono {% endcomment %}
                             <div class="input-group">
                                 <span class="input-group-text" id="basic-addon1"><i class="fas fa-sack-dollar"></i></span>
@@ -99,19 +107,17 @@ Crear Solicitud - Bonos Varilleros
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-5">
-                                    <label for="empleado" class="form-label fw-bold">Empleado<span
-                                            class="asterisk">&#42;</span></label>
+                                    <label for="empleado" class="form-label fw-bold">Empleado</label>
                                     {% comment %} Empleado {% endcomment %}
                                     <div class="input-group">
                                         <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
-                                        {% render_field bonoSolicitadoForm.trabajador class="form-control" id="empleado" %}
+                                        {% render_field bonoSolicitadoForm.trabajador class="form-control select2-bootstrap" id="empleado" %}
                                     </div>
                                     <small class="text-danger">{{ bonoSolicitadoForm.trabajador.errors }}</small>
                                 </div>
                                 {% comment %} Empleado {% endcomment %}
                                 <div class="col-md-3">
-                                    <label for="puesto" class="form-label fw-bold">Puesto<span
-                                            class="asterisk">&#42;</span></label>
+                                    <label for="puesto" class="form-label fw-bold">Puesto</label>
                                     <div class="input-group">
                                         <span class="input-group-text" id="basic-addon1"><i
                                                 class="fas fa-helmet-safety"></i></span>
@@ -120,8 +126,7 @@ Crear Solicitud - Bonos Varilleros
                                     <small class="text-danger">{{ bonoSolicitadoForm.puesto.errors }}</small>
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="cantidad" class="form-label fw-bold">Cantidad <span
-                                        class="asterisk">&#42;</span></label></label>
+                                    <label for="cantidad" class="form-label fw-bold">Cantidad </label></label>
                                     <div class="input-group">
                                         <span class="input-group-text" id="basic-addon1"><i
                                                 class="fa fa-dollar-sign"></i></span>
@@ -130,7 +135,7 @@ Crear Solicitud - Bonos Varilleros
                                     <small class="text-danger">{{ bonoSolicitadoForm.cantidad.errors }}</small>
                                 </div>
                                 <div class="col-md-1" style="margin-top: 30px;">
-                                    <button id="btnAgregar" type="submit" class="btn btn-success" title="Agregar Bono"><i class="fas fa-plus"></i></button>
+                                    <button id="btnAgregar" name="btn_agregar" type="submit" class="btn btn-success" title="Agregar Bono"><i class="fas fa-plus"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -179,7 +184,21 @@ Crear Solicitud - Bonos Varilleros
         </div>
     
 </div>
-
-<script src="{% static 'js/esquema/bono_varillero/crear_solicitud.js' %}"></script>
-
 {% endblock content %}
+
+{% block js %}
+    <script src="{% static 'js/esquema/bono_varillero/crear_solicitud.js' %}"></script>
+    {% comment %} select2 {% endcomment %}    
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {% comment %} select 2 lang es {% endcomment %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/i18n/es.js"></script>
+    <script>
+        $(document).ready(function() {           
+            $('.select2-bootstrap').select2({
+                theme: 'bootstrap4',
+                language: "es",
+            });
+        });
+    </script>
+{% endblock js %}
+    

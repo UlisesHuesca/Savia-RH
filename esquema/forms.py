@@ -38,9 +38,7 @@ class RequerimientoForm(forms.ModelForm):
     class Meta:
         model = Requerimiento
         fields = ['url']
-    
-
-
+        
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['url'].widget.attrs['multiple'] = 'multiple'
