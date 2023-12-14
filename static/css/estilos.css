@@ -23,8 +23,16 @@
     text-decoration: none;
 }
 
-.asterisk{
-    color: #F44334;
+.alerta-danger{
+    background-color: #dc3545;
+    color:white;
+    border-color:#d32535;
+}
+
+.alerta-success{
+    background-color:#28a745;
+    color:white;
+    border-color:#23923d;
 }
 
 @media only screen and (max-width: 600px) {

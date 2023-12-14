@@ -70,8 +70,6 @@ document.addEventListener("DOMContentLoaded", (e) => {
     /**Remover bono de la solicitud*/
     async function removerBono(bonoId){
         try {
-            console.log(bonoId)
-            console.log("entra al async")
             var respuesta= await fetch(`/esquema/remover_bono/${bonoId}/`,{
             //var respuesta= await fetch('/esquema/remover_bono/',{
                 method: 'POST',
@@ -150,8 +148,54 @@ document.addEventListener("DOMContentLoaded", (e) => {
         });
     }
 
-   
 
+    /**Para eliminar un archivo */
+    async function removerArchivo(archivo){
+        try {
+            var response = await fetch(`/esquema/remover_archivo/${archivo}/`,{
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+                body:JSON.stringify({
+                    'archivo_id':archivo,
+                }),
+            });
+            const datos = await response.json();
+            if (response.status === 200){
+                console.log(datos)
+                var renderizar = document.querySelectorAll(`[data-archivo="${datos.archivo_id}"]`)
+                renderizar[0].remove()
+            }else{
+                Swal.fire({
+                    title: "Error",
+                    text: "No se encontro el recurso solicitado",
+                    icon: "warning",
+                })
+            }
+        } catch (error) {
+            console.log(error)
+            Swal.fire({
+                title: "Error",
+                text: "No se pudo procesar la solicitud",
+                icon: "warning",
+            })
+        }
+    }
 
+    files = document.getElementById("archivos")
+    if (files) {
+        addEventListener("click", async function(e){
+            if(e.target.classList.contains('small')){
+                archivo_id = e.target.getAttribute("data-archivo")
+                console.log("el ID del archivo es: ",archivo_id)
+                removerArchivo(archivo_id)
+
+            }
+        });
+    }
+
+    
 
 });

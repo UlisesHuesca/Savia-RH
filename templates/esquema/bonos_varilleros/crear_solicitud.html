@@ -17,41 +17,56 @@ Crear Solicitud - Bonos Varilleros
 
 {% block content %}
 <div class="container-fluid margen-alto">
-
         {% comment %}Un mensaje de alerta{% endcomment %}
         {% if messages %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
             {% for message in messages %}
-            <strong>{{ message }}</strong> 
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                {% if message.tags == "success" %}
+                <div class="alert alerta-success alert-dismissible fade show" role="alert">
+                    <strong>{{ message }} <i class="fas fa-check"></i></strong> 
+                    <button type="button" class="btn-close white" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% else %}
+                <div class="alert alerta-danger alert-dismissible fade show" role="alert">
+                    <strong>{{ message }} <i class="fas fa-exclamation-triangle"></i></strong> 
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
             {% endfor %}
-        </div>
         {% endif %}
 
-        <div class="row">
-           
+        <div class="row mb-3">
                 {% comment %} Supervisor crea la solicitud {% endcomment %}
                 <div class="col-12 col-md-4">
-                  
-                    <form id="archivosForm" class="" action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" enctype="multipart/form-data" novalidate>
-                        {% csrf_token %}
-                        <div class="card mb-3">
-                            <div class="card-header">
+                        <div class="card mb-3 shadow">
+                            <div class="card-header d-flex justify-content-between">
                                 <h5>Subir Archivos</h5>
+                                {% if lista_archivos|length != 0 %}
+                                <div class="btn-group mt-1">
+                                    <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-file"></i> Archivos
+                                    </button>
+                                    <ul class="dropdown-menu" id="archivos">   
+                                        {% for archivo in lista_archivos  %}
+                                            <li><a data-archivo="{{archivo.id}}" class="dropdown-item small" title="quitar" href="#">{{ archivo.url }} <span class="text-danger fw-bolder">&#x2715</span></a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
                             </div>
                             <div class="card-body">
+                                <form id="archivosForm" class="" action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
                                 <div class="btn-group" role="group" aria-label="Basic example">
-                                    {% render_field requerimientoForm.url class="form-control form-control-sm" id="archivos" accept=".png, .jpg, .jpeg .pdf" %}
+                                    {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png, .jpg, .jpeg .pdf" %}
                                     <input type="hidden" name="valor" value="{{folio}}">
                                     <button id="subirArchivos" name="btn_archivos" type="submit" class="btn btn-primary btn-sm w-25" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> <span class="">Subir</span></button>
                                 </div><br>
-                                <small class="text-danger">{{ requerimientoForm.url.errors }}</small>
+                                <small class="text-danger" id="url-error">{{ requerimientoForm.url.errors }}</small> 
+                                </form>
                             </div>
                         </div>
-                    </form>
-                    
-                    
-                    <form action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" novalidate>
+
+                    <form action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" >
                         {% csrf_token %}
                     <div class="card shadow">
                         <div class="card-header">
@@ -98,7 +113,7 @@ Crear Solicitud - Bonos Varilleros
             
                 {% comment %} Asignar los bonos a la solicitud {% endcomment %}
                 <div class="col-12 col-md-8 my-3 my-sm-0" style="margin-bottom: 400px;">
-                    <div class="card shadow-lg">
+                    <div class="card shadow">
                         <div class="card-header d-flex justify-content-between">
                             <h5>Agregar Bonos</h5>
                             <a href="{% url 'listarBonosVarilleros' %}" class="btn btn-light btn-lg volver" title="volver"><i class="fas fa-arrow-left"></i></a>
@@ -144,7 +159,7 @@ Crear Solicitud - Bonos Varilleros
 
                     {% if datos_bonos_solicitud|length != 0 %}
                     <div class="col-12 mt-3 mb-5 overflow-auto">
-                        <table class="table table-striped table-hover bg-white" style="max-height: 300px; overflow-y: auto;" id="tabla">
+                        <table class="table table-striped table-hover bg-white shadow" style="max-height: 300px; overflow-y: auto;" id="tabla">
                             <thead>
                                 <tr class="tabla-encabezado">
                                     <th>Empleado</th>
@@ -166,7 +181,6 @@ Crear Solicitud - Bonos Varilleros
                             </tbody>
                             <tfoot>
                                 <tr>
-                                
                                     <td colspan="3" class="fw-bold">Total: $<span id="total">{{total}}</span> </td>
                                 </tr>
                             </tfoot>
@@ -174,15 +188,7 @@ Crear Solicitud - Bonos Varilleros
                     </div>                    
                     {% endif %}
                 </div>
-           
         </div>
-    
-        <div class="row d-flex justify-content-start">
-            <div class="col-12 col-md-4 mt-0 mb-2">
-               
-            </div>
-        </div>
-    
 </div>
 {% endblock content %}
 
