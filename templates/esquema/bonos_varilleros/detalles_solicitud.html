@@ -1,0 +1,118 @@
+{% extends 'partials/base.html' %}
+
+
+{% block title %}
+    Bonos Varilleros
+{% endblock title %}
+    
+
+{% block css %}
+
+{% endblock css %}
+    
+
+{% block content %}
+<div class="container-fluid margen-alto">
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title d-flex justify-content-between">
+                        <h5>Detalles de la solicitud</h5>
+                        <a href="{% url 'listarBonosVarilleros' %}" class="btn btn-light btn-lg py-0" title="volver"><i class="fas fa-arrow-left"></i></a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% comment %} Folio {% endcomment %} 
+                        <div class="col-12 col-md-3 mb-3 mb-md-0">
+                            <label for="" class="fw-bold">Folio</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-bookmark"></i></span>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{solicitud.id}}" readonly>
+                            </div>
+                        </div>
+                        {% comment %} Supervisor {% endcomment %} 
+                        <div class="col-12 col-md-3 mb-3 mb-md-0">
+                            <label for="" class="fw-bold">Supervisor</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{solicitante.nombres}} {{solicitante.apellidos}}" readonly>
+                            </div>
+                        </div>
+                        {% comment %} Distrito {% endcomment %}
+                        <div class="col-12 col-md-3 mb-3 mb-md-0">
+                            <label for="" class="fw-bold">Distrito</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-location-dot"></i></span>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{solicitante.distrito}}" readonly>
+                            </div>
+                        </div>
+                        {% comment %} Bono {% endcomment %}
+                        <div class="col-12 col-md-3 mb-3 mb-md-0">
+                            <label for="" class="fw-bold">Bono</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-sack-dollar"></i></span>
+                                <input type="text" class="form-control text-capitalize bg-white" name="" id="" value="{{solicitud.bono}}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <table class="table table-striped table-hover bg-white shadow" style="max-height: 300px; overflow-y: auto;" id="tabla">
+                <thead>
+                    <tr class="tabla-encabezado">
+                        <th>Empleado</th>
+                        <th>Puesto</th>
+                        <th>Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bono in bonos  %}
+                    <tr data-id="{{bono.id}}">
+                        <td>{{bono.trabajador}}</td>
+                        <td>{{bono.puesto}}</td>
+                        <td>${{bono.cantidad}}</td>
+                    </tr>
+                    {% endfor %}
+                    
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td class="fw-bold">Total: $<span id="total">{{solicitud.total}}</span> </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="col-12 col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <label for="" class="fw-bold">Archivos</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <ul class="list-group">
+                                {% for requerimiento in requerimientos %}
+                                    <li class="list-group-item border-0">An item</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+{% endblock content %}
+    

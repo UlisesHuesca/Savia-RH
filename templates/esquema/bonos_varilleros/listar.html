@@ -6,6 +6,10 @@
 {% endblock title %}
     
 
+{% block css %}
+
+{% endblock css %}
+    
 
 {% block content %}
 <div class="container-fluid margen-alto">
@@ -16,38 +20,49 @@
                     <div class="card-title"><h5>Bonos Varilleros</h5></div>
                     <a href="{% url 'crearSolicitudBonosVarilleros' %}" class="btn btn-outline-primary" style="background: 2A628F;"><i class="fas fa-plus"></i> Crear solicitud de bono</a>
                 </div>
-                <div class="card-body table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr class="tabla-encabezado">
-                                <th>Folio</th>
-                                <th>Nombre</th>
-                                <th>Bono</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                               
-                                <td>736483</td>
-                                <td>Carlos</td>
-                                <td>$500.00</td>
-                                <td>En revisión</td>
-                            </tr>
-                            <tr>
-                                <td scope="row"></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="card-body">
+                    <small class="text-muted h5">sección de filtros*</small>
                 </div>
-                <div class="card-footer">
 
-                </div>
               </div>
         </div>
     </div>
+    {% comment %} Listar Solicitudes {% endcomment %}
+    {% if solicitudes|length != 0 %}
+    <div class="row">
+        <div class="col-12 my-3 table-responsive">
+            <table class="table bg-white table-hover table-striped shadow">
+                <thead>
+                    <tr class="tabla-encabezado">
+                        <th>Folio</th>
+                        <th>Bono</th>
+                        <th>Total</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th colspan="3" style="width: 10%;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for solicitud in solicitudes  %}
+                    <tr> 
+                        <td>{{solicitud.folio}}</td>
+                        <td class="text-capitalize">{{solicitud.bono}}</td>
+                        <td><span class="badge" style="background: #2A628F;">${{solicitud.total}}</span></td>
+                        <td class="">{{solicitud.fecha|date:"d-m-Y H:m"}}</td>
+                        <td>En revisión</td>
+                        <th><button class="btn btn-brown btn-sm" title="Eliminar solicitud"><i class="fas fa-trash-alt"></i></button></th>
+                        <th>
+                            <a href="{% url 'verDetalleSolicitud' solicitud.id %}" title="Ver detalles de la solicitud" class="btn btn-sm btn-success"><i class="fas fa-list"></i></a>
+                            
+                        </th>
+                        <th><button class="btn btn-success btn-sm" title="editar la solicitud"><i class="fas fa-pen-to-square"></i></button></th>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 {% endblock content %}

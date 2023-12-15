@@ -30,7 +30,20 @@ def inicio(request):
 #Listar las solicitudes
 @login_required(login_url='user-login')
 def listarBonosVarilleros(request):
-    return render(request,'esquema/bonos_varilleros/listar.html')
+    #se obtiene el usuario logueado
+    usuario = get_object_or_404(UserDatos,user_id = request.user.id)
+    #se obtiene el perfil del usuario logueado
+    solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
+    #se obtienen las solicitudes
+    solicitudes = Solicitud.objects.filter(solicitante_id = solicitante.id).order_by('-id')
+    
+    contexto = {
+        'usuario':usuario,
+        'solicitante':solicitante,
+        'solicitudes':solicitudes
+    }
+    
+    return render(request,'esquema/bonos_varilleros/listar.html',contexto)
 
 
 #para crear solicitudes de bonos
@@ -40,6 +53,7 @@ def crearSolicitudBonosVarilleros(request):
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
     #se obtiene el perfil del usuario logueado
     solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador) 
+    print(solicitante)
     #se cargan los formularios con los valores del post
     solicitudForm = SolicitudForm()      
     bonoSolicitadoForm = BonoSolicitadoForm()
@@ -74,6 +88,7 @@ def crearSolicitudBonosVarilleros(request):
             total = buscar_solicitud[1]
         else:
             total = None  
+        print(total)
         
         if 'btn_archivos' in request.POST:      
             #Se envian los formularios con datos                   
@@ -283,7 +298,29 @@ def crearSolicitudBonosVarilleros(request):
         }
         
         return render(request,'esquema/bonos_varilleros/crear_solicitud.html',contexto)
+
+#para ver detalles de la solicitud
+@login_required(login_url='user-login')
+def verDetallesSolicitud(request,solicitud_id):
+    #se obtiene el usuario logueado
+    usuario = get_object_or_404(UserDatos,user_id = request.user.id)
+    #se obtiene el perfil del usuario logueado
+    solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
+    #se obtiene la solicitud, los bonos y lo requerimientos de esa solicitud
+    solicitud = get_object_or_404(Solicitud,pk=solicitud_id)
+    bonos = BonoSolicitado.objects.filter(solicitud_id = solicitud.id)
+    requerimientos = Requerimiento.objects.filter(solicitud_id = solicitud.id)
+        
+    contexto = {
+        "solicitante":solicitante,
+        "solicitud":solicitud,
+        "bonos":bonos,
+        "requerimientos": requerimientos,
+    }
     
+    return render(request,'esquema/bonos_varilleros/detalles_solicitud.html',contexto)
+    
+
 #para remover bonos agregados
 @login_required(login_url='user-login')
 def removerBono(request,bono_id):

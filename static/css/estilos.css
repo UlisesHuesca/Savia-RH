@@ -35,6 +35,16 @@
     border-color:#23923d;
 }
 
+.btn-brown{
+    background-color: brown;
+    color: white;
+}
+
+.btn-brown:hover{
+    background-color:#842222;
+    color: white;
+}
+
 @media only screen and (max-width: 600px) {
     .margen-alto{
         margin-top: 200px;

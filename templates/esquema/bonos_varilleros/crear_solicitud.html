@@ -22,12 +22,12 @@ Crear Solicitud - Bonos Varilleros
             {% for message in messages %}
                 {% if message.tags == "success" %}
                 <div class="alert alerta-success alert-dismissible fade show" role="alert">
-                    <strong>{{ message }} <i class="fas fa-check"></i></strong> 
+                    <strong><i class="fas fa-check"></i> {{ message }}</strong> 
                     <button type="button" class="btn-close white" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
                 {% else %}
                 <div class="alert alerta-danger alert-dismissible fade show" role="alert">
-                    <strong>{{ message }} <i class="fas fa-exclamation-triangle"></i></strong> 
+                    <strong><i class="fas fa-exclamation-triangle"></i> {{ message }} </strong> 
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
                 {% endif %}
@@ -57,7 +57,7 @@ Crear Solicitud - Bonos Varilleros
                                 <form id="archivosForm" class="" action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" enctype="multipart/form-data">
                                 {% csrf_token %}
                                 <div class="btn-group" role="group" aria-label="Basic example">
-                                    {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png, .jpg, .jpeg .pdf" %}
+                                    {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png, .jpg, .jpeg, .pdf" %}
                                     <input type="hidden" name="valor" value="{{folio}}">
                                     <button id="subirArchivos" name="btn_archivos" type="submit" class="btn btn-primary btn-sm w-25" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> <span class="">Subir</span></button>
                                 </div><br>
@@ -77,7 +77,7 @@ Crear Solicitud - Bonos Varilleros
                             <label for="folio" class="text-muted mb-1">Folio</label>
                             <div class="input-group mb-3">
                                 <div class="input-group">
-                                    <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
+                                    <span class="input-group-text"><i class="fas fa-bookmark"></i></span>
                                     <input type="text" name="folio" value="{{folio}}"
                                         class="form-control bg-white" placeholder="Nombre" aria-label="nombre"
                                         aria-describedby="basic-addon1" readonly>
@@ -86,21 +86,21 @@ Crear Solicitud - Bonos Varilleros
                             <small class="text-danger">{{ solicitudForm.folio.errors }}</small>
                             <label for="" class="text-muted mb-1">Supervisor</label>
                             <div class="input-group mb-3">
-                                <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
                                 <input type="text" value="{{solicitante.nombres}} {{solicitante.apellidos}} "
                                     class="form-control bg-white" placeholder="Nombre" aria-label="nombre"
                                     aria-describedby="basic-addon1" readonly>
                             </div>
                             <label for="" class="text-muted mb-1">Distrito</label>
                             <div class="input-group mb-3">
-                                <span class="input-group-text" id="basic-addon1"><i class="fas fa-location-dot"></i></span>
+                                <span class="input-group-text"><i class="fas fa-location-dot"></i></span>
                                 <input type="text" value="{{solicitante.distrito.distrito}}" class="form-control bg-white"
                                     placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
                             </div>
                             <label for="" class="text-muted mb-1">Bono</label>
                             {% comment %} Bono {% endcomment %}
                             <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1"><i class="fas fa-sack-dollar"></i></span>
+                                <span class="input-group-text"><i class="fas fa-sack-dollar"></i></span>
                                 {% render_field solicitudForm.bono class="form-control text-capitalize" id="bono" %}
                             </div>
                             <small class="text-danger">{{ solicitudForm.bono.errors }}</small>
@@ -125,7 +125,7 @@ Crear Solicitud - Bonos Varilleros
                                     <label for="empleado" class="form-label fw-bold">Empleado</label>
                                     {% comment %} Empleado {% endcomment %}
                                     <div class="input-group">
-                                        <span class="input-group-text" id="basic-addon1"><i class="fas fa-user"></i></span>
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
                                         {% render_field bonoSolicitadoForm.trabajador class="form-control select2-bootstrap" id="empleado" %}
                                     </div>
                                     <small class="text-danger">{{ bonoSolicitadoForm.trabajador.errors }}</small>
@@ -134,7 +134,7 @@ Crear Solicitud - Bonos Varilleros
                                 <div class="col-md-3">
                                     <label for="puesto" class="form-label fw-bold">Puesto</label>
                                     <div class="input-group">
-                                        <span class="input-group-text" id="basic-addon1"><i
+                                        <span class="input-group-text"><i
                                                 class="fas fa-helmet-safety"></i></span>
                                         {% render_field bonoSolicitadoForm.puesto class="form-control" id="puesto" %}
                                     </div>
@@ -143,7 +143,7 @@ Crear Solicitud - Bonos Varilleros
                                 <div class="col-md-3">
                                     <label for="cantidad" class="form-label fw-bold">Cantidad </label></label>
                                     <div class="input-group">
-                                        <span class="input-group-text" id="basic-addon1"><i
+                                        <span class="input-group-text"><i
                                                 class="fa fa-dollar-sign"></i></span>
                                         {% render_field bonoSolicitadoForm.cantidad class="form-control bg-white" id="cantidad"%}
                                     </div>
