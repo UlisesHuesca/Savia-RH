@@ -35,13 +35,13 @@
     border-color:#23923d;
 }
 
-.btn-brown{
-    background-color: brown;
+.btn-rojo{
+    background-color: #990F0F;
     color: white;
 }
 
-.btn-brown:hover{
-    background-color:#842222;
+.btn-rojo:hover{
+    background-color:#990F0F;
     color: white;
 }
 

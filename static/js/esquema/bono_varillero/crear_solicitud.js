@@ -71,7 +71,6 @@ document.addEventListener("DOMContentLoaded", (e) => {
     async function removerBono(bonoId){
         try {
             var respuesta= await fetch(`/esquema/remover_bono/${bonoId}/`,{
-            //var respuesta= await fetch('/esquema/remover_bono/',{
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
@@ -117,7 +116,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
             //hacer click en el boton eliminar
             if(e.target.classList.contains("btn-danger") || e.target.classList.contains("fa-minus")){
                 
-                //vericar la clase que contiene para obtener el id del bono
+                //verficar la clase que contiene para obtener el id del bono
                 if (e.target.classList.contains("btn-danger")){
                     elemento = e.target.parentNode.parentNode
                     bonoId = elemento.getAttribute('data-id');

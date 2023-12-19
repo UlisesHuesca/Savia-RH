@@ -1,5 +1,6 @@
 {% extends 'partials/base.html' %}
 
+{% load static %}
 
 {% block title %}
     Bonos Varilleros
@@ -13,6 +14,7 @@
 
 {% block content %}
 <div class="container-fluid margen-alto">
+    {% csrf_token %}
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
@@ -31,7 +33,7 @@
     {% if solicitudes|length != 0 %}
     <div class="row">
         <div class="col-12 my-3 table-responsive">
-            <table class="table bg-white table-hover table-striped shadow">
+            <table class="table bg-white table-hover table-striped shadow" id="tabla">
                 <thead>
                     <tr class="tabla-encabezado">
                         <th>Folio</th>
@@ -44,18 +46,20 @@
                 </thead>
                 <tbody>
                     {% for solicitud in solicitudes  %}
-                    <tr> 
+                    <tr data-solicitud="{{solicitud.id}}"> 
                         <td>{{solicitud.folio}}</td>
                         <td class="text-capitalize">{{solicitud.bono}}</td>
                         <td><span class="badge" style="background: #2A628F;">${{solicitud.total}}</span></td>
-                        <td class="">{{solicitud.fecha|date:"d-m-Y H:m"}}</td>
+                        <td class="">{{solicitud.fecha|date:"d/M/Y H:m"}}</td>
                         <td>En revisión</td>
-                        <th><button class="btn btn-brown btn-sm" title="Eliminar solicitud"><i class="fas fa-trash-alt"></i></button></th>
+                        <th><button class="btn btn-rojo btn-sm" title="Eliminar solicitud"><i class="fas fa-trash-alt"></i></button></th>
                         <th>
                             <a href="{% url 'verDetalleSolicitud' solicitud.id %}" title="Ver detalles de la solicitud" class="btn btn-sm btn-success"><i class="fas fa-list"></i></a>
                             
                         </th>
-                        <th><button class="btn btn-success btn-sm" title="editar la solicitud"><i class="fas fa-pen-to-square"></i></button></th>
+                        <th>
+                            <a href="{% url 'updateSolicitudBonosVarilleros' solicitud.id %}" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></a>
+                        </th>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -64,6 +68,9 @@
     </div>
     {% endif %}
 </div>
-
 {% endblock content %}
-    
+ 
+
+{% block js %}
+    <script src="{% static 'js/esquema/bono_varillero/eliminar_solicitud.js' %}"></script>
+{% endblock js %}
