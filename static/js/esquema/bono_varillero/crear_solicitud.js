@@ -82,6 +82,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
             });
 
             const datos = await respuesta.json();
+            console.log(datos)
             
             if (respuesta.status === 200) {
                 console.log(datos)

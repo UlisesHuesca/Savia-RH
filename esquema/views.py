@@ -59,9 +59,11 @@ def consulta_autoincrement():
         query = "SHOW TABLE STATUS LIKE 'esquema_solicitud';"
         cursor.execute(query)
         resultados = cursor.fetchall()
-        tupla_interna = resultados[0]
-        valor = (tupla_interna[10])
-        return valor
+        #tupla_interna = resultados[0]
+        #valor = (tupla_interna[10])
+        return resultados
+    
+    
         
 
 #para crear solicitudes de bonos
@@ -296,13 +298,25 @@ def crearSolicitudBonosVarilleros(request):
     #Es metodo GET - Carga los formularios
     else:
         #Genera el número de folio automaticamente
-        ultimo_registro = consulta_autoincrement()
-        print(ultimo_registro)
-        
+        #ultimo_registro = Solicitud.objects.values('id').last()
+        #resultados = consulta_autoincrement()
+        #for r in resultados:
+            #print(r[10])
+        #    ultimo_registro = r[10]
+            
         #ultimo_registro = Solicitud.objects.latest('id');
         #print(ultimo_registro.id)
+        #folio = ultimo_registro['id'] + 1
+        #folio = ultimo_registro
+        #print(folio)
+        #if ultimo_registro is 1:
+        #    folio = ultimo_registro
+        #else:
+        #    folio = 1
+        #Genera el número de folio automaticamente
+        ultimo_registro = Solicitud.objects.values('id').last()
         if ultimo_registro is not None:
-            folio = ultimo_registro + 1
+            folio = ultimo_registro['id'] + 1 
         else:
             folio = 1
         
@@ -388,13 +402,14 @@ def updateSolicitudBonosVarilleros(request,solicitud_id):
             bonoSolicitadoForm.fields["trabajador"].queryset = empleados 
             
             if solicitudForm.is_valid() and bonoSolicitadoForm.is_valid():
-                #bono = solicitudForm.cleaned_data['bono']
+                bono = solicitudForm.cleaned_data['bono']
                 trabajador = bonoSolicitadoForm.cleaned_data['trabajador']
                 puesto = bonoSolicitadoForm.cleaned_data['puesto']
                 cantidad = bonoSolicitadoForm.cleaned_data['cantidad']
-            
+                #actualizar el bono
+                Solicitud.objects.filter(pk=solicitud.id).update(bono=bono)
+                #verificar el bono para que no se asignen dos veces
                 verificar_puesto = BonoSolicitado.objects.filter(solicitud_id = solicitud.id, puesto_id=puesto).values("puesto_id").first()
-                
                 
                 if verificar_puesto is None:
                     BonoSolicitado.objects.create(
@@ -526,6 +541,19 @@ def removerBono(request,bono_id):
         except:
             return JsonResponse({'mensaje': 'Objeto no encontrado'}, status=404,safe=True)
 
+#para eliminar los bonos al editar una solicitud
+@login_required(login_url='user-login')
+def removerBonosEditar(request, solicitud_id):
+    if request.method == 'POST':
+        try:
+            get_object_or_404(Solicitud,pk=solicitud_id)
+            BonoSolicitado.objects.filter(solicitud_id = solicitud_id).delete()
+            return JsonResponse({'mensaje':'eliminados'},status=200,safe=True)
+            
+        except:
+            return JsonResponse({'mensaje':'error del servidor'},status=500,safe=True)    
+        
+
 #para remover archivos agregados
 @login_required(login_url='user-login')
 def removerArchivo(request,archivo_id):
@@ -550,7 +578,7 @@ def solicitarEsquemaBono(request):
         usuario = get_object_or_404(UserDatos,user_id = request.user.id)
         #se obtienen los datos enviados del servidor            
         data = json.loads(request.body)
-            
+        
         #response_data = {'message': data}
         #return JsonResponse(response_data,safe=False)
             

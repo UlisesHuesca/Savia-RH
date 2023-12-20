@@ -104,7 +104,7 @@ Editar Solicitud - Bonos Varilleros
                         </div>
                         <small class="text-danger">{{ solicitudForm.bono.errors }}</small>
                         <div class="mt-3">
-                            <input type="button" class="btn btn-success w-100 text-capitalize" value="Cambiar bono">
+                            <input id="cambiarBono" type="button" class="btn btn-success w-100 text-capitalize" value="Cambiar bono">
                         </div>
                     </div>
                 </div>
@@ -195,6 +195,7 @@ Editar Solicitud - Bonos Varilleros
 
 {% block js %}
     <script src="{% static 'js/esquema/bono_varillero/crear_solicitud.js' %}"></script>
+    <script src="{% static 'js/esquema/bono_varillero/editar_solicitud.js' %}"></script>
     {% comment %} select2 {% endcomment %}    
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {% comment %} select 2 lang es {% endcomment %}
