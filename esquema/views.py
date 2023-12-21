@@ -16,6 +16,7 @@ from proyecto.models import Distrito,Perfil,Puesto,UserDatos
 from .models import Categoria,Subcategoria,Bono,Solicitud,BonoSolicitado,Requerimiento
 from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm
 from django.db import connection
+from django.core.paginator import Paginator
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -38,33 +39,17 @@ def listarBonosVarilleros(request):
     #se obtienen las solicitudes
     solicitudes = Solicitud.objects.filter(solicitante_id = solicitante.id).order_by('-id')
     
+    #p = Paginator(solicitudes, 3)
+    #page = request.GET.get('page')
+    #salidas_list = p.get_page(page)
+    
     contexto = {
         'usuario':usuario,
         'solicitante':solicitante,
-        'solicitudes':solicitudes
+        'solicitudes':solicitudes,
     }
     
     return render(request,'esquema/bonos_varilleros/listar.html',contexto)
-
-
-def obtener_valor_autoincremental_mysql():
-    with connection.cursor() as cursor:
-        cursor.execute(f"SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = '{Solicitud._meta.db_table}'")
-        ultimo_valor_autoincremental = cursor.fetchone()[0]
-
-    return ultimo_valor_autoincremental
-
-def consulta_autoincrement():
-    with connection.cursor() as cursor:
-        query = "SHOW TABLE STATUS LIKE 'esquema_solicitud';"
-        cursor.execute(query)
-        resultados = cursor.fetchall()
-        #tupla_interna = resultados[0]
-        #valor = (tupla_interna[10])
-        return resultados
-    
-    
-        
 
 #para crear solicitudes de bonos
 @login_required(login_url='user-login')
@@ -108,7 +93,7 @@ def crearSolicitudBonosVarilleros(request):
             total = buscar_solicitud[1]
         else:
             total = None  
-        print(total)
+            
         
         if 'btn_archivos' in request.POST:      
             #Se envian los formularios con datos                   
@@ -123,6 +108,7 @@ def crearSolicitudBonosVarilleros(request):
                 if not verificar_solicitud.exists(): 
                     
                     Solicitud.objects.create(
+                        id=folio,
                         folio = folio,
                         solicitante_id = solicitante.id,
                         total = 0.00,
@@ -241,6 +227,7 @@ def crearSolicitudBonosVarilleros(request):
                     
                     #se crea la solicitud
                     solicitud = Solicitud.objects.create(
+                        id = folio,
                         folio = folio,
                         solicitante_id = solicitante.id,
                         bono_id = bono.id,
@@ -296,23 +283,7 @@ def crearSolicitudBonosVarilleros(request):
                 }
                 return render(request,'esquema/bonos_varilleros/crear_solicitud.html',contexto)
     #Es metodo GET - Carga los formularios
-    else:
-        #Genera el número de folio automaticamente
-        #ultimo_registro = Solicitud.objects.values('id').last()
-        #resultados = consulta_autoincrement()
-        #for r in resultados:
-            #print(r[10])
-        #    ultimo_registro = r[10]
-            
-        #ultimo_registro = Solicitud.objects.latest('id');
-        #print(ultimo_registro.id)
-        #folio = ultimo_registro['id'] + 1
-        #folio = ultimo_registro
-        #print(folio)
-        #if ultimo_registro is 1:
-        #    folio = ultimo_registro
-        #else:
-        #    folio = 1
+    else:        
         #Genera el número de folio automaticamente
         ultimo_registro = Solicitud.objects.values('id').last()
         if ultimo_registro is not None:

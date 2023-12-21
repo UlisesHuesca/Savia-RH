@@ -35,6 +35,7 @@ class Bono(models.Model):
     
 #El bono que pasara a revisión
 class Solicitud(models.Model):
+    id = models.BigIntegerField(primary_key=True)
     folio = models.BigIntegerField(null=False, unique=True)
     #supervisor quien realiza la solicitud
     solicitante = models.ForeignKey(Perfil,on_delete=models.CASCADE,null=False) 

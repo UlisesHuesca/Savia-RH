@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     cambiarBono.addEventListener('click', async function(e){
         Swal.fire({
             title: "¿Está seguro de que desea realizar esta acción?",
-            text: "Al realizar el cambio, no será posible asociar los bonos solicitados al nuevo bono, por lo tanto, se eliminarán",
+            text: "Al realizar el cambio, no será posible asociar el tipo de bono, con los bonos solicitados previamente, por lo tanto se eliminarán",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#3085d6",
