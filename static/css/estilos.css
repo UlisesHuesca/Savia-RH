@@ -41,9 +41,20 @@
 }
 
 .btn-rojo:hover{
-    background-color:#990F0F;
+    background-color: #870d0d;
     color: white;
 }
+
+.btn-azul{
+    background-color: #2A628F;
+    color: white;
+}
+
+.btn-azul:hover{
+    background-color: #265880;
+    color: white;
+}
+
 
 @media only screen and (max-width: 600px) {
     .margen-alto{

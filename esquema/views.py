@@ -17,6 +17,7 @@ from .models import Categoria,Subcategoria,Bono,Solicitud,BonoSolicitado,Requeri
 from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm
 from django.db import connection
 from django.core.paginator import Paginator
+from .filters import SolicitudFilter
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -38,15 +39,20 @@ def listarBonosVarilleros(request):
     solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
     #se obtienen las solicitudes
     solicitudes = Solicitud.objects.filter(solicitante_id = solicitante.id).order_by('-id')
+    #se filtran las solicitudes
+    solicitud_filter = SolicitudFilter(request.GET, queryset=solicitudes) 
+    solicitudes = solicitud_filter.qs
     
-    #p = Paginator(solicitudes, 3)
-    #page = request.GET.get('page')
-    #salidas_list = p.get_page(page)
+    p = Paginator(solicitudes, 10)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
     
     contexto = {
         'usuario':usuario,
         'solicitante':solicitante,
         'solicitudes':solicitudes,
+        'solicitud_filter':solicitud_filter,
+        'salidas_list':salidas_list,
     }
     
     return render(request,'esquema/bonos_varilleros/listar.html',contexto)
