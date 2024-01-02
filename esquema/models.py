@@ -27,11 +27,16 @@ class Bono(models.Model):
     distrito = models.ForeignKey(Distrito,on_delete=models.CASCADE,null=False)
     #cuando el importe es null se considera NA
     importe = models.DecimalField(max_digits=10,decimal_places=2,null=True)
-
+    
     def __str__(self):
-        if self.esquema_subcategoria ==None:
-            return "Campo vacio"
-        return f'{self.subcategoria.nombre}'
+        if self.importe is None:
+            imp = 'NA'
+        else:
+            imp = self.importe
+            
+        return f'{self.esquema_subcategoria.nombre} {self.puesto} {self.distrito} {imp}'
+    
+    
     
 #El bono que pasara a revisión
 class Solicitud(models.Model):

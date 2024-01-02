@@ -137,6 +137,7 @@ class TipoPerfil(models.Model): #Boleanos para filtrar lo que puede hacer cada u
     tablas_empleados = models.BooleanField(null=True, default=False) #Datos bancarios a economicos
     info_general = models.BooleanField(null=True, default=False)
     solicitudes = models.BooleanField(null=True, default=False)
+    esquema_bono = models.BooleanField(null=True, default=False)
 
     def __str__(self):
         return f'{self.nombre}, admin: {self.admin} '

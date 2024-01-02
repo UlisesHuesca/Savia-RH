@@ -46,6 +46,7 @@ def listarBonosVarilleros(request):
     p = Paginator(solicitudes, 10)
     page = request.GET.get('page')
     salidas_list = p.get_page(page)
+    solicitudes = p.get_page(page)
     
     contexto = {
         'usuario':usuario,
@@ -53,6 +54,7 @@ def listarBonosVarilleros(request):
         'solicitudes':solicitudes,
         'solicitud_filter':solicitud_filter,
         'salidas_list':salidas_list,
+        
     }
     
     return render(request,'esquema/bonos_varilleros/listar.html',contexto)
@@ -76,7 +78,6 @@ def crearSolicitudBonosVarilleros(request):
     
     #Para guardar la solicitud
     if request.method == "POST":
-        
         #obtiene el folio independientemente del formulario
         if request.POST.get('valor') is not None:
             folio = request.POST.get('valor')
@@ -118,14 +119,12 @@ def crearSolicitudBonosVarilleros(request):
                         folio = folio,
                         solicitante_id = solicitante.id,
                         total = 0.00,
-                        fecha = datetime.now(),
                     )
                                         
                 #Se recorren los archivos para ser almacenados
                 for archivo in archivos:
                     Requerimiento.objects.create(
                         solicitud_id = folio,
-                        fecha = datetime.now(),
                         url = archivo,
                     )
                     
@@ -197,7 +196,6 @@ def crearSolicitudBonosVarilleros(request):
                             puesto_id = puesto.id,
                             distrito_id = usuario.distrito.id,
                             cantidad = cantidad,
-                            fecha = datetime.now()
                         )
                         
                         #Actuliza la cantidad del total de la solicitud 
@@ -238,8 +236,10 @@ def crearSolicitudBonosVarilleros(request):
                         solicitante_id = solicitante.id,
                         bono_id = bono.id,
                         total = cantidad,
-                        fecha = datetime.now()
                     )
+                    
+                    
+                    
                     
                     #se crea el bono solicitado
                     BonoSolicitado.objects.create(
@@ -248,7 +248,6 @@ def crearSolicitudBonosVarilleros(request):
                         puesto_id = puesto.id,
                         distrito_id = usuario.distrito.id,
                         cantidad = cantidad,
-                        fecha = datetime.now()
                     )
                     
                     messages.success(request, "La solicitud se ha creado correctamente")
@@ -288,6 +287,8 @@ def crearSolicitudBonosVarilleros(request):
                     'total':total
                 }
                 return render(request,'esquema/bonos_varilleros/crear_solicitud.html',contexto)
+    
+        print('validacion checar')
     #Es metodo GET - Carga los formularios
     else:        
         #Genera el número de folio automaticamente
@@ -328,6 +329,7 @@ def updateSolicitudBonosVarilleros(request,solicitud_id):
     lista_archivos = Requerimiento.objects.filter(solicitud_id = solicitud.id).values("id","url")
     
     if request.method == 'POST':    
+       
         
         if 'btn_archivos' in request.POST:                 
             
@@ -338,7 +340,6 @@ def updateSolicitudBonosVarilleros(request,solicitud_id):
                 for archivo in archivos:
                     Requerimiento.objects.create(
                         solicitud_id = solicitud.id,
-                        fecha = datetime.now(),
                         url = archivo,
                     )
                     
@@ -395,7 +396,6 @@ def updateSolicitudBonosVarilleros(request,solicitud_id):
                         puesto_id = puesto.id,
                         distrito_id = usuario.distrito.id,
                         cantidad = cantidad,
-                        fecha = datetime.now()
                     )
                         
                     total = BonoSolicitado.objects.filter(solicitud_id = solicitud.id).values("cantidad").aggregate(total=Sum('cantidad'))['total']                 
@@ -433,6 +433,7 @@ def updateSolicitudBonosVarilleros(request,solicitud_id):
         
                 return render(request,'esquema/bonos_varilleros/editar_solicitud.html',contexto)
         
+       
     else:
         contexto = {
             'requerimientoForm':requerimientoForm,

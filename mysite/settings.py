@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'proyecto.apps.ProyectoConfig',
     'user.apps.UserConfig',
     'esquema',
+    'revision',
 
 # Extensions - installed with pip3 / requirements.txt
     'django_extensions',

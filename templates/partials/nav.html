@@ -45,6 +45,11 @@
                 </div>
                 <div class="offcanvas-body">
                     <div>
+                        1. {{usuario}}<br>
+                        2. {{usuario.tipo}}<br>
+                        3. {{usuario.tipo.usuario}}<br>
+                        4. {{usuario.tipo.nombre}}<br>
+                        5. {{usuario.tipo.esquema_bono}}
                         {% if usuario_fijo.numero_de_trabajador == None or usuario.tipo.usuario == False %}
                         <div class="d-none">
                         {% else %}
@@ -73,10 +78,21 @@
                             <a class="dropdown-item" href="{% url 'Uniformes_completados_revisar' status_fijo.id %}">Uniformes</a>
                             {% endif %}
                             <div class="dropdown-divider"></div>
+
+                            {% if usuario.tipo.esquema_bono == True %}
+            
+                            <h6 class="dropdown-header">Solicitudes Bonos</h6>
+                            <hr>
+                            <a class="dropdown-item" href="{% url 'bono_inicio' %}">Esquema Bonos</a>
+                           
+                            {% endif %}
+
+
                         {% endif %}
                         </div>
                         {% if usuario.tipo.empleados == True %}
                         <div>
+                        <hr>
                         <h6 class="dropdown-header">Información de los empleados</h6>
                         <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Perfil' %}">Tabla Perfiles</a>
@@ -119,7 +135,12 @@
                             <a class="dropdown-item" href="{% url 'Tabla_economicos' %}">Días económicos</a>
 
                             {# Se cargan todos los tipos de los quemas de bonos para las solicitudes #}
+                            
+                            {% comment %}
                             <a class="dropdown-item" href="{% url 'bono_inicio' %}">Esquema Bonos</a>
+                            {% endcomment %}
+                                
+                           
 
 
                             <div class="dropdown-divider"></div>
