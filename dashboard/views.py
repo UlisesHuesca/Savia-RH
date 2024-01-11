@@ -64,11 +64,6 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
 
     usuario = UserDatos.objects.get(user__id=request.user.id)
     periodo = str(datetime.date.today().year)
-    
-    fecha_actual = date.today()
-    año_actual = str(fecha_actual.year)
-    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
-        
     if usuario.distrito.distrito == 'Matriz':
         perfiles = Perfil.objects.filter(complete = True, baja=False)
         cantidad = perfiles.count()
@@ -76,19 +71,8 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
         cantidad2 = status.count()
         costo = Costo.objects.filter(complete = True, status__perfil__baja=False)
         cantidad3 = costo.count()
-        #vacacion = Vacaciones.objects.filter(complete = True, Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)), status__perfil__baja=False)
-        vacacion = Vacaciones.objects.filter(
-            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
-            status__perfil__id__in=Perfil.objects.all(),
-            complete=True,
-        )
-        vacacion1 = vacacion.filter(periodo = año_actual) #traingo los de 2024
-        vacacion2 = vacacion.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
-        #elimina los perfiles repetidos del periodo actual con el periodo anterio | se queda con el actual 2024
-        vacacion3 = vacacion2.exclude(status_id__in=vacacion1.values('status_id')) 
-        vacacion = vacacion1 | vacacion3
+        vacacion = Vacaciones.objects.filter(complete = True, periodo = periodo, status__perfil__baja=False)
         cantidad4 = vacacion.count()
-        
         economico = Economicos.objects.filter(complete = True, periodo = periodo, status__perfil__baja=False)
         cantidad5 = economico.count()
         bancario = DatosBancarios.objects.filter(complete = True, status__perfil__baja=False)
@@ -107,19 +91,8 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
         cantidad2 = status.count()
         costo = Costo.objects.filter(status__perfil__distrito=usuario.distrito,complete = True, status__perfil__baja=False)
         cantidad3 = costo.count()
-        #vacacion = Vacaciones.objects.filter(status__perfil__distrito=usuario.distrito,complete = True,periodo = periodo, status__perfil__baja=False)
-        vacacion = Vacaciones.objects.filter(
-            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
-            status__perfil__id__in=Perfil.objects.filter(distrito = usuario.distrito,complete=True),
-            complete=True,
-        )
-        vacacion1 = vacacion.filter(periodo = año_actual) #traingo los de 2024
-        vacacion2 = vacacion.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
-        #elimina los perfiles repetidos del periodo actual con el periodo anterio | se queda con el actual 2024
-        vacacion3 = vacacion2.exclude(status_id__in=vacacion1.values('status_id')) 
-        vacacion = vacacion1 | vacacion3
+        vacacion = Vacaciones.objects.filter(status__perfil__distrito=usuario.distrito,complete = True,periodo = periodo, status__perfil__baja=False)
         cantidad4 = vacacion.count()
-        
         economico = Economicos.objects.filter(status__perfil__distrito=usuario.distrito,complete = True,periodo = periodo, status__perfil__baja=False)
         cantidad5 = economico.count()
         bancario = DatosBancarios.objects.filter(status__perfil__distrito=usuario.distrito,complete = True, status__perfil__baja=False)

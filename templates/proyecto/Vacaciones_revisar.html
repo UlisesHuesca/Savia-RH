@@ -43,6 +43,7 @@
                     <table class="table table-ligth table-striped mx-1">
                         <thead>
                             <tr>
+                                <th scope="col">Fecha de planta anterior</th>
                                 <th scope="col">Fecha de planta</th>
                                 <th scope="col">Periodo vacacional</th>
                                 <th scope="col">Días asignados a ese año</th>
@@ -55,11 +56,8 @@
                         <tbody>
                         {% for dato in datos %}
                             <tr>
-                                {% if dato.status.fecha_planta_anterior is None %}
-                                    <td>{{ dato.status.fecha_planta }}</td>
-                                {%else %}
-                                    <td>{{ dato.status.fecha_planta_anterior }}</td>
-                                {% endif %}
+                                <td>{{ dato.status.fecha_planta_anterior }}</td>
+                                <td>{{ dato.status.fecha_planta }}</td>
                                 <td>{{ dato.periodo }}</td>
                                 <td>{{ dato.dias_de_vacaciones }}</td>
                                 <td>{{ dato.dias_disfrutados }}</td>
