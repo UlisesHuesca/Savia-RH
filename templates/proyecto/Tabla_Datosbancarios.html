@@ -87,6 +87,10 @@
                 <div class="col-auto">
                        {% render_field bancario_filter.form.nombres_apellidos class="form-control" %}
                 </div>
+                <label for="bancario_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong># Empleado:</strong></label>
+                <div class="col-auto">
+                       {% render_field bancario_filter.form.numero_de_trabajador class="form-control" %}
+                </div>
                 {% if usuario.distrito.distrito == "Matriz" %}
                 <label for="bancario_filter.form.status__perfil__distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                 <div class="col-auto">

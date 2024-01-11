@@ -5,7 +5,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Sum, F
 from django.contrib import messages
-from django.db.models import Max
 import locale
 import math
 
@@ -24,7 +23,7 @@ from datetime import timedelta, date
 from dateutil.relativedelta import relativedelta #Años entre 2 fechas con años bisiestos
 from django.db.models.functions import Concat
 #PDF generator
-from django.db.models import Q
+from django.db.models import Q, Max
 from .forms import CostoForm, BonosForm, VacacionesForm, EconomicosForm, UniformesForm, DatosBancariosForm, PerfilForm, StatusForm, IsrForm,PerfilUpdateForm
 from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, VacacionesUpdateForm, EconomicosUpdateForm, StatusUpdateForm, CatorcenasForm, BajaEmpleadoUpdate
 from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, BajaEmpleadoForm
@@ -228,11 +227,18 @@ def Perfil_vista_baja(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        perfiles= Perfil.objects.filter(complete=True, baja=True).order_by("numero_de_trabajador")
-        perfiles= Datos_baja.objects.filter(perfil__in=perfiles, complete=True).order_by("fecha")
+        #perfiles= Perfil.objects.filter(complete=True, baja=True).order_by("numero_de_trabajador")
+        #perfiles= Datos_baja.objects.filter(perfil__in=perfiles, complete=True).order_by("fecha")
+        perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
+        perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
+                                             fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
     else:
-        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
-        perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True).order_by("numero_de_trabajador")
+        #perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
+        #perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True).order_by("perfil__numero_de_trabajador")
+        perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete_status=True,perfil__distrito=user_filter.distrito,perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
+        perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
+                                             fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
+    
     perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
     perfiles = perfil_filter.qs
 
@@ -1290,10 +1296,10 @@ def TablaCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        costos= Costo.objects.filter(complete=True,created_at__year=año).order_by("status__perfil__numero_de_trabajador")
+        costos= Costo.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        costos = Costo.objects.filter(status__perfil__id__in=perfil.all(),created_at__year=año, complete=True).order_by("status__perfil__numero_de_trabajador")
+        costos = Costo.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
 
     costo_filter = CostoFilter(request.GET, queryset=costos)
     costos = costo_filter.qs
@@ -1599,7 +1605,7 @@ def VacacionesRevisar(request, pk):
 @login_required(login_url='user-login')
 def Tabla_Vacaciones(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
-    
+
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
@@ -1607,93 +1613,46 @@ def Tabla_Vacaciones(request): #Ya esta
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual)) 
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
-    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
     reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
-    reinicio = reinicio.filter(Q(fecha_planta_anterior__month__lte=fecha_actual.month) & Q(fecha_planta_anterior__day__lte=fecha_actual.day))
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año)
-    reinicio2 = reinicio2.filter(Q(fecha_planta__month__lte=fecha_actual.month) & Q(fecha_planta__day__lte=fecha_actual.day))
+    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
-    
-    
-    #if reinicio:
-    for empleado in reinicio:
+    if reinicio:
+        for empleado in reinicio:
             #Se calculan los días para la vacación actual 
-            ahora = datetime.date.today()
+            ahora = datetime.date.today() 
             tablas= TablaVacaciones.objects.all()
             if empleado.fecha_planta_anterior:
                 days = empleado.fecha_planta_anterior
             else:
                 days = empleado.fecha_planta
-                
-            calcular_antiguedad = relativedelta(ahora, days)
-            antiguedad = calcular_antiguedad.years
-            
+            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
+            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+                antiguedad = ahora.year - days.year
+            else:
+                antiguedad = ahora.year - days.year - 1
+            #if antiguedad < periodo:
+            #    descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
+            #else:
             for tabla in tablas:
                 if antiguedad >= tabla.years:
                     dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
                         
-            vacacion = Vacaciones.objects.create(
-                complete=True, 
-                status=empleado, 
-                periodo=año_actual, 
-                dias_de_vacaciones=dias_vacaciones,
-                fecha_inicio=None,
-                fecha_fin=None,
-                dias_disfrutados=0,
-                dia_inhabil=None,
-                total_pendiente=dias_vacaciones,
-                comentario="Generado autom. al cumplir otro año de antigüedad",
-                editado="Sistema")
+            vacacion = Vacaciones.objects.create(complete=True, status=empleado, periodo=año_actual, dias_de_vacaciones=dias_vacaciones,
+                                                fecha_inicio=None, fecha_fin=None, dias_disfrutados=0, dia_inhabil=None,
+                                                total_pendiente=dias_vacaciones, comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
             empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
             empleado.save()
-  
+
     if user_filter.distrito.distrito == 'Matriz':
-        perfil = Perfil.objects.all();
-        
-        #descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-        periodo = Vacaciones.objects.filter(
-            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
-            status__perfil__id__in=perfil.all(),
-            complete=True
-        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-        
-        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
-        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
-        
-        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024 
-        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id')) 
-        
-        descansos = periodo1 | periodo3
-        
-        
-        print(descansos.count())
-    
+        descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
     #elif user_filter.distrito.distrito == 'Poza Rica':
     #    perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
     #    descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo__in=["2022", "2023"]).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
     else:
-        
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-        periodo = Vacaciones.objects.filter(
-            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
-            status__perfil__id__in=perfil.all(),
-            complete=True
-        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-        
-        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
-        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
-        
-        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024 
-        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id')) 
-        
-        descansos = periodo1 | periodo3
-        
-        print('proyecto: ',descansos.count())
-        
-        
-    
+        descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+
     vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
     descansos = vacaciones_filter.qs
     if request.method =='POST' and 'Excel' in request.POST:
@@ -1925,7 +1884,9 @@ def Tabla_Datosbancarios(request):
         bancarios = DatosBancarios.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
     bancario_filter = BancariosFilter(request.GET, queryset=bancarios)
     bancarios = bancario_filter.qs
-
+    for bancario in bancarios:
+        bancario.numero_de_tarjeta = str(bancario.numero_de_tarjeta)
+        bancario.clabe_interbancaria = str(bancario.clabe_interbancaria)
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_bancarios(bancarios)
 
@@ -2757,7 +2718,6 @@ def upload_batch_empleados(request):
         empleados_list.activated = True
         empleados_list.save()
 
-
     context = {
         'form': form,
         }
@@ -3004,7 +2964,50 @@ def upload_batch_costos(request):
         }
 
     return render(request,'proyecto/upload_batch_costos.html', context)
+"""
+#Bancarios actualizar datos
+@login_required(login_url='user-login')
+def upload_batch_bancarios(request):
 
+    form = Bancarios_BatchForm(request.POST or None, request.FILES or None)
+
+    if form.is_valid():
+        form.save()
+        form = Bancarios_BatchForm()
+        bancarios_list = Bancarios_Batch.objects.get(activated = False)
+        f = open(bancarios_list.file_name.path, 'r')
+        reader = csv.reader(f)
+        next(reader) #Advance past the reader
+
+        for row in reader:
+            if Status.objects.filter(perfil__numero_de_trabajador = row[0], perfil__distrito__distrito = row[1]):
+                status = Status.objects.get(perfil__numero_de_trabajador = row[0], perfil__distrito__distrito = row[1])
+                bancario = DatosBancarios.objects.get(status=status)
+                if Banco.objects.filter(banco = row[5]):
+                    banco = Banco.objects.get(banco = row[5])
+                    status.complete_bancarios = True
+                    bancario.no_de_cuenta = row[2]
+                    bancario.numero_de_tarjeta = row[3]
+                    bancario.clabe_interbancaria = row[4]
+                    bancario.banco = banco
+                    bancario.complete = True
+                    bancario.save()
+                else:
+                    messages.error(request,f'El banco no existe dentro de la base de datos, empleado #{row[0]}')
+            else:
+                messages.error(request,f'El empleado no existe dentro de la base de datos, empleado #{row[0]}')
+        bancarios_list.activated = True
+        bancarios_list.save()
+        status.save()
+
+    context = {
+        'form': form,
+        }
+
+    return render(request,'proyecto/upload_batch_bancarios.html', context)
+
+    """
+ #Bancarios agregar datos
 @login_required(login_url='user-login')
 def upload_batch_bancarios(request):
 
@@ -3519,34 +3522,30 @@ def SolicitudVacaciones(request):
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
     reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
-    for empleado in reinicio:
+    if reinicio:
+        for empleado in reinicio:
             #Se calculan los días para la vacación actual 
-            ahora = datetime.date.today()
+            ahora = datetime.date.today() 
             tablas= TablaVacaciones.objects.all()
             if empleado.fecha_planta_anterior:
                 days = empleado.fecha_planta_anterior
             else:
                 days = empleado.fecha_planta
-                
-            calcular_antiguedad = relativedelta(ahora, days)
-            antiguedad = calcular_antiguedad.years
-            
+            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
+            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+                antiguedad = ahora.year - days.year
+            else:
+                antiguedad = ahora.year - days.year - 1
+            #if antiguedad < periodo:
+            #    descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
+            #else:
             for tabla in tablas:
                 if antiguedad >= tabla.years:
                     dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
                         
-            vacacion = Vacaciones.objects.create(
-                complete=True, 
-                status=empleado, 
-                periodo=año_actual, 
-                dias_de_vacaciones=dias_vacaciones,
-                fecha_inicio=None,
-                fecha_fin=None,
-                dias_disfrutados=0,
-                dia_inhabil=None,
-                total_pendiente=dias_vacaciones,
-                comentario="Generado autom. al cumplir otro año de antigüedad",
-                editado="Sistema")
+            vacacion = Vacaciones.objects.create(complete=True, status=empleado, periodo=año_actual, dias_de_vacaciones=dias_vacaciones,
+                                                fecha_inicio=None, fecha_fin=None, dias_disfrutados=0, dia_inhabil=None,
+                                                total_pendiente=dias_vacaciones, comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
             empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
             empleado.save()
 
@@ -5373,3 +5372,50 @@ def Cv_agregar(request, pk):
     }
 
     return render(request, 'proyecto/Cv_agregar.html', context)
+
+@login_required(login_url='user-login')
+def Reingreso(request, pk):
+    empleado = Perfil.objects.get(id=pk)
+    status = Status.objects.get(perfil=empleado)
+    anterior = Datos_baja.objects.filter(perfil=empleado).last()
+    ahora = datetime.date.today()
+    puestos = Puesto.objects.all()
+    subproyectos = SubProyecto.objects.all()
+    form2 = StatusUpdateForm(instance=status)
+
+    if request.method == 'POST':
+        form = PerfilUpdateForm(request.POST, request.FILES, instance=empleado)
+        form2 = StatusUpdateForm(request.POST, request.FILES, instance=status)
+        if empleado.foto and empleado.foto.size > 2097152:
+            messages.error(request,'El tamaño del archivo es mayor de 2 MB')
+        elif empleado.fecha_nacimiento >= ahora:
+            messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
+        elif form.is_valid() and form2.is_valid():
+            empleado = form.save(commit=False)
+            status = form2.save(commit=False)
+            user_filter = UserDatos.objects.get(user=request.user)
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            empleado.editado = str("Reingreso:"+nombre.nombres+" "+nombre.apellidos)
+            status.editado = str("Reingreso:"+nombre.nombres+" "+nombre.apellidos)
+            empleado.baja = False
+            empleado.save()
+            status.save()
+            anterior.pasado=True
+            anterior.save()
+            messages.success(request, f'Empleado: {empleado.nombres} {empleado.apellidos}, dado de alta')
+            return redirect('Perfil')
+    else:
+        form = PerfilUpdateForm(instance=empleado)
+        form2 = StatusUpdateForm(instance=status)
+
+    context = {
+        'form':form,
+        'form2':form2,
+        'empleado':empleado,
+        'status':status,
+        'subproyectos':subproyectos,
+        'puestos':puestos,
+        }
+
+
+    return render(request, 'proyecto/ReingresoForm.html',context)

@@ -47,10 +47,7 @@ INSTALLED_APPS = [
     'django_filters',
     "django_htmx",
     'crispy_forms',
-    'crispy_bootstrap4',
 ]
-
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -111,11 +108,11 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME':'respaldo',
-        'USER':'root',
-        'PASSWORD':'12345678',
+        'NAME': 'original',
+        'USER': 'root',
+        'PASSWORD': 'Root',
         'HOST': 'localhost',
-        'PORT': '3306',
+        'PORT': '',
     }
 }
 # Password validation
@@ -147,6 +144,7 @@ TIME_ZONE = 'America/Mexico_City'
 USE_I18N = True
 
 USE_TZ = True
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
