@@ -34,6 +34,7 @@ class StatusFilter(django_filters.FilterSet):
         return queryset.annotate(nombres_apellidos_combined=Concat('perfil__nombres', Value(' '), 'perfil__apellidos', output_field=CharField())).filter(nombres_apellidos_combined__icontains=value)
 
 class BancariosFilter(django_filters.FilterSet):
+    numero_de_trabajador = django_filters.NumberFilter(field_name='status__perfil__numero_de_trabajador')
     nombres_apellidos = CharFilter(method='nombres_apellidos_filter', label="Search")
     no_de_cuenta = django_filters.CharFilter(field_name='no_de_cuenta', lookup_expr='icontains')
     distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.all(), field_name='status__perfil__distrito__distrito')
@@ -41,7 +42,7 @@ class BancariosFilter(django_filters.FilterSet):
     baja = django_filters.ChoiceFilter(field_name='status__perfil__baja',choices=BAJA_CHOICES,empty_label=None)
     class Meta:
         model = DatosBancarios
-        fields = ['nombres_apellidos','no_de_cuenta','banco','distrito','baja']
+        fields = ['numero_de_trabajador','nombres_apellidos','no_de_cuenta','banco','distrito','baja']
 
     def nombres_apellidos_filter(self, queryset, name, value):
         return queryset.annotate(nombres_apellidos_combined=Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos', output_field=CharField())).filter(nombres_apellidos_combined__icontains=value)

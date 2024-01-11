@@ -104,6 +104,7 @@
                     <th scope="col">Exitosa</th>
                     <th scope="col">Proyecto</th>
                     <th scope="col">Subproyecto</th>
+                    <th scope="col">Reingreso</th>
                     <th scope="col">Actualizar</th>
                 </tr>
             </thead>
@@ -120,7 +121,8 @@
                     <td>{{perfil.exitosa}}</td> 
                     <td>{{perfil.perfil.proyecto}}</td>
                     <td>{{perfil.perfil.subproyecto}}</td>
-                    <td><a class="btn btn-outline-info btn-block mx-auto" type="button" data-bs-toggle="modal" data-bs-target="#dialog" hx-target="#document" hx-get="{% url 'Baja_empleado_update' perfil.id %}"><i class="fa-solid fa-user-minus">Actualizar</i></a></a></td>
+                    <td><a class="btn btn-outline-info btn-block mx-auto" type="button" data-bs-toggle="modal" data-bs-target="#dialog" hx-target="#document" hx-get="{% url 'Reingreso' perfil.perfil.id %}"><i class="fa-solid fa-user-minus">Alta</i></a></a></td>
+                    <td><a class="btn btn-outline-info btn-block mx-auto" type="button" data-bs-toggle="modal" data-bs-target="#dialog" hx-target="#document" hx-get="{% url 'Baja_empleado_update' perfil.id %}"><i class="fa-solid fa-user-minus">Baja</i></a></a></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -156,11 +158,10 @@
 </nav>
 
 <!--Este es el modal-->
-        <div class="modal fade" id ="dialog" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" role="dialog">
-            <div class="modal-dialog modal-lg modal-dialog-centered" id="document" role="document" hx-target="this">
-
-            </div>
-        </div>
+<div class="modal fade" id ="dialog" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" id="document" role="document">
+    </div>
+</div>
 
 <script>
 

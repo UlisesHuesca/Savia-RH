@@ -108,7 +108,7 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'saviadatabase',
+        'NAME': 'original',
         'USER': 'root',
         'PASSWORD': 'Root',
         'HOST': 'localhost',

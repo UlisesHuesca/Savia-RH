@@ -228,7 +228,7 @@ class Status(models.Model):
     ultimo_contrato_vence = models.DateField(null=True)
     tipo_sangre = models.ForeignKey(Sangre, on_delete = models.CASCADE, null=True)
     sexo = models.ForeignKey(Sexo, on_delete = models.CASCADE, null=True)
-    domicilio = models.CharField(max_length=75,null=True)
+    domicilio = models.CharField(max_length=100,null=True)
     estado_civil = models.ForeignKey(Civil, on_delete = models.CASCADE, null=True)
     fecha_planta_anterior = models.DateField(null=True, blank=True)
     fecha_planta = models.DateField(null=True, blank=True)
