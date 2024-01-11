@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Sum, F
 from django.contrib import messages
+from django.db.models import Max
 import locale
 import math
 
@@ -1598,7 +1599,7 @@ def VacacionesRevisar(request, pk):
 @login_required(login_url='user-login')
 def Tabla_Vacaciones(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
-
+    
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
@@ -1606,46 +1607,93 @@ def Tabla_Vacaciones(request): #Ya esta
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual)) 
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
     reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    reinicio = reinicio.filter(Q(fecha_planta_anterior__month__lte=fecha_actual.month) & Q(fecha_planta_anterior__day__lte=fecha_actual.day))
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año)
+    reinicio2 = reinicio2.filter(Q(fecha_planta__month__lte=fecha_actual.month) & Q(fecha_planta__day__lte=fecha_actual.day))
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
-    if reinicio:
-        for empleado in reinicio:
+    
+    
+    #if reinicio:
+    for empleado in reinicio:
             #Se calculan los días para la vacación actual 
-            ahora = datetime.date.today() 
+            ahora = datetime.date.today()
             tablas= TablaVacaciones.objects.all()
             if empleado.fecha_planta_anterior:
                 days = empleado.fecha_planta_anterior
             else:
                 days = empleado.fecha_planta
-            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
-            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
-                antiguedad = ahora.year - days.year
-            else:
-                antiguedad = ahora.year - days.year - 1
-            #if antiguedad < periodo:
-            #    descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
-            #else:
+                
+            calcular_antiguedad = relativedelta(ahora, days)
+            antiguedad = calcular_antiguedad.years
+            
             for tabla in tablas:
                 if antiguedad >= tabla.years:
                     dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
                         
-            vacacion = Vacaciones.objects.create(complete=True, status=empleado, periodo=año_actual, dias_de_vacaciones=dias_vacaciones,
-                                                fecha_inicio=None, fecha_fin=None, dias_disfrutados=0, dia_inhabil=None,
-                                                total_pendiente=dias_vacaciones, comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+            vacacion = Vacaciones.objects.create(
+                complete=True, 
+                status=empleado, 
+                periodo=año_actual, 
+                dias_de_vacaciones=dias_vacaciones,
+                fecha_inicio=None,
+                fecha_fin=None,
+                dias_disfrutados=0,
+                dia_inhabil=None,
+                total_pendiente=dias_vacaciones,
+                comentario="Generado autom. al cumplir otro año de antigüedad",
+                editado="Sistema")
             empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
             empleado.save()
-
+  
     if user_filter.distrito.distrito == 'Matriz':
-        descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        perfil = Perfil.objects.all();
+        
+        #descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        periodo = Vacaciones.objects.filter(
+            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+            status__perfil__id__in=perfil.all(),
+            complete=True
+        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        
+        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
+        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+        
+        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024 
+        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id')) 
+        
+        descansos = periodo1 | periodo3
+        
+        
+        print(descansos.count())
+    
     #elif user_filter.distrito.distrito == 'Poza Rica':
     #    perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
     #    descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo__in=["2022", "2023"]).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
     else:
+        
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-
+        #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        periodo = Vacaciones.objects.filter(
+            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+            status__perfil__id__in=perfil.all(),
+            complete=True
+        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        
+        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
+        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+        
+        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024 
+        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id')) 
+        
+        descansos = periodo1 | periodo3
+        
+        print('proyecto: ',descansos.count())
+        
+        
+    
     vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
     descansos = vacaciones_filter.qs
     if request.method =='POST' and 'Excel' in request.POST:
@@ -3471,30 +3519,34 @@ def SolicitudVacaciones(request):
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
     reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
-    if reinicio:
-        for empleado in reinicio:
+    for empleado in reinicio:
             #Se calculan los días para la vacación actual 
-            ahora = datetime.date.today() 
+            ahora = datetime.date.today()
             tablas= TablaVacaciones.objects.all()
             if empleado.fecha_planta_anterior:
                 days = empleado.fecha_planta_anterior
             else:
                 days = empleado.fecha_planta
-            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
-            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
-                antiguedad = ahora.year - days.year
-            else:
-                antiguedad = ahora.year - days.year - 1
-            #if antiguedad < periodo:
-            #    descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
-            #else:
+                
+            calcular_antiguedad = relativedelta(ahora, days)
+            antiguedad = calcular_antiguedad.years
+            
             for tabla in tablas:
                 if antiguedad >= tabla.years:
                     dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
                         
-            vacacion = Vacaciones.objects.create(complete=True, status=empleado, periodo=año_actual, dias_de_vacaciones=dias_vacaciones,
-                                                fecha_inicio=None, fecha_fin=None, dias_disfrutados=0, dia_inhabil=None,
-                                                total_pendiente=dias_vacaciones, comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+            vacacion = Vacaciones.objects.create(
+                complete=True, 
+                status=empleado, 
+                periodo=año_actual, 
+                dias_de_vacaciones=dias_vacaciones,
+                fecha_inicio=None,
+                fecha_fin=None,
+                dias_disfrutados=0,
+                dia_inhabil=None,
+                total_pendiente=dias_vacaciones,
+                comentario="Generado autom. al cumplir otro año de antigüedad",
+                editado="Sistema")
             empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
             empleado.save()
 

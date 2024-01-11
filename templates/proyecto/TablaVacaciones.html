@@ -130,7 +130,12 @@
                 {% for descanso in salidas_list %}
                 <tr>
                     <td>{{descanso.status.perfil.nombres}} {{descanso.status.perfil.apellidos}}</td>
-                    <td>{{descanso.status.fecha_planta_anterior}}</td>
+                    
+                    {% if descanso.status.fecha_planta_anterior is None%}
+                        <td class="">-------------</td>
+                    {%else%}
+                        <td>{{descanso.status.fecha_planta_anterior}}</td>
+                    {% endif %}
                     <td>{{descanso.status.fecha_planta}}</td>
                     <td>{{descanso.periodo}}</td>
                     <td>{{descanso.dias_de_vacaciones}}</td>

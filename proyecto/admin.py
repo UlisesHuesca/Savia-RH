@@ -72,7 +72,7 @@ class BancariosAdmin(admin.ModelAdmin):
     search_fields = ('status__perfil__nombres'),
 
 class VacacionAdmin(admin.ModelAdmin):
-    ordering = ['id']
+    ordering = ['status__perfil__nombres']
     list_display = ('id','status','periodo')
     search_fields = ('status__perfil__nombres'),
 
