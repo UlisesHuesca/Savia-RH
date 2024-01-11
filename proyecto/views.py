@@ -24,7 +24,7 @@ from datetime import timedelta, date
 from dateutil.relativedelta import relativedelta #Años entre 2 fechas con años bisiestos
 from django.db.models.functions import Concat
 #PDF generator
-from django.db.models import Q
+from django.db.models import Q, Max
 from .forms import CostoForm, BonosForm, VacacionesForm, EconomicosForm, UniformesForm, DatosBancariosForm, PerfilForm, StatusForm, IsrForm,PerfilUpdateForm
 from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, VacacionesUpdateForm, EconomicosUpdateForm, StatusUpdateForm, CatorcenasForm, BajaEmpleadoUpdate
 from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, BajaEmpleadoForm
@@ -228,11 +228,18 @@ def Perfil_vista_baja(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        perfiles= Perfil.objects.filter(complete=True, baja=True).order_by("numero_de_trabajador")
-        perfiles= Datos_baja.objects.filter(perfil__in=perfiles, complete=True).order_by("fecha")
+        #perfiles= Perfil.objects.filter(complete=True, baja=True).order_by("numero_de_trabajador")
+        #perfiles= Datos_baja.objects.filter(perfil__in=perfiles, complete=True).order_by("fecha")
+        perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
+        perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
+                                             fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
     else:
-        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
-        perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True).order_by("numero_de_trabajador")
+        #perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
+        #perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True).order_by("perfil__numero_de_trabajador")
+        perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete_status=True,perfil__distrito=user_filter.distrito,perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
+        perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
+                                             fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
+    
     perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
     perfiles = perfil_filter.qs
 
@@ -1290,10 +1297,10 @@ def TablaCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
 
     if user_filter.distrito.distrito == 'Matriz':
-        costos= Costo.objects.filter(complete=True,created_at__year=año).order_by("status__perfil__numero_de_trabajador")
+        costos= Costo.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        costos = Costo.objects.filter(status__perfil__id__in=perfil.all(),created_at__year=año, complete=True).order_by("status__perfil__numero_de_trabajador")
+        costos = Costo.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
 
     costo_filter = CostoFilter(request.GET, queryset=costos)
     costos = costo_filter.qs
@@ -1925,7 +1932,9 @@ def Tabla_Datosbancarios(request):
         bancarios = DatosBancarios.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
     bancario_filter = BancariosFilter(request.GET, queryset=bancarios)
     bancarios = bancario_filter.qs
-
+    for bancario in bancarios:
+        bancario.numero_de_tarjeta = str(bancario.numero_de_tarjeta)
+        bancario.clabe_interbancaria = str(bancario.clabe_interbancaria)
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_bancarios(bancarios)
 
@@ -2757,7 +2766,6 @@ def upload_batch_empleados(request):
         empleados_list.activated = True
         empleados_list.save()
 
-
     context = {
         'form': form,
         }
@@ -3004,7 +3012,50 @@ def upload_batch_costos(request):
         }
 
     return render(request,'proyecto/upload_batch_costos.html', context)
+"""
+#Bancarios actualizar datos
+@login_required(login_url='user-login')
+def upload_batch_bancarios(request):
 
+    form = Bancarios_BatchForm(request.POST or None, request.FILES or None)
+
+    if form.is_valid():
+        form.save()
+        form = Bancarios_BatchForm()
+        bancarios_list = Bancarios_Batch.objects.get(activated = False)
+        f = open(bancarios_list.file_name.path, 'r')
+        reader = csv.reader(f)
+        next(reader) #Advance past the reader
+
+        for row in reader:
+            if Status.objects.filter(perfil__numero_de_trabajador = row[0], perfil__distrito__distrito = row[1]):
+                status = Status.objects.get(perfil__numero_de_trabajador = row[0], perfil__distrito__distrito = row[1])
+                bancario = DatosBancarios.objects.get(status=status)
+                if Banco.objects.filter(banco = row[5]):
+                    banco = Banco.objects.get(banco = row[5])
+                    status.complete_bancarios = True
+                    bancario.no_de_cuenta = row[2]
+                    bancario.numero_de_tarjeta = row[3]
+                    bancario.clabe_interbancaria = row[4]
+                    bancario.banco = banco
+                    bancario.complete = True
+                    bancario.save()
+                else:
+                    messages.error(request,f'El banco no existe dentro de la base de datos, empleado #{row[0]}')
+            else:
+                messages.error(request,f'El empleado no existe dentro de la base de datos, empleado #{row[0]}')
+        bancarios_list.activated = True
+        bancarios_list.save()
+        status.save()
+
+    context = {
+        'form': form,
+        }
+
+    return render(request,'proyecto/upload_batch_bancarios.html', context)
+
+    """
+ #Bancarios agregar datos
 @login_required(login_url='user-login')
 def upload_batch_bancarios(request):
 
@@ -5373,3 +5424,50 @@ def Cv_agregar(request, pk):
     }
 
     return render(request, 'proyecto/Cv_agregar.html', context)
+
+@login_required(login_url='user-login')
+def Reingreso(request, pk):
+    empleado = Perfil.objects.get(id=pk)
+    status = Status.objects.get(perfil=empleado)
+    anterior = Datos_baja.objects.filter(perfil=empleado).last()
+    ahora = datetime.date.today()
+    puestos = Puesto.objects.all()
+    subproyectos = SubProyecto.objects.all()
+    form2 = StatusUpdateForm(instance=status)
+
+    if request.method == 'POST':
+        form = PerfilUpdateForm(request.POST, request.FILES, instance=empleado)
+        form2 = StatusUpdateForm(request.POST, request.FILES, instance=status)
+        if empleado.foto and empleado.foto.size > 2097152:
+            messages.error(request,'El tamaño del archivo es mayor de 2 MB')
+        elif empleado.fecha_nacimiento >= ahora:
+            messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
+        elif form.is_valid() and form2.is_valid():
+            empleado = form.save(commit=False)
+            status = form2.save(commit=False)
+            user_filter = UserDatos.objects.get(user=request.user)
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            empleado.editado = str("Reingreso:"+nombre.nombres+" "+nombre.apellidos)
+            status.editado = str("Reingreso:"+nombre.nombres+" "+nombre.apellidos)
+            empleado.baja = False
+            empleado.save()
+            status.save()
+            anterior.pasado=True
+            anterior.save()
+            messages.success(request, f'Empleado: {empleado.nombres} {empleado.apellidos}, dado de alta')
+            return redirect('Perfil')
+    else:
+        form = PerfilUpdateForm(instance=empleado)
+        form2 = StatusUpdateForm(instance=status)
+
+    context = {
+        'form':form,
+        'form2':form2,
+        'empleado':empleado,
+        'status':status,
+        'subproyectos':subproyectos,
+        'puestos':puestos,
+        }
+
+
+    return render(request, 'proyecto/ReingresoForm.html',context)
