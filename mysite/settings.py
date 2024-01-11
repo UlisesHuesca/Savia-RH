@@ -47,7 +47,10 @@ INSTALLED_APPS = [
     'django_filters',
     "django_htmx",
     'crispy_forms',
+    'crispy_bootstrap4',
 ]
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -92,29 +95,20 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #        'NAME': 'newdatabase',
 #    }
 #}
-#DATABASES = {
-#   'default': {
-#        'ENGINE': 'django.db.backends.mysql',
-#        'NAME': 'vicjosh$default',
-#        'USER': 'vicjosh',
-#        'PASSWORD': 'mimi2000',
-#        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
-#        'PORT': '',  # Deja este campo vacío
-#        'OPTIONS': {
-#            'charset': 'utf8mb4',
-#        },
-#    }
-#}
 DATABASES = {
-    'default': {
+   'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'original',
-        'USER': 'root',
-        'PASSWORD': 'Root',
-        'HOST': 'localhost',
-        'PORT': '',
+        'NAME': 'vicjosh$default',
+        'USER': 'vicjosh',
+        'PASSWORD': 'mimi2000',
+        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
+        'PORT': '',  # Deja este campo vacío
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
+
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 
@@ -144,7 +138,6 @@ TIME_ZONE = 'America/Mexico_City'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
