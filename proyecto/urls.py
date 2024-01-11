@@ -11,6 +11,7 @@ urlpatterns = [
 
     path('Perfil', views.Perfil_vista, name='Perfil'),
     path('Perfil_baja', views.Perfil_vista_baja, name='Perfil_baja'),
+    path('Perfil/Reingreso<int:pk>/', views.Reingreso, name='Reingreso'),  
     path('Status', views.Status_vista, name='Status'),
     path('Formulario_Perfil', views.FormularioPerfil, name='Formulario_perfil'),
     path('Formulario_Status', views.FormularioStatus, name='Formulario_status'),

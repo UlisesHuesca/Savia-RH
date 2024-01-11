@@ -1,0 +1,326 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+<html>
+<head>
+    {% block title %} Reingreso Empleado {% endblock %}
+    <!-- Aquí puedes incluir tus enlaces a archivos CSS o scripts adicionales si es necesario -->
+</head>
+<body>
+    {% block content %}
+    <!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+    <div class="row my-4">
+        <div class="col-md-4">
+            <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            {% if messages %}
+                {% for message in messages %}
+                    <script>
+                        {% if message.tags == "error" %}
+                            Swal.fire({
+                                "title":"Error",
+                                "text":"{{message}}",
+                                "icon":"error",
+                            })
+                        {% else %}
+                            Swal.fire({
+                                "title":"Excelente",
+                                "text":"{{message}}",
+                                "icon":"success",
+                            })
+                        {% endif %}
+                    </script>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    <br>
+    <br>
+    <div class="modal-dialog-lg" role="document">
+        <form id="baja_empleado_form" hx-post="{{request.path}}" class="modal-content">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Formulario Reingreso Empleado</h5>
+                    <button class="btn-close cerrar" type="button" id="cerrar1" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="color:white">
+                    <span class="h7">Empleado: {{empleado.nombres}} {{empleado.apellidos}}</span>
+                    <br>
+                    <div>
+                        <form method='POST' action='{{ action_url }}' enctype='multipart/form-data'>
+                            {% csrf_token %}
+                            <div class="row my-2">
+                                <label for="form.foto" class="col-auto col-form-label my-1"><strong>Foto:</strong></label>
+                                <div class="col-4">
+                                    {{form.foto|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.empresa" class="col-auto col-form-label my-1"><strong>Empresa:</strong></label>
+                                <div class="col-3">
+                                    <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-industry"></i></span>
+                                    {{form.empresa|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.distrito" class="col-auto col-form-label my-1"><strong>Distrito:</strong></label>
+                                <div class="col-3">
+                                    <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-location-dot"></i></span>
+                                    {{form.distrito|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.nombres" class="col-auto col-form-label my-1"><strong>Nombres:</strong></label>
+                                <div class="col-4">
+                                    {{form.nombres|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.apellidos" class="col-auto col-form-label my-1"><strong>Apellidos:</strong></label>
+                                <div class="col-4">
+                                    {{form.apellidos|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.fecha_nacimiento" class="col-auto col-form-label my-1"><strong>Fecha de nacimiento::</strong></label>
+                                <div class="col-3">
+                                    {% render_field form.fecha_nacimiento type="date" class="form-control" %}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.correo_electronico" class="col-auto col-form-label my-1"><strong>Correo electrónico:</strong></label>
+                                <div class="col-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-at"></i></span>
+                                    {{form.correo_electronico|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.proyecto" class="col-auto col-form-label my-1"><strong>Proyecto:</strong></label>
+                                <div class="col-4">
+                                    {{form.proyecto|add_class:"form-control"}}
+                                </div>
+                            </div>
+
+                            <div class="row my-2">
+                            <label for="form.subproyecto" class="col-auto col-form-label my-1"><strong>Subproyecto: </strong></label>
+                                <div class="col-sm-6">
+                                    <div class="selector input-group mb-3">
+                                        <select class="form-select form-select-sm" style="font-size:1rem" id="subproyecto">
+                                            <option id="default_sel">--------</option>
+                                            {% for subproyecto in subproyectos %}
+                                            <option class="js" proyecto="{{subproyecto.proyecto.id}}">
+                                            {{subproyecto.subproyecto}}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row my-2 ">None
+                                <label for="form.subproyecto" class="col-auto col-form-label my-1"><strong>Subproyecto:</strong></label>
+                                <div class="col-4">
+                                    {{form.subproyecto|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.registro_patronal" class="col-auto col-form-label my-1"><strong>Registro patronal:</strong></label>
+                                <div class="col-4">
+                                    {{form2.registro_patronal|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.nss" class="col-auto col-form-label my-1"><strong>NSS:</strong></label>
+                                <div class="col-5">
+                                    {{form2.nss|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.curp" class="col-auto col-form-label my-1"><strong>Curp:</strong></label>
+                                <div class="col-5">
+                                    {{form2.curp|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.rfc" class="col-auto col-form-label my-1"><strong>RFC:</strong></label>
+                                <div class="col-5">
+                                    {{form2.rfc|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.lugar_nacimiento" class="col-auto col-form-label my-1"><strong>Lugar de nacimiento (Dato para CV):</strong></label>
+                                <div class="col-5">
+                                    {{form2.lugar_nacimiento|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.numero_ine" class="col-auto col-form-label my-1"><strong>Número de INE (Dato para CV):</strong></label>
+                                <div class="col-5">
+                                    {{form2.numero_ine|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.profesion" class="col-auto col-form-label my-1"><strong>Profesión:</strong></label>
+                                <div class="col-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-helmet-safety"></i></span>
+                                        {{form2.profesion|add_class:"form-control"}}
+                                    </div>
+                                </div>
+                            </div>                  
+                            <div class="row my-2">
+                                <label for="form2.puesto" class="col-auto col-form-label my-1"><strong>Puesto actual del empleado {{status.puesto}}:</strong></label>
+                                <div class="col-5 ">
+                                    {{form2.puesto|add_class:"form-control"}}
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" list="puesto" id="txt_puesto" valor="{{puesto.id}}" placeholder="Puestos..." class="form-control">
+                                    <datalist id="puesto" name='puesto'>
+                                        {% for puesto in puestos %}
+                                            <option valor="{{puesto.id}}" value="{{puesto.puesto}}"></option>
+                                        {% endfor %}
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.escuela" class="col-auto col-form-label my-1"><strong>Escuelas donde egreso (Dato para CV):</strong></label>
+                                <div class="col-6">
+                                    {{form2.escuela|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.no_cedula" class="col-auto col-form-label my-1"><strong>No. de cedula:</strong></label>
+                                <div class="col-6">
+                                    {{form2.no_cedula|add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.fecha_cedula" class="col-auto col-form-label my-1"><strong>Fecha expedición de cedula:</strong></label>
+                                <div class="col-4">
+                                    {% render_field form2.fecha_cedula type="date" class="form-control" %}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.nivel" class="col-auto col-form-label my-1"><strong>Nivel del empleado:</strong></label>
+                                <div class="col-3">
+                                    <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-arrow-up-short-wide"></i></span>
+                                    {{form2.nivel|add_class:"form-select"}}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.tipo_de_contrato" class="col-auto col-form-label my-1"><strong>Tipo de contrato:</strong></label>
+                                <div class="col-4">
+                                    {{form2.tipo_de_contrato|add_class:"form-select"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.ultimo_contrato_vence" class="col-auto col-form-label my-1"><strong>Ultimo contrato vence:</strong></label>
+                                <div class="col-4">
+                                    {% render_field form2.ultimo_contrato_vence type="date" class="form-control" %}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.tipo_sangre" class="col-auto col-form-label my-1"><strong>Tipo de sangre:</strong></label>
+                                <div class="col-3">
+                                    {{form2.tipo_sangre|add_class:"form-select"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.sexo" class="col-auto col-form-label my-1"><strong>Género:</strong></label>
+                                <div class="col-4">
+                                    <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-mars-and-venus"></i></span>
+                                    {{form2.sexo|add_class:"form-select"}}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.telefono" class="col-auto col-form-label my-1"><strong>Teléfono:</strong></label>
+                                <div class="col-5">
+                                    <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-phone"></i></span>
+                                    {{form2.telefono|add_class:"form-control"}}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.domicilio" class="col-auto col-form-label my-1"><strong>Domicilio:</strong></label>
+                                <div class="col-6">
+                                    <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-location-dot"></i></span>
+                                    {{form2.domicilio|add_class:"form-control"}}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.estado_civil" class="col-auto col-form-label my-1"><strong>Estado civil:</strong></label>
+                                <div class="col-3">
+                                    {{form2.estado_civil|add_class:"form-select"}}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.fecha_planta_anterior" class="col-auto col-form-label my-1"><strong>Fecha de planta anterior:</strong></label>
+                                <div class="col-4">
+                                    {% render_field form2.fecha_planta_anterior type="date" class="form-control" %}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.fecha_planta" class="col-auto col-form-label my-1"><strong>Fecha de planta:</strong></label>
+                                <div class="col-4">
+                                    {% render_field form2.fecha_planta type="date" class="form-control" %}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form2.fecha_ingreso" class="col-auto col-form-label my-1"><strong>Fecha de ingreso:</strong></label>
+                                <div class="col-4">
+                                    {% render_field form2.fecha_ingreso type="date" class="form-control" %}
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <hr>
+                <div class="modal-fade">
+                    <button class="btn btn-success btn-block" id="crear" type="submit" data-bs-dismiss="modal">Crear</button>
+                    <a type="button" class="btn btn-secondary" id="cerrar" data-bs-dismiss="modal">Cerrar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!--Este es el modal-->
+    <div class="modal fade" id="dialog" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" id="document" role="document">
+            <!-- Contenido del modal, si es necesario -->
+        </div>
+    </div>
+    {% endblock %}
+    <!-- Puedes incluir scripts adicionales aquí -->
+    <script>
+        document.getElementById('baja_empleado_form').addEventListener('submit', function (event) {
+            event.preventDefault(); // Evitar el envío normal del formulario
+
+            // Puedes agregar aquí la lógica para procesar el formulario con AJAX si lo necesitas
+        });
+
+    document.addEventListener("htmx:load", function (event) {
+        var subproyectoSelect = document.getElementById("subproyecto");
+        var idSubproyectoSelect = document.getElementById("id_subproyecto");
+
+        subproyectoSelect.addEventListener("change", function () {
+            var selectedOption = subproyectoSelect.options[subproyectoSelect.selectedIndex];
+
+            if (selectedOption.id !== "default_sel") {
+                idSubproyectoSelect.selectedIndex = subproyectoSelect.selectedIndex - 1;
+            } else {
+                idSubproyectoSelect.selectedIndex = 0;
+            }
+        });
+    });
+    </script>
+</body>
+</html>
