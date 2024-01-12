@@ -1,0 +1,41 @@
+[33mcommit c20c09d5615a59e353618746f78b089dd4559719[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: Ulises Huesca <ulises>
+Date:   Thu Jan 11 22:04:56 2024 +0000
+
+    Guardando cambios locales antes de hacer pull
+
+[33mcommit 25eacd664c8b52b0aad9bc468977197c12069086[m
+Merge: a1eaf8e cabfe66
+Author: Joshua <113140732+JoshEliell@users.noreply.github.com>
+Date:   Thu Jan 11 15:22:55 2024 -0600
+
+    Merge pull request #14 from JoshEliell/Joshua
+    
+    Joshua
+
+[33mcommit cabfe669708508afaf8c196f9742932c66cd043c[m[33m ([m[1;31mupstream/Joshua[m[33m)[m
+Author: Victor Joshua <victorjosh02@hotmail.com>
+Date:   Thu Jan 11 11:36:38 2024 -0600
+
+    Reingreso y plantillas
+
+[33mcommit a1eaf8ecfdaa3666baed9645a5e9e0f45ab38a4b[m
+Author: Joshua <113140732+JoshEliell@users.noreply.github.com>
+Date:   Sun Oct 29 21:20:24 2023 -0600
+
+    Update README.md
+
+[33mcommit 7e3091d5d45e07e4ea120519fbf16188cbfa8b46[m
+Merge: 4b4ec63 442fd96
+Author: Joshua <113140732+JoshEliell@users.noreply.github.com>
+Date:   Sun Oct 29 21:19:51 2023 -0600
+
+    Merge pull request #13 from JoshEliell/main
+    
+    Main
+
+[33mcommit 4b4ec630928a88cc58ca38cfd8bedec7aedc61ab[m
+Author: Victor Joshua <victorjosh02@hotmail.com>
+Date:   Sun Oct 29 21:19:21 2023 -0600
+
+    Antes de las autorizaciones
