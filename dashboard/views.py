@@ -48,8 +48,8 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
     #    status = Status.objects.get(id=dato.status.id)
     #    status.complete_vacaciones = False
     #    status.save()
-    #    dato.delete() 
-    
+    #    dato.delete()
+
     #fecha_actual = date.today()
     #año_actual = str(fecha_actual.year)
     #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
@@ -60,10 +60,15 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
     #    status = Status.objects.get(id=dato.status.id)
     #    status.complete_economicos = False
     #    status.save()
-    #    dato.delete() 
+    #    dato.delete()
 
     usuario = UserDatos.objects.get(user__id=request.user.id)
     periodo = str(datetime.date.today().year)
+
+    fecha_actual = date.today()
+    año_actual = str(fecha_actual.year)
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+
     if usuario.distrito.distrito == 'Matriz':
         perfiles = Perfil.objects.filter(complete = True, baja=False)
         cantidad = perfiles.count()
@@ -71,8 +76,19 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
         cantidad2 = status.count()
         costo = Costo.objects.filter(complete = True, status__perfil__baja=False)
         cantidad3 = costo.count()
-        vacacion = Vacaciones.objects.filter(complete = True, periodo = periodo, status__perfil__baja=False)
+        #vacacion = Vacaciones.objects.filter(complete = True, Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)), status__perfil__baja=False)
+        vacacion = Vacaciones.objects.filter(
+            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+            status__perfil__id__in=Perfil.objects.all(),
+            complete=True,
+        )
+        vacacion1 = vacacion.filter(periodo = año_actual) #traingo los de 2024
+        vacacion2 = vacacion.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+        #elimina los perfiles repetidos del periodo actual con el periodo anterio | se queda con el actual 2024
+        vacacion3 = vacacion2.exclude(status_id__in=vacacion1.values('status_id'))
+        vacacion = vacacion1 | vacacion3
         cantidad4 = vacacion.count()
+
         economico = Economicos.objects.filter(complete = True, periodo = periodo, status__perfil__baja=False)
         cantidad5 = economico.count()
         bancario = DatosBancarios.objects.filter(complete = True, status__perfil__baja=False)
@@ -91,8 +107,19 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
         cantidad2 = status.count()
         costo = Costo.objects.filter(status__perfil__distrito=usuario.distrito,complete = True, status__perfil__baja=False)
         cantidad3 = costo.count()
-        vacacion = Vacaciones.objects.filter(status__perfil__distrito=usuario.distrito,complete = True,periodo = periodo, status__perfil__baja=False)
+        #vacacion = Vacaciones.objects.filter(status__perfil__distrito=usuario.distrito,complete = True,periodo = periodo, status__perfil__baja=False)
+        vacacion = Vacaciones.objects.filter(
+            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+            status__perfil__id__in=Perfil.objects.filter(distrito = usuario.distrito,complete=True),
+            complete=True,
+        )
+        vacacion1 = vacacion.filter(periodo = año_actual) #traingo los de 2024
+        vacacion2 = vacacion.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+        #elimina los perfiles repetidos del periodo actual con el periodo anterio | se queda con el actual 2024
+        vacacion3 = vacacion2.exclude(status_id__in=vacacion1.values('status_id'))
+        vacacion = vacacion1 | vacacion3
         cantidad4 = vacacion.count()
+
         economico = Economicos.objects.filter(status__perfil__distrito=usuario.distrito,complete = True,periodo = periodo, status__perfil__baja=False)
         cantidad5 = economico.count()
         bancario = DatosBancarios.objects.filter(status__perfil__distrito=usuario.distrito,complete = True, status__perfil__baja=False)
@@ -144,7 +171,7 @@ def render_report(request, pk):
 
     costo_ver = Costo.objects.get(id=pk)
     costo = Costo.history.filter((~Q(sueldo_mensual_neto=None) | ~Q(sueldo_mensual_neto=0)), id=pk)
-    
+
     bonos = []
     for catorcena in catorcenas:
         bono = Bonos.objects.filter(costo=costo_ver, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final]).aggregate(total=Sum('monto'))
@@ -165,8 +192,8 @@ def render_report(request, pk):
         catorcena_number = catorcena.catorcena
         meses_cost[catorcena_number] = cost.total_costo_empresa if cost else 0
         previous_cost = cost
-    
-    datos_tabla = [{'catorcena': catorcena.catorcena, 'costo': costo, 'bono': bono['total'] if bono else Decimal('0.00')} 
+
+    datos_tabla = [{'catorcena': catorcena.catorcena, 'costo': costo, 'bono': bono['total'] if bono else Decimal('0.00')}
                    for catorcena, costo, bono in zip(catorcenas, meses_cost.values(), bonos)]
     context = {
         'bonos': bonos,
@@ -174,7 +201,7 @@ def render_report(request, pk):
         'meses_cost': meses_cost,
         'costo_ver': costo_ver,
         'catorcenas':catorcenas,
-        'catorcena': catorcena,  
+        'catorcena': catorcena,
         'costo':costo,
         'datos_tabla':datos_tabla
     }

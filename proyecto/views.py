@@ -238,7 +238,7 @@ def Perfil_vista_baja(request):
         perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete_status=True,perfil__distrito=user_filter.distrito,perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
         perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
                                              fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
-    
+
     perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
     perfiles = perfil_filter.qs
 
@@ -377,7 +377,7 @@ def Status_vista(request):
         'salidas_list':salidas_list,
         'baja': request.GET.get('baja', False)
         }
-    
+
     return render(request, 'proyecto/Status.html',context)
 
 @login_required(login_url='user-login')
@@ -1610,48 +1610,95 @@ def Tabla_Vacaciones(request): #Ya esta
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual)) 
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
     reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    reinicio = reinicio.filter(Q(fecha_planta_anterior__month__lte=fecha_actual.month) & Q(fecha_planta_anterior__day__lte=fecha_actual.day))
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año)
+    reinicio2 = reinicio2.filter(Q(fecha_planta__month__lte=fecha_actual.month) & Q(fecha_planta__day__lte=fecha_actual.day))
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
-    if reinicio:
-        for empleado in reinicio:
-            #Se calculan los días para la vacación actual 
-            ahora = datetime.date.today() 
+
+
+    #if reinicio:
+    for empleado in reinicio:
+            #Se calculan los días para la vacación actual
+            ahora = datetime.date.today()
             tablas= TablaVacaciones.objects.all()
             if empleado.fecha_planta_anterior:
                 days = empleado.fecha_planta_anterior
             else:
                 days = empleado.fecha_planta
-            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
-            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
-                antiguedad = ahora.year - days.year
-            else:
-                antiguedad = ahora.year - days.year - 1
-            #if antiguedad < periodo:
-            #    descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
-            #else:
+
+            calcular_antiguedad = relativedelta(ahora, days)
+            antiguedad = calcular_antiguedad.years
+
             for tabla in tablas:
                 if antiguedad >= tabla.years:
                     dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
-                        
-            vacacion = Vacaciones.objects.create(complete=True, status=empleado, periodo=año_actual, dias_de_vacaciones=dias_vacaciones,
-                                                fecha_inicio=None, fecha_fin=None, dias_disfrutados=0, dia_inhabil=None,
-                                                total_pendiente=dias_vacaciones, comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+
+            vacacion = Vacaciones.objects.create(
+                complete=True,
+                status=empleado,
+                periodo=año_actual,
+                dias_de_vacaciones=dias_vacaciones,
+                fecha_inicio=None,
+                fecha_fin=None,
+                dias_disfrutados=0,
+                dia_inhabil=None,
+                total_pendiente=dias_vacaciones,
+                comentario="Generado autom. al cumplir otro año de antigüedad",
+                editado="Sistema")
             empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
             empleado.save()
 
     if user_filter.distrito.distrito == 'Matriz':
-        descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        perfil = Perfil.objects.all();
+
+        #descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        periodo = Vacaciones.objects.filter(
+            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+            status__perfil__id__in=perfil.all(),
+            complete=True
+        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+
+        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
+        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+
+        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
+        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
+
+        descansos = periodo1 | periodo3
+
+
+        print(descansos.count())
+
     #elif user_filter.distrito.distrito == 'Poza Rica':
     #    perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
     #    descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo__in=["2022", "2023"]).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
     else:
+
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        periodo = Vacaciones.objects.filter(
+            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+            status__perfil__id__in=perfil.all(),
+            complete=True
+        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+
+        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
+        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+
+        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
+        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
+
+        descansos = periodo1 | periodo3
+
+        print('proyecto: ',descansos.count())
+
+
 
     vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
     descansos = vacaciones_filter.qs
@@ -1807,7 +1854,7 @@ def Tabla_Economicos(request): #Ya esta
     año_actual = str(fecha_actual.year)
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual)) 
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
     reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
@@ -1815,8 +1862,8 @@ def Tabla_Economicos(request): #Ya esta
     reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
     if reinicio:
-        for empleado in reinicio:                        
-            economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None, 
+        for empleado in reinicio:
+            economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None,
                                                 comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
             empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
             empleado.save()
@@ -2204,7 +2251,7 @@ def convert_excel_vacaciones(descansos):
     for descanso in descansos:
         # Consulta para obtener vacaciones con total_pendiente != 0
         vacaciones_pendientes = Vacaciones.objects.filter(status=descanso.status, total_pendiente__gt=0,).annotate(Sum('total_pendiente'))
-        
+
         total_pendiente_status = descanso.total_pendiente_status  # Calcula el valor aquí total pendiente total
         row = (descanso.status.perfil.empresa.empresa,descanso.status.perfil.distrito.distrito,f"{descanso.status.perfil.nombres} {descanso.status.perfil.apellidos}",
             descanso.status.fecha_planta_anterior,descanso.status.fecha_planta,descanso.periodo,descanso.dias_de_vacaciones,descanso.dias_disfrutados,
@@ -2247,7 +2294,7 @@ def convert_excel_vacaciones(descansos):
     (ws.cell(column = 2, row = row_num + 4, value='Algún dato')).style = messages_style
     (ws.cell(column = 2 + 1, row = row_num + 5, value = 'alguna sumatoria')).style = money_resumen_style
 
-    
+
     sheet = wb['Sheet']
     wb.remove(sheet)
     wb.save(response)
@@ -2555,7 +2602,7 @@ def convert_excel_perfil_baja(perfiles):
             if col_num == 8:
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
             if col_num > 8:
-                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style               
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
 
     (ws.cell(column = columna_max +1, row=3, value = row_num - 1)).style = messages_style
 
@@ -2615,7 +2662,7 @@ def convert_excel_status(status):
 
     fecha_actual = date.today()
     columna_max = len(columns)+2
-    
+
     (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
     (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
     (ws.cell(column = columna_max, row = 3, value='Empleados:')).style = messages_style
@@ -2630,7 +2677,7 @@ def convert_excel_status(status):
     #for row in rows:
     #    if row == datetime.date(6000, 1, 1):
     #        row = "Especial"
-    
+
     for row in rows:
         row_num += 1
         for col_num in range(len(row)):
@@ -2659,7 +2706,7 @@ def convert_excel_status(status):
         if row[col_num] != None:
             antiguedad = (fecha_actual.year - row[col_num].year)
             (ws.cell(row = row_num, column = col_num+2, value=antiguedad)).style = body_style
-                
+
     (ws.cell(column = columna_max +1, row=3, value = row_num-1)).style = messages_style
 
     sheet = wb['Sheet']
@@ -3515,42 +3562,46 @@ def SolicitudVacaciones(request):
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual)) 
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
     reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
     reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
-    if reinicio:
-        for empleado in reinicio:
-            #Se calculan los días para la vacación actual 
-            ahora = datetime.date.today() 
+    for empleado in reinicio:
+            #Se calculan los días para la vacación actual
+            ahora = datetime.date.today()
             tablas= TablaVacaciones.objects.all()
             if empleado.fecha_planta_anterior:
                 days = empleado.fecha_planta_anterior
             else:
                 days = empleado.fecha_planta
-            #Se hace de manera correcta la resta para entre la fecha de planta y actual para sacar la antiguedad
-            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
-                antiguedad = ahora.year - days.year
-            else:
-                antiguedad = ahora.year - days.year - 1
-            #if antiguedad < periodo:
-            #    descanso.dias_de_vacaciones = 0 #Para los empleados que aun no cumplen 1 año ya que no tienen vaccaciones aún
-            #else:
+
+            calcular_antiguedad = relativedelta(ahora, days)
+            antiguedad = calcular_antiguedad.years
+
             for tabla in tablas:
                 if antiguedad >= tabla.years:
                     dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
-                        
-            vacacion = Vacaciones.objects.create(complete=True, status=empleado, periodo=año_actual, dias_de_vacaciones=dias_vacaciones,
-                                                fecha_inicio=None, fecha_fin=None, dias_disfrutados=0, dia_inhabil=None,
-                                                total_pendiente=dias_vacaciones, comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+
+            vacacion = Vacaciones.objects.create(
+                complete=True,
+                status=empleado,
+                periodo=año_actual,
+                dias_de_vacaciones=dias_vacaciones,
+                fecha_inicio=None,
+                fecha_fin=None,
+                dias_disfrutados=0,
+                dia_inhabil=None,
+                total_pendiente=dias_vacaciones,
+                comentario="Generado autom. al cumplir otro año de antigüedad",
+                editado="Sistema")
             empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
             empleado.save()
 
     datos = Vacaciones.objects.filter(status=status).order_by(Cast('periodo', output_field=IntegerField())) #Identifico las vacaciones del usuario de la mas antigua a la mas actual
-    
+
     pendiente=0
     for dato in datos:
         pendiente += dato.total_pendiente #Para sacar el total de días pendientes
@@ -3971,7 +4022,7 @@ def PdfFormatoVacaciones(request, pk):
         while current_row <= total_rows:
             # Calcular el espacio disponible en la página actual
             available_height = height - 70 - 20  # Ajustar según el espaciado
-            
+
             # Calcular cuántas filas caben en la página actual
             if current_row == 1:
                 rows_on_page = min(rows_per_page, math.floor((available_height - 20) / 20))  # Para la primera página
@@ -3987,7 +4038,7 @@ def PdfFormatoVacaciones(request, pk):
 
             # Calcular la altura para dibujar la tabla
             table_height = len(page_data) * 20
-            
+
             # Calcular la posición vertical para la tabla
             if current_row == 1:
                 # Ajustar el margen superior para la primera tabla
@@ -4022,11 +4073,11 @@ def PdfFormatoVacaciones(request, pk):
 
             # Avanzar al siguiente conjunto de filas
             current_row += rows_on_page
-            
+
             # Cambiar la cantidad de filas por página después de la primera página
             if current_row == 1:
                 rows_per_page = 20
-            
+
             # Agregar una nueva página si quedan más filas por dibujar
             if current_row <= total_rows:
                 c.showPage()
@@ -4046,7 +4097,7 @@ def PdfFormatoVacaciones(request, pk):
         for line in lines:
             c.drawString(x + 10, y - 35, line)
             y -= 15
-      
+
         # Estilo de párrafo para los comentarios
         styleSheet = getSampleStyleSheet()
         commentStyle = styleSheet['Normal']
@@ -4056,7 +4107,7 @@ def PdfFormatoVacaciones(request, pk):
             if comment is None:
                 return ""
             return Paragraph(comment, commentStyle)
-        
+
         # Datos y ajustes de la tabla
         data2 = []
         high = 465
@@ -4145,7 +4196,7 @@ def SolicitudEconomicos(request):
     año_actual = str(fecha_actual.year)
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual)) 
+    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
     reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
@@ -4153,8 +4204,8 @@ def SolicitudEconomicos(request):
     reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
     if reinicio:
-        for empleado in reinicio:                        
-            economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None, 
+        for empleado in reinicio:
+            economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None,
                                                 comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
             empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
             empleado.save()
@@ -4405,7 +4456,7 @@ def PdfFormatoEconomicos(request, pk):
     #Reportes generales
 def excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,):
 
-    
+
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
@@ -4780,7 +4831,7 @@ def excel_reporte_puestos():
         row_num += 1
         ws.cell(row=row_num, column=1, value=row.puesto).style = body_style
         ws.cell(row=row_num, column=2, value=row.complete).style = body_style
-        
+
     sheet = wb['Sheet']
     wb.remove(sheet)
     wb.save(response)
@@ -5079,7 +5130,7 @@ def Baja_empleado(request, pk):
     if request.method == 'POST':
         form = BajaEmpleadoForm(request.POST)
         if form.is_valid():
-            form.instance.perfil = empleado 
+            form.instance.perfil = empleado
             form.instance.complete = True
             form.save()
             empleado.baja = True
@@ -5088,7 +5139,7 @@ def Baja_empleado(request, pk):
             empleado.save()
             messages.success(request, f'El empleado {empleado.nombres} {empleado.apellidos} se ha dado de baja en el Sistema')
             return redirect('Perfil')
-            
+
         else:
             messages.error(request, 'Error al llenar el formulario')
 
@@ -5115,7 +5166,7 @@ def Baja_update(request, pk):
             form.save()
             messages.success(request, f'Cambios guardados con éxito')
             return redirect('Perfil_baja')
-            
+
         else:
             messages.error(request, 'Error al llenar el formulario')
 
@@ -5133,7 +5184,7 @@ def Antiguedad(request, pk): #Comprobar que el empleado si puede entrar a los li
     status = Status.objects.get(perfil=perfil)
     fecha_actual = date.today()
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
-    
+
     if status.fecha_planta_anterior is not None:
         if status.fecha_planta_anterior <= fecha_hace_un_año:
             if pk == 1:
@@ -5170,7 +5221,7 @@ def Cv_datos(request, pk):
 
     if request.method =='POST' and 'PDF' in request.POST:
         return generar_curp_pdf(datos,status)
-    
+
     context = {
         'status':status,
         'datos':datos,
@@ -5182,7 +5233,7 @@ def generar_curp_pdf(datos,status):
     #Configuration of the PDF object
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=letter)
-    
+
     now = datetime.date.today()
     fecha = str(now)
     #Colores utilizados
@@ -5240,7 +5291,7 @@ def generar_curp_pdf(datos,status):
     #    c.drawInlineImage(icono, 400, 600, 5 * cm, 5 * cm)
     #else:
     if status.sexo.sexo == "Masculino":
-        c.drawInlineImage('static/images/perfil/Masculino.png',400,580, 5 * cm, 5 * cm) 
+        c.drawInlineImage('static/images/perfil/Masculino.png',400,580, 5 * cm, 5 * cm)
     elif status.sexo.sexo == "Femenino":
         c.drawInlineImage('static/images/perfil/Femenino.png',400,580, 5 * cm, 5 * cm)
     c.line(40,550,300,550) #Linea 1
@@ -5286,7 +5337,7 @@ def generar_curp_pdf(datos,status):
         ]))
     table.wrapOn(c, width, height)
     table.drawOn(c, 30, high)
-    
+
     c.line(40,280,300,280) #Linea 2
     c.setFont('Helvetica-Bold',14)
     c.setFillColor(azul)
@@ -5360,7 +5411,7 @@ def Cv_agregar(request, pk):
             form.save()
             messages.success(request, f'Se agrego el dato al empleado: {status.perfil.nombres} {status.perfil.apellidos}')
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
+
         else:
             messages.error(request, 'Error al llenar el formulario')
 
