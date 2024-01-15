@@ -199,6 +199,13 @@ def Tabla_dias_vacaciones(request):
 @login_required(login_url='user-login')
 def Perfil_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
+    #veracruz_vacaciones = Vacaciones.objects.filter(status__perfil__distrito__distrito="Veracruz")
+    #veracruz_economicos = Economicos.objects.filter(status__perfil__distrito__distrito="Veracruz", periodo = "2024")
+    #for usuario in veracruz_vacaciones:
+    #    usuario.status.complete_vacaciones =  False
+    #    usuario.status.complete_economicos = False
+    #veracruz_vacaciones.delete()
+    #veracruz_economicos.delete()
 
     if user_filter.distrito.distrito == 'Matriz':
         perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
@@ -282,7 +289,9 @@ def FormularioPerfil(request):
             messages.error(request, '(Número empleado) El numero de empleado debe ser mayor o igual a 0')
         elif empleado.fecha_nacimiento >= ahora:
             messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
-        elif Perfil.objects.filter(numero_de_trabajador=empleado.numero_de_trabajador):
+        elif form == PerfilForm() and Perfil.objects.filter(numero_de_trabajador=empleado.numero_de_trabajador, distrito = "Matriz").exists():
+            messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
+        elif form == PerfilDistritoForm() and Perfil.objects.filter(numero_de_trabajador=empleado.numero_de_trabajador, distrito = empleado.distrito).exists():
             messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
         else:
             messages.success(request, 'Información capturada con éxito')
@@ -1669,9 +1678,8 @@ def Tabla_Vacaciones(request): #Ya esta
 
         #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
         periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
-
         descansos = periodo1 | periodo3
-
+        descansos = descansos.exclude(status__fecha_planta_anterior__isnull=True, status__fecha_planta__isnull=True)
 
         print(descansos.count())
 
@@ -1695,6 +1703,7 @@ def Tabla_Vacaciones(request): #Ya esta
         periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
 
         descansos = periodo1 | periodo3
+        #descansos = descansos.exclude(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True)
 
         print('proyecto: ',descansos.count())
 
@@ -3565,10 +3574,16 @@ def SolicitudVacaciones(request):
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
     reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    reinicio = reinicio.filter(Q(fecha_planta_anterior__month__lte=fecha_actual.month) & Q(fecha_planta_anterior__day__lte=fecha_actual.day))
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año)
+    reinicio2 = reinicio2.filter(Q(fecha_planta__month__lte=fecha_actual.month) & Q(fecha_planta__day__lte=fecha_actual.day))
     reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+
+
+    #if reinicio:
     for empleado in reinicio:
             #Se calculan los días para la vacación actual
             ahora = datetime.date.today()
@@ -5043,20 +5058,22 @@ def upload_batch_vacaciones_anteriores(request):
         f = open(empleados_list.file_name.path, 'r', encoding='latin1')
         reader = csv.reader(f)
         next(reader) # Advance past the reader
-        fecha_str = '2019-12-01 01:00:00'
-        fecha1 = datetime.datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
         fecha_str = '2020-12-01 01:00:00'
-        fecha2 = datetime.datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
+        fecha1 = datetime.datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
         fecha_str = '2021-12-01 01:00:00'
-        fecha3 = datetime.datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
+        fecha2 = datetime.datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
         fecha_str = '2022-12-01 01:00:00'
+        fecha3 = datetime.datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
+        fecha_str = '2023-12-01 01:00:00'
         fecha4 = datetime.datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
+        fecha_str = '2024-12-01 01:00:00'
+        fecha5 = datetime.datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
         for row in reader:
             if Perfil.objects.filter(numero_de_trabajador=row[0], distrito__distrito=row[1]):
                 status = Status.objects.get(perfil__numero_de_trabajador=row[0], perfil__distrito__distrito=row[1])
                 dia = Dia_vacacion.objects.get(nombre='Domingo')
                 if row[2] != 0:
-                    vacacion = Vacaciones(status=status, periodo='2019', dias_de_vacaciones=None, dia_inhabil=dia,
+                    vacacion = Vacaciones(status=status, periodo='2020', dias_de_vacaciones=None, dia_inhabil=dia,
                                           fecha_inicio=None, fecha_fin=None, dias_disfrutados=None,
                                           total_pendiente=row[2], comentario=str('Vacaciones años previos'),
                                           complete=True)
@@ -5067,7 +5084,7 @@ def upload_batch_vacaciones_anteriores(request):
                     vacacion._meta.get_field('created_at').auto_now = True
 
                 if row[3] != 0:
-                    vacacion1 = Vacaciones(status=status, periodo='2020', dias_de_vacaciones=None, dia_inhabil=dia,
+                    vacacion1 = Vacaciones(status=status, periodo='2021', dias_de_vacaciones=None, dia_inhabil=dia,
                                            fecha_inicio=None, fecha_fin=None, dias_disfrutados=None,
                                            total_pendiente=row[3], comentario=str('Vacaciones años previos'),
                                            complete=True)
@@ -5078,7 +5095,7 @@ def upload_batch_vacaciones_anteriores(request):
                     vacacion1._meta.get_field('created_at').auto_now = True
 
                 if row[4] != 0:
-                    vacacion2 = Vacaciones(status=status, periodo='2021', dias_de_vacaciones=None, dia_inhabil=dia,
+                    vacacion2 = Vacaciones(status=status, periodo='2022', dias_de_vacaciones=None, dia_inhabil=dia,
                                            fecha_inicio=None, fecha_fin=None, dias_disfrutados=None,
                                            total_pendiente=row[4], comentario=str('Vacaciones años previos'),
                                            complete=True)
@@ -5089,7 +5106,7 @@ def upload_batch_vacaciones_anteriores(request):
                     vacacion2._meta.get_field('created_at').auto_now = True
 
                 if row[5] != 0:
-                    vacacion3 = Vacaciones(status=status, periodo='2022', dias_de_vacaciones=None, dia_inhabil=dia,
+                    vacacion3 = Vacaciones(status=status, periodo='2023', dias_de_vacaciones=None, dia_inhabil=dia,
                                            fecha_inicio=None, fecha_fin=None, dias_disfrutados=None,
                                            total_pendiente=row[5], comentario=str('Vacaciones años previos'),
                                            complete=True)
@@ -5099,9 +5116,20 @@ def upload_batch_vacaciones_anteriores(request):
                     vacacion3.save()
                     vacacion3._meta.get_field('created_at').auto_now = True
 
-                if row[6] != 0:
-                    economico = Economicos(status=status, periodo='2023', dias_disfrutados=(3 - int(row[6])),
-                                           dias_pendientes=row[6], fecha=None,
+                #if row[6] != 0:
+                #    vacacion4 = Vacaciones(status=status, periodo='2024', dias_de_vacaciones=None, dia_inhabil=dia,
+                #                           fecha_inicio=None, fecha_fin=None, dias_disfrutados=None,
+                #                           total_pendiente=row[6], comentario=str('Vacaciones años previos'),
+                #                           complete=True)
+
+                    #vacacion4._meta.get_field('created_at').auto_now = False
+                    #vacacion4.created_at = fecha5
+                    #vacacion4.save()
+                    #vacacion4._meta.get_field('created_at').auto_now = True
+
+                if row[7] != 0:
+                    economico = Economicos(status=status, periodo='2024', dias_disfrutados=(3 - int(row[7])),
+                                           dias_pendientes=row[7], fecha=None,
                                            comentario="Economicos pendientes cargados", complete=True)
 
                     if economico.dias_disfrutados == 3:
@@ -5278,13 +5306,13 @@ def generar_curp_pdf(datos,status):
         c.drawString(280,640,str(edad))
     c.drawString(40,620,'Número de INE:')
     if status.numero_ine:
-        c.drawString(120,620,"status.numero_ine")
+        c.drawString(120,620,status.numero_ine)
     c.drawString(40,600,'RFC:')
     if status.rfc:
-        c.drawString(120,600,"status.rfc")
+        c.drawString(120,600,status.rfc)
     c.drawString(40,580,'Curp:')
     if status.curp:
-        c.drawString(120,580,"status.curp")
+        c.drawString(120,580,status.curp)
 
     #icono = status.perfil.fotoURL
     #if icono:
@@ -5352,7 +5380,7 @@ def generar_curp_pdf(datos,status):
         c.drawString(95,220,status.no_cedula)
     c.drawString(40,200,'fecha_cedula:')
     if status.fecha_cedula:
-        c.drawString(95,200,status.fecha_cedula)
+        c.drawString(105,200,str(status.fecha_cedula))
     c.drawString(40,180,'Escuelas donde egreso:')
     if status.escuela:
         c.drawString(150,180,status.escuela)

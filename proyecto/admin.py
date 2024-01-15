@@ -73,9 +73,10 @@ class BancariosAdmin(admin.ModelAdmin):
 
 class VacacionAdmin(admin.ModelAdmin):
     ordering = ['id']
-    list_display = ('id','status','periodo')
+    list_display = ('id','status','periodo',)
     search_fields = ('status__perfil__nombres'),
-
+    list_filter = ('status__perfil__distrito',)
+    
 class EconoAdmin(admin.ModelAdmin):
     ordering = ['id']
     list_display = ('id','status')
