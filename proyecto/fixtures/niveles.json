@@ -1,0 +1,222 @@
+[
+    {
+        "model": "proyecto.nivel",
+        "pk": 1,
+        "fields": {
+            "nivel":"A",
+            "descripcion":"DIRECTOR GENERAL",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 2,
+        "fields": {
+            "nivel":"0",
+            "descripcion":"SUBDIRECTOR",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 3,
+        "fields": {
+            "nivel":"1",
+            "descripcion":"GERENTE",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 4,
+        "fields": {
+            "nivel":"2.0",
+            "descripcion": "PROFESIONISTA ESPECIALIZADO \"A\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 5,
+        "fields": {
+            "nivel":"2.1",
+            "descripcion": "PROFESIONISTA ESPECIALIZADO \"B\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 6,
+        "fields": {
+            "nivel":"2.2",
+            "descripcion": "SUPERINTENDENTE ADMINISTRATIVO",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 7,
+        "fields": {
+            "nivel":"2.3",
+            "descripcion": "SUPERINTENDENTE OPERATIVO",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 8,
+        "fields": {
+            "nivel":"2.4",
+            "descripcion": "COORDINADOR DE OPERACIONES",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 9,
+        "fields": {
+            "nivel":"3.0",
+            "descripcion": "TECNICO ESPECIALIZADO \"A\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 10,
+        "fields": {
+            "nivel":"3.1",
+            "descripcion": "TECNICO ESPECIALIZADO \"B\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 11,
+        "fields": {
+            "nivel":"3.2",
+            "descripcion": "SUPERVISOR \"A\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 12,
+        "fields": {
+            "nivel":"3.3",
+            "descripcion": "SUPERVISOR \"B\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 13,
+        "fields": {
+            "nivel":"4.0",
+            "descripcion": "PROFESIONISTA",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 14,
+        "fields": {
+            "nivel":"5.0",
+            "descripcion": "TECNICO \"A\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 15,
+        "fields": {
+            "nivel":"5.1",
+            "descripcion": "TECNICO \"B\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 16,
+        "fields": {
+            "nivel":"5.2",
+            "descripcion": "OFICIAL \"A\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 17,
+        "fields": {
+            "nivel":"5.3",
+            "descripcion": "OFICIAL \"B\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 18,
+        "fields": {
+            "nivel":"6",
+            "descripcion":"AUXILIARES",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 19,
+        "fields": {
+            "nivel":"6.1",
+            "descripcion": "AYUDANTE OPERATIVO \"A\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 20,
+        "fields": {
+            "nivel":"6.2",
+            "descripcion": "AYUDANTE OPERATIVO \"B\"",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 21,
+        "fields": {
+            "nivel":"6.3",
+            "descripcion": "ASISTENTE",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 22,
+        "fields": {
+            "nivel":"7.0",
+            "descripcion": "INTENDENCIA",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 23,
+        "fields": {
+            "nivel":"4.0",
+            "descripcion": "JEFE DE AREA",
+            "complete":1
+        }
+    },
+    {
+        "model": "proyecto.nivel",
+        "pk": 24,
+        "fields": {
+            "nivel":"4.0",
+            "descripcion": "JEFE DE SECTOR Y DEPARTAMENTO",
+            "complete":1
+        }
+    }
+]
+
+
+
+

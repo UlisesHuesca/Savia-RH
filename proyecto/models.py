@@ -186,8 +186,7 @@ class Perfil(models.Model):
             url = self.foto.url
         except:
             url = ''
-        return url
-
+        return 
 
     def __str__(self):
         if self.complete == False:
@@ -196,11 +195,12 @@ class Perfil(models.Model):
 
  #Tabla de vacaciones
 class Nivel(models.Model):
-    nivel = models.IntegerField(null=True)
+    nivel = models.CharField(max_length=10,null=True)
+    descripcion = models.CharField(max_length=100,null=True)
     complete = models.BooleanField(default=False)
-
+    
     def __str__(self):
-        return f'{self.nivel}'
+        return f'{self.nivel} - {self.descripcion}'
 
 class Dia_vacacion(models.Model):
     nombre = models.CharField(max_length=50,null=True)
@@ -632,3 +632,4 @@ class Empleado_cv(models.Model):
    
     def __str__(self):
         return f'Empleado:{self.status}'
+
