@@ -92,29 +92,29 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #        'NAME': 'newdatabase',
 #    }
 #}
-DATABASES = {
-   'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vicjosh$default',
-        'USER': 'vicjosh',
-        'PASSWORD': 'mimi2000',
-        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
-        'PORT': '',  # Deja este campo vacío
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
-    }
-}
 #DATABASES = {
-#    'default': {
+#   'default': {
 #        'ENGINE': 'django.db.backends.mysql',
-#        'NAME': 'original',
-#        'USER': 'root',
-#        'PASSWORD': 'Root',
-#        'HOST': 'localhost',
-#        'PORT': '',
+#        'NAME': 'vicjosh$default',
+#        'USER': 'vicjosh',
+#        'PASSWORD': 'mimi2000',
+#        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
+#        'PORT': '',  # Deja este campo vacío
+#        'OPTIONS': {
+#            'charset': 'utf8mb4',
+#        },
 #    }
 #}
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'respaldo',
+        'USER': 'root',
+        'PASSWORD': '12345678',
+        'HOST': 'localhost',
+        'PORT': '',
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 
