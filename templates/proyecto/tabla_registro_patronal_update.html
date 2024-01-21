@@ -1,0 +1,73 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+<hr>
+<div class="container">
+    <div class="card my-4">
+        <div class="card-body">
+            <h3 class="card-title">Datos del registro patronal</h3>
+            <hr>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row my-2">
+                    <label for="form.catorcena" class="col-auto col-form-label my-1"><strong>Registro patronal:</strong></label>
+                    <label for="form.catorcena" class="col-auto col-form-label my-1"><strong>{{ item.patronal }}</strong></label>
+                </div>
+
+                <div class="row my-2">
+                    <label for="form.prima_anterior" class="col-auto col-form-label my-1"><strong>Prima anterior:</strong></label>
+                    <div class="col-2">
+                        {% render_field form.prima_anterior class="form-control" %}
+                    </div>
+                </div>
+
+                <div class="row my-2">
+                    <label for="form.prima" class="col-auto col-form-label my-1"><strong>Nueva prima:</strong></label>
+                    <div class="col-2">
+                        {% render_field form.prima class="form-control" %}
+                    </div>
+                </div>
+
+                <hr>
+
+                <button type="submit" name="btnSend" class="btn btn-success">
+                    <span class="glyphicon glyphicon-ok"></span> Guardar
+                </button>
+
+                <a href="{% url 'tabla_registro_patronal' %}" class="btn btn-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

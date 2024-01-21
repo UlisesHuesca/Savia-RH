@@ -27,6 +27,8 @@ from .models import Vacaciones_anteriores_Batch
 
 from .models import FactorIntegracion
 from .models import SalarioDatos
+from .models import Variables_carga_social
+from .models import Variables_imss_patronal
 from .models import TablaCesantia
 from .models import Costo
 from .models import Perfil
@@ -129,6 +131,8 @@ admin.site.register(Status,StatusAdmin)
 admin.site.register(FactorIntegracion)
 admin.site.register(TablaCesantia)
 admin.site.register(SalarioDatos)
+admin.site.register(Variables_carga_social)
+admin.site.register(Variables_imss_patronal)
 admin.site.register(Costo, CostoAdmin)
 admin.site.register(DatosBancarios, BancariosAdmin)
 admin.site.register(Bonos)
