@@ -1,6 +1,6 @@
-<<<<<<< HEAD
+/env
 _pycache_/
 *.pyc
 
+/mysite/settings.py
 **/settings.py 
-=======
