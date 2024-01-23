@@ -1114,20 +1114,44 @@ def CostoUpdate(request, pk):
                                                                     costo.cesantia= (costo.sueldo_mensual_sdi*Decimal(variables_carga_social.cesantia/100))+cesantia_ley  ####
                                                                     #Parte de vacaciones #Tambien filtrar para que no se pueda hacer un costo si no se tiene fecha de antiguedad vacaciones
                                                                     #Se calculan los días para la vacación actual
+                                                                    #PRIMA VACACIONAL
                                                                     ahora = datetime.date.today()
-                                                                    if costo.status.fecha_planta_anterior:
-                                                                        days = costo.status.fecha_planta_anterior
-                                                                    else:
+                                                                    
+                                                                    calcular_prima = True
+                                                                    if costo.status.tipo_de_contrato_id == 4: #HONORARIOS
+                                                                        calcular_prima = False
+                                                                    elif costo.status.tipo_de_contrato_id == 2: #EVENTUAL
+                                                                        days = ahora - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
+                                                                    elif costo.status.tipo_de_contrato_id == 7: #NR
+                                                                         calcular_prima = False
+                                                                    elif costo.status.fecha_planta is None and costo.status.fecha_planta_anterior is None:
+                                                                        calcular_prima = False
+                                                                    elif costo.status.fecha_planta is not None and costo.status.fecha_planta_anterior is not None:
+                                                                         days = costo.status.fecha_planta_anterior                                                                         
+                                                                    elif costo.status.fecha_planta:
                                                                         days = costo.status.fecha_planta
-                                                                    calcular_antiguedad = relativedelta(ahora, days)
-                                                                    antiguedad = calcular_antiguedad.years
-                                                                    for tabla in tabla_vacaciones:
-                                                                        if antiguedad >= tabla.years:
-                                                                            dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
-                                                                    vac_reforma_actual = Decimal(dias_vacaciones)*Decimal(costo.sueldo_diario)
-                                                                    prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)######
-                                                                    aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)#####
-                                                                    costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12####
+                                                                    elif costo.status.fecha_planta_anterior:
+                                                                        days = costo.status.fecha_planta_anterior
+                                                                        
+                                                                    if calcular_prima == True:#calcula la prima
+                                                                        calcular_antiguedad = relativedelta(ahora, days)
+                                                                        antiguedad = calcular_antiguedad.years
+                                                                    
+                                                                        if antiguedad > 0:
+                                                                            for tabla in tabla_vacaciones:
+                                                                                if antiguedad >= tabla.years:
+                                                                                    dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
+                                                                        
+                                                                            vac_reforma_actual = Decimal(dias_vacaciones)*Decimal(costo.sueldo_diario)
+                                                                            prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
+                                                                            aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
+                                                                            costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
+                                                                            
+                                                                        else:#No calcula la prima - No tiene el año de antiguedad o más
+                                                                            costo.total_prima_vacacional = 0
+                                                                    
+                                                                    else:#No calcula la prima
+                                                                        costo.total_prima_vacacional = 0
                                                                     
                                                                     #costo.cesantia= costo.sueldo_mensual_sdi*cesantia
                                                                     costo.infonavit= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.infonavit/100)
