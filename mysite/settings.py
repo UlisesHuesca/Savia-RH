@@ -64,6 +64,11 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'user.backends.EmailBackend',
+]
+
+
 ROOT_URLCONF = 'mysite.urls'
 
 TEMPLATES = [
@@ -172,9 +177,16 @@ LOGIN_REDIRECT_URL ='index'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+#EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
+#EMAIL_HOST="smtp.gmail.com"
+#EMAIL_USE_TLS=True
+#EMAIL_PORT=587
+#EMAIL_HOST_USER="victorjosh02@gmail.com"
+#EMAIL_HOST_PASSWORD="ppysupnditwwccde"
+
 EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST="smtp.gmail.com"
+EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
 EMAIL_USE_TLS=True
-EMAIL_PORT=587
-EMAIL_HOST_USER="victorjosh02@gmail.com"
-EMAIL_HOST_PASSWORD="ppysupnditwwccde"
+EMAIL_PORT = '2525'
+EMAIL_HOST_USER = '4cdcd76acec7dc'
+EMAIL_HOST_PASSWORD = 'fa643eca5fde05'

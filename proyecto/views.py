@@ -1083,11 +1083,11 @@ def CostoUpdate(request, pk):
                                                                     messages.error(request, '(Campamento) La cantidad capturada debe ser mayor o igual 0')
                                                                 else:
                                                                     actual = datetime.date.today()
-                                                                    
+                                                                    print("fecha actual: ",actual)
             
                                                                     antiguedad_factor_integracion = relativedelta(actual, costo.status.fecha_ingreso)# calcular antiguedad
                                                                     años_ingreso = antiguedad_factor_integracion.years #obtiene los años
-                                                                    
+                                                                    print("antiguedad imss: ",años_ingreso)
                                                                     
                                                                     #años_ingreso = actual.year - costo.status.fecha_ingreso.year - ((actual.month, actual.day) < (costo.status.fecha_ingreso.month, costo.status.fecha_ingreso.day))
                                                                     
@@ -1097,19 +1097,19 @@ def CostoUpdate(request, pk):
                                                                     for factor in factores:
                                                                         if años_ingreso >= factor.years:
                                                                             factor_integracion = factor.factor
-                                                                    
+                                                                    print("factor integracion", factor_integracion)
                                                                     
                                                                     #SDI Calculo
                                                                     costo.sdi = factor_integracion*costo.sueldo_diario
                                                                    
                                                                     sdi = costo.sdi
-                                                                   
+                                                                    print("sdi: ",sdi)
                                                                     prima_riesgo = costo.status.registro_patronal.prima
-                                                                   
+                                                                    print("prima RT",prima_riesgo)
                                                                     excedente = dato.UMA*3
-                                                                  
+                                                                    print("UMA",dato.UMA)
                                                                     cuotafija = (dato.UMA*Decimal(variables_patronal.cuota_fija/100))*costo.laborados
-                                                                  
+                                                                    print("cuota fija: ", cuotafija)
                                                                     
                                                                     excedente_patronal = (costo.sdi-excedente)*Decimal(variables_patronal.cf_patron/100)*costo.laborados
                                                                     excedente_obrero = (costo.sdi-excedente)*Decimal(variables_patronal.cf_obrero/100)*costo.laborados
