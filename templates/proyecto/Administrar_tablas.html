@@ -101,16 +101,31 @@
             </div>
             <hr>
             <div class="col-md-4">
-                <a class="text-decoration-none text-dark" href="">
+                <a class="text-decoration-none text-dark" href="{% url 'tabla_variables_costo' %}">
                     <div class="card my-card shadow text-center p-3">
                         <h4>Salario minimo: ${{salario.Salario_minimo}}</h4>
                     </div>
                 </a>
             </div>
             <div class="col-md-4">
-                <a class="text-decoration-none text-dark" href="">
+                <a class="text-decoration-none text-dark" href="{% url 'tabla_variables_costo' %}">
                     <div class="card my-card shadow text-center p-3">
                         <h4>UMA: ${{salario.UMA}}</h4>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a class="text-decoration-none text-dark" href="{% url 'tabla_registro_patronal' %}">
+                    <div class="card my-card shadow text-center p-3">
+                        <h4>Registro patronal</h4>
+                    </div>
+                </a>
+            </div>
+            <hr>
+            <div class="col-md-4">
+                <a class="text-decoration-none text-dark" href="{% url 'tabla_variables_costo' %}">
+                    <div class="card my-card shadow text-center p-3">
+                        <h4>IMSS Obrero Patronal</h4>
                     </div>
                 </a>
             </div>

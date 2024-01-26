@@ -34,7 +34,11 @@ urlpatterns = [
     path('Tabla_ISR', views.Tabla_isr, name='Tabla_isr'),
     path('ISR/update/<int:pk>/', views.IsrUpdate, name='Isr_update'),
     path('Tabla_dias_vacaciones', views.Tabla_dias_vacaciones, name='Tabla_dias_vacaciones'),
+    path('Tabla_registro_patronal', views.tabla_registro_patronal, name='tabla_registro_patronal'),
+    path('Patronal/update/<int:pk>/', views.tabla_registro_patronal_update, name='tabla_registro_patronal_update'),
+    path('Tabla_variables', views.tabla_variables_costo, name='tabla_variables_costo'),
     path('Vacaciones_dias/update/<int:pk>/', views.Dias_VacacionesUpdate, name='Dias_Vacaciones_update'),
+
 
     path('Tabla_Costo', views.TablaCosto, name='Tabla_costo'),
     path('Formulario_Costo', views.FormularioCosto, name='Formulario_costo'),

@@ -106,6 +106,9 @@ class RegistroPatronal(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete = models.CASCADE, null=True)
     prima_anterior = models.DecimalField(max_digits=8, decimal_places=5,null=True, default=0)
     prima = models.DecimalField(max_digits=8, decimal_places=5,null=True, default=0)
+    updated_at=models.DateTimeField(auto_now=True)
+    history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
+    editado = models.CharField(max_length=50,blank=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
@@ -186,8 +189,7 @@ class Perfil(models.Model):
             url = self.foto.url
         except:
             url = ''
-        return url
-
+        return 
 
     def __str__(self):
         if self.complete == False:
@@ -196,11 +198,12 @@ class Perfil(models.Model):
 
  #Tabla de vacaciones
 class Nivel(models.Model):
-    nivel = models.IntegerField(null=True)
+    nivel = models.CharField(max_length=10,null=True)
+    descripcion = models.CharField(max_length=100,null=True)
     complete = models.BooleanField(default=False)
-
+    
     def __str__(self):
-        return f'{self.nivel}'
+        return f'{self.nivel} - {self.descripcion}'
 
 class Dia_vacacion(models.Model):
     nombre = models.CharField(max_length=50,null=True)
@@ -295,9 +298,38 @@ class TablaCesantia(models.Model):
 class SalarioDatos(models.Model):
     UMA = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
     Salario_minimo = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+    dias_quincena = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+    dias_mes = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+    comision_bonos = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+    prima_vacacional = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
 
     def __str__(self):
-        return f'Salario minimo {self.Salario_minimo}, UMA: {self.UMA}'
+        return f'Salario minimo {self.Salario_minimo}, UMA: {self.UMA}, quincena: {self.dias_quincena}, mes: {self.dias_mes}, comision_bonos: {self.comision_bonos}'
+
+class Variables_carga_social(models.Model):
+    impuesto_estatal = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+    sar = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+    cesantia = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+    infonavit = models.DecimalField(max_digits=10, decimal_places=2,null=True, default=0)
+
+
+    def __str__(self):
+        return f'Estatal {self.impuesto_estatal}, SAR: {self.sar}, Cesantia: {self.cesantia}, Infonavit: {self.infonavit}'
+
+class Variables_imss_patronal(models.Model):
+    cuota_fija = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Cuota fija por trabajador hasta 3 UMAS
+    cf_patron = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Cuota adicional en view (excedente)
+    cf_obrero = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Cuota adicional en view (excedente)
+    pd_patron = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Prestaciones patronal en dinero
+    pd_obrero = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0)
+    gmp_patron = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Gastos medicos para pensionados y beneficiarios
+    gmp_obrero = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0)
+    iv_patron = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Invalidez y vida
+    iv_obrero = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0)
+    gps_patron = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Guarderias y prestaciones sociales
+
+    def __str__(self):
+        return f'pd_patron {self.pd_patron}, gmp_patron: {self.gmp_patron}, iv_patron: {self.iv_patron}, gps_patron: {self.gps_patron}'
 
 class Costo(models.Model):
     #Independientes (formulario)
@@ -341,6 +373,7 @@ class Costo(models.Model):
     subsidio = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     total_apoyosbonos_empleadocomp = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     #Variables
+    total_prima_vacacional = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     total_apoyosbonos_agregcomis = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     comision_complemeto_salario_bonos = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     total_costo_empresa = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
@@ -632,3 +665,4 @@ class Empleado_cv(models.Model):
    
     def __str__(self):
         return f'Empleado:{self.status}'
+

@@ -1,14 +1,14 @@
 from django import forms
 from proyecto.models import Perfil, Status, Costo, DatosBancarios, Bonos, Uniformes, Vacaciones, Economicos, DatosISR, TablaVacaciones, Empleados_Batch, Catorcenas
 from proyecto.models import Status_Batch, Uniforme, Costos_Batch, Bancarios_Batch, Solicitud_economicos, Solicitud_vacaciones, Vacaciones_anteriores_Batch, Datos_baja
-from proyecto.models import Empleado_cv
-class PerfilForm(forms.ModelForm):
+from proyecto.models import Empleado_cv, RegistroPatronal
+class PerfilForm(forms.ModelForm): #Matriz
     class Meta:
         model = Perfil
         fields = ['foto','numero_de_trabajador','empresa','distrito','nombres',
                 'apellidos','fecha_nacimiento','correo_electronico','proyecto','subproyecto',]
-
-class PerfilDistritoForm(forms.ModelForm):
+        
+class PerfilDistritoForm(forms.ModelForm): #Distrito no pregunta de donde es
     class Meta:
         model = Perfil
         fields = ['foto','numero_de_trabajador','empresa','nombres',
@@ -211,3 +211,8 @@ class Vacaciones_anteriores_BatchForm(forms.ModelForm):
     class Meta:
         model = Vacaciones_anteriores_Batch
         fields= ['file_name']
+
+class Registro_patronal_form(forms.ModelForm):
+    class Meta:
+        model = RegistroPatronal
+        fields = ['prima_anterior', 'prima']

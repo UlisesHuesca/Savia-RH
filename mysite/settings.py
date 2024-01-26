@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'crispy_forms',
 ]
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -60,6 +61,11 @@ MIDDLEWARE = [
     'simple_history.middleware.HistoryRequestMiddleware',
     "django_htmx.middleware.HtmxMiddleware",
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'user.backends.EmailBackend',
+]
+
 
 ROOT_URLCONF = 'mysite.urls'
 
@@ -175,3 +181,10 @@ EMAIL_USE_TLS=True
 EMAIL_PORT=587
 EMAIL_HOST_USER="victorjosh02@gmail.com"
 EMAIL_HOST_PASSWORD="ppysupnditwwccde"
+
+#EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
+#EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
+#EMAIL_USE_TLS=True
+#EMAIL_PORT = '2525'
+#EMAIL_HOST_USER = '4cdcd76acec7dc'
+#EMAIL_HOST_PASSWORD = 'fa643eca5fde05'
