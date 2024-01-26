@@ -2,5 +2,6 @@
 _pycache_/
 *.pyc
 
+mysite/settings.py
 /mysite/settings.py
 **/settings.py 
