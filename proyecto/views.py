@@ -971,7 +971,7 @@ def FormularioCosto(request):
                                                                     costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
                                                                     costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
                                                                     costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-                                                                   
+
                                                                     empleado = Status.objects.get(id = costo.status.id)
                                                                     #Debes dejar lo que este entre '' para que aparezca
                                                                     if form.is_valid():
@@ -998,7 +998,7 @@ def CostoUpdate(request, pk):
 
     tablas= DatosISR.objects.all()
     tabla_vacaciones= TablaVacaciones.objects.all()
-    tcesantias= TablaCesantia.objects.all() 
+    tcesantias= TablaCesantia.objects.all()
     factores = FactorIntegracion.objects.all()
     dato = SalarioDatos.objects.get() #Datos generales del costo
     variables_carga_social = Variables_carga_social.objects.get()
@@ -1087,7 +1087,7 @@ def CostoUpdate(request, pk):
                                                                                     +prestaciones_obrero+gastosmp_patronal+gastosmp_obrero+riesgo_trabajo+invalidezvida_patronal
                                                                                     +invalidezvida_obrero+guarderias_prestsociales)
 
-                                                                    
+
                                                                     #Costo calculo
                                                                     costo.total_deduccion = costo.amortizacion_infonavit + costo.fonacot
                                                                     costo.neto_pagar = costo.neto_catorcenal_sin_deducciones - costo.total_deduccion
@@ -1121,6 +1121,8 @@ def CostoUpdate(request, pk):
                                                                         days = costo.status.fecha_planta
                                                                     calcular_antiguedad = relativedelta(ahora, days)
                                                                     antiguedad = calcular_antiguedad.years
+                                                                    if antiguedad == 0:
+                                                                        antiguedad = 1
                                                                     for tabla in tabla_vacaciones:
                                                                         if antiguedad >= tabla.years:
                                                                             dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
@@ -1128,7 +1130,7 @@ def CostoUpdate(request, pk):
                                                                     prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)######
                                                                     aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)#####
                                                                     costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12####
-                                                                    
+
                                                                     #costo.cesantia= costo.sueldo_mensual_sdi*cesantia
                                                                     costo.infonavit= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.infonavit/100)
                                                                     costo.excedente= costo.total_percepciones_mensual - costo.lim_inferior
@@ -1141,9 +1143,9 @@ def CostoUpdate(request, pk):
                                                                     costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
                                                                     costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
                                                                     costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-                                                                   
+
                                                                     #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
-                                                            
+
                                                                     if form.is_valid():
                                                                         user_filter = UserDatos.objects.get(user=request.user)
                                                                         nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
@@ -5548,7 +5550,7 @@ def tabla_registro_patronal_update(request, pk):
 @login_required(login_url='user-login')
 def tabla_variables_costo(request):
     variable = SalarioDatos.objects.first()
-    
+
     context= {
         'variable':variable,
 
