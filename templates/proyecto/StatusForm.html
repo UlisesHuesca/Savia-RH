@@ -39,9 +39,9 @@
                 <hr>
                 <form method="POST">
                     {% csrf_token %}
-                    <div class="row my-2">
-                        <label class="col-auto col-form-label" empleados='{{empleados}}'><strong>Empleado:</strong></label>
-                        <div class="col-sm-6">
+                    <div class="row mb-3">
+                        <label class="col-auto col-form-label col-12 col-md-2 col-form-label" empleados='{{empleados}}'><strong>Empleado:</strong></label>
+                        <div class="col-12 col-md-6">
                             <div class="input-group">
                             <span class="input-group-text" id="basic-addon1" style="height:35px"><i class="fa-solid fa-user"></i></span>
                                 <div class="selector">
@@ -64,8 +64,8 @@
                                 </div>
                     </div>
                     <div class="row my-2 ">
-                    <label for="form.puesto" class="col-auto col-form-label my-1"><strong>Puesto del empleado:</strong></label>
-                        <div class="col-5 d-none">
+                    <label for="form.puesto" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Puesto del empleado:</strong></label>
+                        <div class="col-12 col-md-4 d-none">
                             {{form.puesto|add_class:"form-control"}}
                         </div>
                         <div class="col-5">
@@ -78,8 +78,8 @@
                         </div>
                     </div>
                     <div class="row my-2 ">
-                    <label for="form.registro_patronal" class="col-auto col-form-label"><strong>Registro Patronal: </strong></label>
-                        <div class="col-sm-3">
+                    <label for="form.registro_patronal" class="col-auto col-form-label col-12 col-md-2 col-form-label"><strong>Registro Patronal: </strong></label>
+                        <div class="col-12 col-md-4">
                             <div class="selector input-group mb-3">
                                 <select class="form-select form-select-sm" style="font-size:1rem" id="registro_patronal">
                                 <option id="default_sel">--------</option>
@@ -93,14 +93,14 @@
                         </div>
                     </div>
                     <div class="row my-2 d-none">
-                                <label for="form.registro_patronal " class="col-auto col-form-label my-1"><strong>Registro patronal:</strong></label>
-                                <div class="col-2">
+                                <label for="form.registro_patronal " class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Registro patronal:</strong></label>
+                                <div class="col-12 col-md4">
                                     {{form.registro_patronal|add_class:"form-control"}}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.nss" class="col-auto col-form-label my-1"><strong>NSS:</strong></label>
-                                <div class="col-3">
+                                <label for="form.nss" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>NSS:</strong></label>
+                                <div class="col-12 col-md-4">
                                     <div class="input-group">
                                        <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-house-medical"></i></span>
                                        {{form.nss|add_class:"form-control"}}
@@ -108,14 +108,14 @@
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.curp" class="col-auto col-form-label my-1"><strong>Curp:</strong></label>
-                                <div class="col-3">
+                                <label for="form.curp" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Curp:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {{form.curp|add_class:"form-control"}}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.rfc" class="col-auto col-form-label my-1"><strong>RFC:</strong></label>
-                                <div class="col-3">
+                                <label for="form.rfc" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>RFC:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {{form.rfc|add_class:"form-control"}}
                                 </div>
                             </div>
@@ -123,7 +123,7 @@
                                 <div class="col-1">
                                     <label for="form.profesion" class="col-auto col-form-label my-1"><strong>Profesión:</strong></label>
                                 </div>
-                                <div class="col-3">
+                                <div class="col-12 col-md-4" style="margin-left:95px">
                                     <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-helmet-safety"></i></span>
                                     {{form.profesion|add_class:"form-control"}}
@@ -131,20 +131,20 @@
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.no_cedula" class="col-auto col-form-label my-1"><strong>No. de cedula:</strong></label>
-                                <div class="col-3">
+                                <label for="form.no_cedula" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>No. de cedula:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {{form.no_cedula|add_class:"form-control"}}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.fecha_cedula" class="col-auto col-form-label my-1"><strong>Fecha expedición de cedula:</strong></label>
-                                <div class="col-2">
+                                <label for="form.fecha_cedula" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Fecha expedición de cedula:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {% render_field form.fecha_cedula type="date" class="form-control" %}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.nivel" class="col-auto col-form-label my-1"><strong>Nivel del empleado:</strong></label>
-                                <div class="col-3">
+                                <label for="form.nivel" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Nivel del empleado:</strong></label>
+                                <div class="col-12 col-md-4">
                                     <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-arrow-up-short-wide"></i></span>
                                     {{form.nivel|add_class:"form-select"}}
@@ -152,20 +152,20 @@
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.tipo_de_contrato" class="col-auto col-form-label my-1"><strong>Tipo de contrato:</strong></label>
-                                <div class="col-3">
+                                <label for="form.tipo_de_contrato" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Tipo de contrato:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {{form.tipo_de_contrato|add_class:"form-select"}}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.ultimo_contrato_vence" class="col-auto col-form-label my-1"><strong>Ultimo contrato vence:</strong></label>
-                                <div class="col-2">
+                                <label for="form.ultimo_contrato_vence" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Ultimo contrato vence:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {% render_field form.ultimo_contrato_vence type="date" class="form-control" %}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.tipo_sangre" class="col-auto col-form-label my-1"><strong>Tipo de sangre:</strong></label>
-                                <div class="col-3">
+                                <label for="form.tipo_sangre" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Tipo de sangre:</strong></label>
+                                <div class="col-12 col-md-4">
                                     <div class="input-group">
                                         <div class="input-group-text" id="basic-addon1"><i class="fa-solid fa-droplet"></i></div>
                                          {{form.tipo_sangre|add_class:"form-select"}}
@@ -174,8 +174,8 @@
                             </div>
                     <div class="row my-2">
 
-                                <label for="form.sexo" class="col-auto col-form-label my-1"><strong>Género:</strong></label>
-                                <div class="col-3">
+                                <label for="form.sexo" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Género:</strong></label>
+                                <div class="col-12 col-md-4">
                                     <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-mars-and-venus"></i></span>
                                     {{form.sexo|add_class:"form-select"}}
@@ -183,8 +183,8 @@
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.telefono" class="col-auto col-form-label my-1"><strong>Teléfono:</strong></label>
-                                <div class="col-3">
+                                <label for="form.telefono" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Teléfono:</strong></label>
+                                <div class="col-12 col-md-4">
                                     <div class="input-group">
                                      <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-phone"></i></span>
                                     {{form.telefono|add_class:"form-control"}}
@@ -192,8 +192,8 @@
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.domicilio" class="col-auto col-form-label my-1"><strong>Domicilio:</strong></label>
-                                <div class="col-5">
+                                <label for="form.domicilio" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Domicilio:</strong></label>
+                                <div class="col-12 col-md-4">
                                     <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1"><i class="fa-solid fa-location-dot"></i></span>
                                     {{form.domicilio|add_class:"form-control"}}
@@ -201,27 +201,33 @@
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.estado_civil" class="col-auto col-form-label my-1"><strong>Estado civil:</strong></label>
-                                <div class="col-3">
+                                <label for="form.estado_civil" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Estado civil:</strong></label>
+                                <div class="col-12 col-md-4">
                                         {{form.estado_civil|add_class:"form-select"}}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.fecha_planta_anterior" class="col-auto col-form-label my-1"><strong>Fecha de planta anterior:</strong></label>
-                                <div class="col-2">
+                                <label for="form.fecha_planta_anterior" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Fecha de planta anterior:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {% render_field form.fecha_planta_anterior type="date" class="form-control" %}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.fecha_planta" class="col-auto col-form-label my-1"><strong>Fecha de planta:</strong></label>
-                                <div class="col-2">
+                                <label for="form.fecha_planta" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Fecha de planta:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {% render_field form.fecha_planta type="date" class="form-control" %}
                                 </div>
                             </div>
                     <div class="row my-2">
-                                <label for="form.fecha_ingreso" class="col-auto col-form-label my-1"><strong>Fecha de ingreso:</strong></label>
-                                <div class="col-2">
+                                <label for="form.fecha_ingreso" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Fecha de ingreso:</strong></label>
+                                <div class="col-12 col-md-4">
                                     {% render_field form.fecha_ingreso type="date" class="form-control" %}
+                                </div>
+                            </div>
+                    <div class="row my-2">
+                                <label for="form.fecha_ingreso" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Fecha alta IMSS:</strong></label>
+                                <div class="col-12 col-md-4">
+                                    {% render_field form.fecha_alta_imss type="date" class="form-control" %}
                                 </div>
                             </div>
                     <hr>

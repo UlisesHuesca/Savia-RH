@@ -139,15 +139,23 @@
                                             <th scope="row">Fecha de planta actual:</th>
                                             <td>{{estado.fecha_planta}}</td>
                                         </tr>
-                                         <tr>
+                                        <tr>
                                             <th scope="row">Fecha de ingreso:</th>
                                             <td>{{estado.fecha_ingreso}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Fecha de alta IMSS:</th>
+                                            <td>{{estado.fecha_alta_imss}}</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="col-md-4">
-                                <img class="img-thumbnail" src="{{estado.perfil.fotoURL}}"  alt="Imagen de Usuario">
+                                {% if estado.perfil.foto.url is not None %}
+                                    <img class="img-thumbnail" src="{{estado.perfil.foto.url}}"  alt="Imagen de Usuario" width="200" height="200">
+                                {% else %}
+                                    <small class="text-muted">No tiene foto de perfil</small>
+                                {% endif %}
                             </div>
                             <hr>
                             {% if usuario.tipo.admin == True or usuario.tipo.empleados == True %} 

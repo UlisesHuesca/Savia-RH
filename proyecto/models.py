@@ -204,6 +204,9 @@ class Nivel(models.Model):
     
     def __str__(self):
         return f'{self.nivel} - {self.descripcion}'
+    
+    class Meta:
+        ordering = ['nivel']
 
 class Dia_vacacion(models.Model):
     nombre = models.CharField(max_length=50,null=True)
@@ -236,6 +239,7 @@ class Status(models.Model):
     fecha_planta_anterior = models.DateField(null=True, blank=True)
     fecha_planta = models.DateField(null=True, blank=True)
     fecha_ingreso = models.DateField(null=True,blank=True)
+    fecha_alta_imss = models.DateField(null=True,blank=True)
     puesto = models.ForeignKey(Puesto, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     complete_costo = models.BooleanField(default=False)

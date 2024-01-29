@@ -37,7 +37,7 @@ class StatusForm(forms.ModelForm):
         model = Status
         fields = ['perfil','puesto','registro_patronal','fecha_ingreso','nss','curp','rfc','profesion',
                 'no_cedula','fecha_cedula','nivel','tipo_de_contrato','ultimo_contrato_vence','tipo_sangre',
-                'sexo','domicilio','estado_civil','fecha_planta_anterior','fecha_planta','telefono',]
+                'sexo','domicilio','estado_civil','fecha_planta_anterior','fecha_planta','telefono','fecha_alta_imss']
 
 class StatusUpdateForm(forms.ModelForm):
     class Meta:
@@ -45,7 +45,7 @@ class StatusUpdateForm(forms.ModelForm):
         fields = ['registro_patronal','puesto','nss','curp','rfc','profesion','fecha_ingreso',
                 'no_cedula','fecha_cedula','nivel','tipo_de_contrato','ultimo_contrato_vence','tipo_sangre',
                 'sexo','domicilio','estado_civil','fecha_planta_anterior','fecha_planta','telefono','escuela','lugar_nacimiento',
-                'numero_ine',]
+                'numero_ine','fecha_alta_imss']
 
 class CvAgregar(forms.ModelForm):
     class Meta:

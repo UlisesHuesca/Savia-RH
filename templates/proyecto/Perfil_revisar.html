@@ -101,7 +101,11 @@
                                 </table>
                             </div>
                             <div class="col-md-4">
-                                <img class="img-thumbnail" src="{{empleado.fotoURL}}"  alt="Imagen de Usuario">
+                                {% if empleado.foto.url is not None %}
+                                    <img class="img-thumbnail" src="{{empleado.foto.url}}"  alt="Imagen de Usuario" width="200" height="200">
+                                {% else %}
+                                    <small class="text-muted">No tiene foto de perfil</small>
+                                {% endif %}
                             </div>
                             <hr>
                             {% if usuario.tipo.admin == True or usuario.tipo.empleados == True %} 

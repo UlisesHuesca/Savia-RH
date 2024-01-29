@@ -1,5 +1,4 @@
 /env
 _pycache_/
 *.pyc
-
 **/settings.py 

@@ -280,8 +280,12 @@ def FormularioPerfil(request):
     if request.method == 'POST' and 'btnSend' in request.POST:
         if user_filter.distrito.distrito == 'Matriz':
             form = PerfilForm(request.POST, request.FILES, instance=empleado)
+            no_trabajador = request.POST.get('numero_de_trabajador')
         else:
             form = PerfilDistritoForm(request.POST, request.FILES, instance=empleado)
+            no_trabajador = request.POST.get('numero_de_trabajador')
+            
+        trabajador_existe = Perfil.objects.filter(numero_de_trabajador = no_trabajador).exists()
         form.save(commit=False)
 
         if empleado.foto and empleado.foto.size > 2097152:
@@ -290,10 +294,10 @@ def FormularioPerfil(request):
             messages.error(request, '(Número empleado) El numero de empleado debe ser mayor o igual a 0')
         elif empleado.fecha_nacimiento >= ahora:
             messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
-        elif form == PerfilForm() and Perfil.objects.filter(numero_de_trabajador=empleado.numero_de_trabajador, distrito = "Matriz").exists():
+        elif trabajador_existe == True:
             messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
-        elif form == PerfilDistritoForm() and Perfil.objects.filter(numero_de_trabajador=empleado.numero_de_trabajador, distrito = empleado.distrito).exists():
-            messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
+        #elif form == PerfilDistritoForm() and Perfil.objects.filter(numero_de_trabajador=empleado.numero_de_trabajador, distrito = empleado.distrito).exists():
+        #    messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
         else:
             messages.success(request, 'Información capturada con éxito')
             if form.is_valid():
@@ -483,6 +487,25 @@ def StatusUpdate(request, pk):
                 messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
             else:
                 valido=True
+                
+        if valido == True:
+            if estado.fecha_alta_imss > ahora:
+                messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
+                valido = False
+            else:
+                valido=True
+            """
+            if estado.fecha_alta_imss is None:
+                messages.error(request, '(Fecha alta IMSS) La fecha alta de imss es obligratoria')
+                valido = False
+            elif estado.fecha_alta_imss > ahora:
+                messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
+                valido = False
+            else:
+                valido=True
+            """
+            
+        
         if form.is_valid() and valido == True:
             user_filter = UserDatos.objects.get(user=request.user)
             nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
