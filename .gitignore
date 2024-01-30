@@ -2,3 +2,6 @@
 _pycache_/
 *.pyc
 **/settings.py 
+
+static/bono
+static/perfil

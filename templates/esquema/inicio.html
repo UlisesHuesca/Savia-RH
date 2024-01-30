@@ -1,0 +1,52 @@
+{% extends 'partials/base.html' %}
+
+
+{% block title %}
+    Bonos Varilleros
+{% endblock title %}
+    
+
+
+{% block content %}
+<div class="container-fluid margen-alto">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <strong>Esquemas Bonos</strong>
+                </div>
+                <div class="card-body">
+                    <!--
+                    <div class="row justify-content-center">
+                        <div class="col-12 col-md-6">
+                            <div class="input-group mb-3 d-flex">
+                                <input type="search" class="form-control" placeholder="buscar" aria-label="Recipient's username" aria-describedby="basic-addon2">
+                                <button class="btn btn-outline-success"><i class="fas fa-search"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    -->
+
+                    <div class="row">
+                        {% for bono in bonos  %}
+                        <div class="col-12 col-md-4">
+                            <a href="/esquema/{{bono.slug}}" class="estilo-enlace">
+                                <div class="card shadow aumentar-zoom mb-3">
+                                    <div class="card-body">
+                                        <h4 class="text-capitalize">{{ bono.nombre }} <i class="fas fa-sack-dollar"></i></h4>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+    

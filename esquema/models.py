@@ -9,6 +9,9 @@ from proyecto.models import Distrito,Perfil
 class Puesto(models.Model):
     puesto = models.CharField(max_length=30,null=False)
     
+    def __str__(self):
+        return self.puesto
+    
 # Los esquemas de bonos tendran una categoria y subcategorias
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100,null=False)
