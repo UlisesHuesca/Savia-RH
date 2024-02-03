@@ -53,6 +53,14 @@
                         <h6 class="dropdown-header">Información del usuario</h6>                            
                         <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Perfil_revisar' usuario_fijo.id %}">Perfil</a>
+                            {% if usuario.tipo.esquema_bono == True %}
+                            <a class="dropdown-item" href="{% url 'bono_inicio' %}">Esquema Bonos</a>
+                            1. {{usuario}}<br>
+                            2. {{usuario.tipo}}<br>
+                            3. {{usuario.tipo.usuario}}<br>
+                            4. {{usuario.tipo.nombre}}<br>
+                            5. {{usuario.tipo.esquema_bono}}
+                            {% endif %}
                             {% if usuario_fijo.complete_status == True %}
                                 <a class="dropdown-item" href="{% url 'Status_revisar' status_fijo.id %}">Status</a>
                             {% endif %}
@@ -119,7 +127,7 @@
                             <a class="dropdown-item" href="{% url 'Tabla_economicos' %}">Días económicos</a>
 
                             {# Se cargan todos los tipos de los quemas de bonos para las solicitudes #}
-                            <a class="dropdown-item" href="{% url 'bono_inicio' %}">Esquema Bonos</a>
+                           
 
 
                             <div class="dropdown-divider"></div>

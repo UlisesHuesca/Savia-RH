@@ -42,7 +42,7 @@ Crear Solicitud - Bonos Varilleros
                                 <h5>Subir Archivos</h5>
                                 {% if lista_archivos|length != 0 %}
                                 <div class="btn-group mt-1">
-                                    <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button id="subirArchivos" class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fas fa-file"></i> Archivos
                                     </button>
                                     <ul class="dropdown-menu" id="archivos">   
@@ -54,7 +54,7 @@ Crear Solicitud - Bonos Varilleros
                                 {% endif %}
                             </div>
                             <div class="card-body">
-                                <form id="archivosForm" class="" action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" enctype="multipart/form-data">
+                                <form id="archivosForm" class="" action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" enctype="multipart/form-data" novalidate>
                                 {% csrf_token %}
                                 <div class="btn-group" role="group" aria-label="Basic example">
                                     {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png, .jpg, .jpeg, .pdf" %}
@@ -66,7 +66,7 @@ Crear Solicitud - Bonos Varilleros
                             </div>
                         </div>
 
-                    <form action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" >
+                    <form action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" novalidate>
                         {% csrf_token %}
                     <div class="card shadow">
                         <div class="card-header">
@@ -181,10 +181,15 @@ Crear Solicitud - Bonos Varilleros
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="3" class="fw-bold">Total: $<span id="total">{{total}}</span> </td>
+                                    <td><button class="btn btn-primary btn-sm" id="enviar_solicitud"><i class="fas fa-share"></i> Enviar Solicitud</button></td>   
+                                    <td></td>
+                                    <td colspan="" class="fw-bold">Total: $<span id="total">{{total}}</span> </td>
                                 </tr>
+                               
                             </tfoot>
                         </table>
+
+                       
                     </div>                    
                     {% endif %}
                 </div>
@@ -194,6 +199,7 @@ Crear Solicitud - Bonos Varilleros
 
 {% block js %}
     <script src="{% static 'js/esquema/bono_varillero/crear_solicitud.js' %}"></script>
+    <script src="{% static 'js/esquema/bono_varillero/mostrar_boton.js' %}"></script>
     {% comment %} select2 {% endcomment %}    
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {% comment %} select 2 lang es {% endcomment %}

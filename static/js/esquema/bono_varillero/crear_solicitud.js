@@ -185,17 +185,74 @@ document.addEventListener("DOMContentLoaded", (e) => {
     }
 
     files = document.getElementById("archivos")
+    
+
+    
     if (files) {
         addEventListener("click", async function(e){
             if(e.target.classList.contains('small')){
                 archivo_id = e.target.getAttribute("data-archivo")
                 console.log("el ID del archivo es: ",archivo_id)
-                removerArchivo(archivo_id)
-
+                removerArchivo(archivo_id)    
             }
         });
     }
 
+    /**Enviar la solicitud - autorizacion */
+    async function enviarSolicitud(solicitud){
+        try {
+            var response = await fetch('/esquema/enviar_solicitud/',{
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+                body:JSON.stringify({
+                    'solicitud':solicitud
+                }),
+            });
+
+            const datos = await response.json();
+            console.log(datos)
+            console.log(datos.status)
+
+            if (datos.mensaje === 1){
+                Swal.fire({
+                    title: "Exitoso",
+                    text: "Se ha enviado la solicitud",
+                    icon: "success",
+                })
+                var botonEnviar = document.getElementById('enviar_solicitud');
+                botonEnviar.setAttribute('disabled',true);
+            }else{
+                Swal.fire({
+                    title: "Error",
+                    text: "Falta subir los archivos de requerimientos",
+                    icon: "warning",
+                })
+            }
+
+           
+
+        } catch (error) {
+            Swal.fire({
+                title: "Error",
+                text: "No se pudo procesar la solicitud",
+                icon: "warning",
+            })
+        }
+    }
     
+    var botonEnviar = document.getElementById('enviar_solicitud');
+    
+    if (botonEnviar){
+        botonEnviar.addEventListener("click",async function(e){
+            
+            var folio = document.getElementsByName('folio')[0].value;
+            enviarSolicitud(folio)
+        })
+    }
+    
+
 
 });

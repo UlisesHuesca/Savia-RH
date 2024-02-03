@@ -49,6 +49,9 @@ class Solicitud(models.Model):
     bono = models.ForeignKey(Subcategoria,on_delete=models.CASCADE,null=True)#hacerlo nulo para relacionar con la foto
     total = models.DecimalField(max_digits=10,decimal_places=2,null=False) 
     fecha = models.DateTimeField(null=False,auto_now_add=True)
+    complete_bono = models.BooleanField(default=False)
+    complete_requerimiento = models.BooleanField(default=False)
+    complete = models.BooleanField(default=False)
     
 class BonoSolicitado(models.Model):
     solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,null=False) 

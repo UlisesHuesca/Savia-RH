@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django_htmx",
     'crispy_forms',
     'esquema',
+    'revisar'
 ]
 
 
@@ -60,7 +61,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
-    "django_htmx.middleware.HtmxMiddleware",
+    'django_htmx.middleware.HtmxMiddleware',
+
+    
 ]
 
 AUTHENTICATION_BACKENDS = [

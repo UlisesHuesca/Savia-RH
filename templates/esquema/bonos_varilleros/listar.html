@@ -22,8 +22,11 @@
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between">
                     <div class="card-title"><h5>Bonos Varilleros</h5></div>
+                    {% if  usuario.tipo.nombre == "Supervisor" %}
                     <a href="{% url 'crearSolicitudBonosVarilleros' %}" class="btn btn-azul" ><i class="fas fa-plus"></i> Crear solicitud de bono</a>
+                    {% endif %}
                 </div>
+              
                 <div class="card-body">
                     {% comment %} Realizar Busquedas {% endcomment %}
                     <form method="get">
