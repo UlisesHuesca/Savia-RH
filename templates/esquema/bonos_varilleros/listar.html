@@ -29,6 +29,31 @@
               
                 <div class="card-body">
                     {% comment %} Realizar Busquedas {% endcomment %}
+                    <form method="get">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Folio</label>
+                                {% render_field autorizaciones_filter.form.folio class="form-control text-capitalize"%}
+                            </div>
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Estado</label>
+                                {% render_field autorizaciones_filter.form.estado class="form-control text-capitalize"%}
+                            </div>
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Bono</label>
+                                {% render_field autorizaciones_filter.form.bono class="form-control text-capitalize"%}
+                            </div>
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Rol</label>
+                                {% render_field autorizaciones_filter.form.rol class="form-control text-capitalize"%}
+                            </div>
+                           
+                            <div class="col-auto">
+                                <br>
+                                <button type="search" class="btn btn-success"><i class="fas fa-search"></i></button>
+                            </div>
+                        </div>
+                    </form>
                    
                 </div>
 

@@ -20,7 +20,7 @@ from revisar.models import AutorizarSolicitudes
 from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm
 from django.db import connection
 from django.core.paginator import Paginator
-from .filters import SolicitudFilter
+from .filters import SolicitudFilter,AutorizarSolicitudesFilter
 from django.db.models import Max
 from django.db.models import Subquery, OuterRef
 
@@ -51,7 +51,6 @@ def listarBonosVarilleros(request):
     #solicitudes = solicitud_filter.qs
     
     # Subconsulta para obtener la fecha máxima (última) para cada solicitud_id
-    """
     subconsulta_ultima_fecha = AutorizarSolicitudes.objects.filter(
         solicitud_id=OuterRef('solicitud_id')
     ).order_by('-created_at').values('created_at')[:1]
@@ -62,7 +61,10 @@ def listarBonosVarilleros(request):
         created_at=Subquery(subconsulta_ultima_fecha) 
     ).select_related('solicitud','perfil').filter(solicitud__solicitante_id__distrito_id = solicitante.distrito_id)
     
-    """    
+    for a in autorizaciones:
+        print(a.solicitud.bono)
+    
+    """ 
     subconsulta_ultima_fecha = AutorizarSolicitudes.objects.values('solicitud_id').annotate(
         ultima_fecha=Max('created_at')
     ).filter(solicitud_id=OuterRef('solicitud_id')).values('ultima_fecha')[:1]
@@ -72,13 +74,24 @@ def listarBonosVarilleros(request):
     ).select_related('solicitud', 'perfil').filter(
         solicitud__solicitante_id__distrito_id=solicitante.distrito_id
     )
+    """
+    autorizaciones_filter = AutorizarSolicitudesFilter(request.GET, queryset=autorizaciones)
+    autorizaciones = autorizaciones_filter.qs
     
+    p = Paginator(autorizaciones, 1)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+    autorizaciones= p.get_page(page)
     
     contexto = {
-        'autorizaciones':autorizaciones
+        'autorizaciones':autorizaciones,
+        'autorizaciones_filter': autorizaciones_filter,
+        'salidas_list':salidas_list,
     }
     
     return render(request,'esquema/bonos_varilleros/listar.html',contexto)
+
+   
     
     #p = Paginator(solicitudes, 10)
     #page = request.GET.get('page')
