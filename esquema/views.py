@@ -21,8 +21,8 @@ from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm
 from django.db import connection
 from django.core.paginator import Paginator
 from .filters import SolicitudFilter
-
-
+from django.db.models import Max
+from django.db.models import Subquery, OuterRef
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -38,30 +38,59 @@ def inicio(request):
 
 #Listar las solicitudes
 @login_required(login_url='user-login')
-def listarBonosVarilleros(request):
-    #se obtiene el 7 logueado
+def listarBonosVarilleros(request):    
+    #se obtiene el usuario logueado
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
     #se obtiene el perfil del usuario logueado
     solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
-    #se obtienen las solicitudes
-    solicitudes = Solicitud.objects.filter(solicitante_id = solicitante.id).order_by('-id')
-    #se filtran las solicitudes
-    solicitud_filter = SolicitudFilter(request.GET, queryset=solicitudes) 
-    solicitudes = solicitud_filter.qs
     
-    p = Paginator(solicitudes, 10)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
+    #se obtienen las solicitudes
+    #solicitudes = Solicitud.objects.filter(solicitante_id = solicitante.id).order_by('-id')
+    #se filtran las solicitudes
+    #solicitud_filter = SolicitudFilter(request.GET, queryset=solicitudes) 
+    #solicitudes = solicitud_filter.qs
+    
+    # Subconsulta para obtener la fecha máxima (última) para cada solicitud_id
+    """
+    subconsulta_ultima_fecha = AutorizarSolicitudes.objects.filter(
+        solicitud_id=OuterRef('solicitud_id')
+    ).order_by('-created_at').values('created_at')[:1]
+
+
+    # Consulta principal para obtener los objetos completos con la última fecha
+    autorizaciones = AutorizarSolicitudes.objects.filter(
+        created_at=Subquery(subconsulta_ultima_fecha) 
+    ).select_related('solicitud','perfil').filter(solicitud__solicitante_id__distrito_id = solicitante.distrito_id)
+    
+    """    
+    subconsulta_ultima_fecha = AutorizarSolicitudes.objects.values('solicitud_id').annotate(
+        ultima_fecha=Max('created_at')
+    ).filter(solicitud_id=OuterRef('solicitud_id')).values('ultima_fecha')[:1]
+    
+    autorizaciones = AutorizarSolicitudes.objects.filter(
+        created_at=Subquery(subconsulta_ultima_fecha)
+    ).select_related('solicitud', 'perfil').filter(
+        solicitud__solicitante_id__distrito_id=solicitante.distrito_id
+    )
+    
     
     contexto = {
-        'usuario':usuario,
-        'solicitante':solicitante,
-        'solicitudes':solicitudes,
-        'solicitud_filter':solicitud_filter,
-        'salidas_list':salidas_list,
+        'autorizaciones':autorizaciones
     }
     
     return render(request,'esquema/bonos_varilleros/listar.html',contexto)
+    
+    #p = Paginator(solicitudes, 10)
+    #page = request.GET.get('page')
+    #salidas_list = p.get_page(page)
+    
+    #contexto = {
+    #    'usuario':usuario,
+    #    'solicitante':solicitante,
+    #    'solicitudes':solicitudes,
+    #    'solicitud_filter':solicitud_filter,
+    #    'salidas_list':salidas_list,
+    #}
 
 #para crear solicitudes de bonos
 @login_required(login_url='user-login')
@@ -488,7 +517,7 @@ def EnviarSolicitudEsquemaBono(request):
                 solicitud_id = solicitud.id,
                 perfil_id =  perfil_superintendente['id'],
                 tipo_perfil_id = 6, # superintendente
-                estado_id = 1, # pendiente
+                estado_id = 3, # pendiente
             )
             
             return JsonResponse({'mensaje':1},status=200,safe=False)

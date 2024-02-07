@@ -12,7 +12,7 @@ class Estado(models.Model):
         return self.tipo
 
 class AutorizarSolicitudes(models.Model):
-    solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE)
+    solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,related_name='autorizarsolicitudes')
     perfil = models.ForeignKey(Perfil,on_delete=models.CASCADE) #nombre 
     tipo_perfil = models.ForeignKey(TipoPerfil,on_delete=models.CASCADE)
     estado = models.ForeignKey(Estado,on_delete=models.CASCADE)
