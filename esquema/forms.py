@@ -2,6 +2,7 @@ from django import forms
 from django.shortcuts import render,get_object_or_404
 from proyecto.models import Perfil,UserDatos
 from .models import Solicitud,BonoSolicitado,Subcategoria,Puesto,Requerimiento
+from revisar.models import AutorizarSolicitudes,Estado
 from datetime import datetime
 
 
@@ -9,6 +10,7 @@ def usuarioLogueado(request):
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
     return usuario.distrito.id
 
+#ESQUEMA BONOS
 class SolicitudForm(forms.ModelForm):
     class Meta:
         model = Solicitud
@@ -41,3 +43,16 @@ class RequerimientoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['url'].widget.attrs['multiple'] = 'multiple'
+
+#REVISION AUTORIZACIONES
+class AutorizarSolicitudesUpdateForm(forms.ModelForm):
+    class Meta:
+        model = AutorizarSolicitudes
+        fields = ['estado','comentario']
+    
+    comentario = forms.CharField(required=False)
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        #se filtran los estados de las autorizaciones
+        self.fields['estado'].queryset = Estado.objects.all().order_by('tipo')

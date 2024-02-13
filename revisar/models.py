@@ -17,6 +17,7 @@ class AutorizarSolicitudes(models.Model):
     tipo_perfil = models.ForeignKey(TipoPerfil,on_delete=models.CASCADE)
     estado = models.ForeignKey(Estado,on_delete=models.CASCADE)
     comentario = models.CharField(max_length=255,null=True)
+    revisar = models.BooleanField(default=False)#flujo revisión
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
     

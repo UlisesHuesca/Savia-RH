@@ -90,7 +90,11 @@ document.addEventListener("DOMContentLoaded", (e) => {
                 const renderizar = document.querySelectorAll(`[data-id="${datos.bono_id}"]`)
                 renderizar[0].remove()
                 //renderizar el total en html
-                document.getElementById('total').textContent = datos.total
+                total = document.getElementById('total').textContent = datos.total
+                //se elimina la tabla cuando re remueven los bonos y no hay
+                if (datos.total == 0)
+                    document.getElementById('tabla').remove()
+                
 
             }else{
                 Swal.fire({
