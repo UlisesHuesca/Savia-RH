@@ -42,8 +42,11 @@
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between">
                     <div class="card-title"><h5>Bonos Varilleros</h5></div>
-                    {% if  usuario.tipo.nombre == "Supervisor" %}
-                    <a href="{% url 'crearSolicitudBonosVarilleros' %}" class="btn btn-azul" ><i class="fas fa-plus"></i> Crear solicitud de bono</a>
+                   
+                    
+                    {% comment %} Solo el supervisor puede crear solicitudes {% endcomment %}
+                    {% if  usuario.tipo.id == 5 %}
+                        <a href="{% url 'crearSolicitudBonosVarilleros' %}" class="btn btn-azul" ><i class="fas fa-plus"></i> Crear solicitud de bono</a>
                     {% endif %}
                 </div>
               
@@ -55,6 +58,12 @@
                                 <label for="" class="fw-bold">Folio</label>
                                 {% render_field autorizaciones_filter.form.folio class="form-control text-capitalize"%}
                             </div>
+                            {% if usuario.tipo.id == 1 and usuario.distrito.id == 1  %}
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Distrito</label>
+                                {% render_field autorizaciones_filter.form.distrito class="form-control text-capitalize"%}
+                            </div>
+                            {% endif %}
                             <div class="col-auto">
                                 <label for="" class="fw-bold">Estado</label>
                                 {% render_field autorizaciones_filter.form.estado class="form-control text-capitalize"%}
@@ -67,7 +76,6 @@
                                 <label for="" class="fw-bold">Rol</label>
                                 {% render_field autorizaciones_filter.form.rol class="form-control text-capitalize"%}
                             </div>
-                           
                             <div class="col-auto">
                                 <br>
                                 <button type="search" class="btn btn-success"><i class="fas fa-search"></i></button>
@@ -89,62 +97,58 @@
                     <tr class="tabla-encabezado">
                         <th>Folio</th>
                         <th>Fecha</th>
+                        {% if usuario.tipo.id == 1 and usuario.distrito.id == 1  %}
+                        <th>Distrito</th>
+                        {% endif %}
                         <th>Bono</th>
                         <th>Estado</th>
                         <th>Rol</th>
                         <th>Total</th>
-                        <th colspan="2" style="width: 5%;"></th>
+                        <th colspan="3" style="width: 5%;"></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for autorizacion in autorizaciones %}
                     <tr> 
+                        
                         <td>{{autorizacion.solicitud.folio}}</td>
                         <td class="">{{autorizacion.solicitud.fecha|date:"d/M/Y H:m"}}</td>
+                        {% if usuario.tipo.id == 1 and usuario.distrito.id == 1  %}
+                            <td>{{autorizacion.perfil.distrito}}</td>
+                        {% endif %}
                         <td class="text-capitalize">{{autorizacion.solicitud.bono}}</td>
-                        <td>{{autorizacion.estado}}</td>
+                        {% if autorizacion.estado.id == 1 %}
+                            <td><span class="badge bg-success text-capitalize">{{autorizacion.estado}}</span></td>
+                        {% elif autorizacion.estado.id == 2 %}
+                            <td><span class="badge bg-danger text-capitalize">{{autorizacion.estado}}</span></td>
+                        {% elif autorizacion.estado.id == 3 %}
+                            <td><span class="badge bg-warning text-dark text-capitalize">{{autorizacion.estado}}</span></td>
+                        {% elif autorizacion.estado.id == 4 %}
+                            <td><span class="badge text-capitalize" style="background: #2A628F;">{{autorizacion.estado}}</span></td>
+                        {% endif %}
+                        
                         <td>{{autorizacion.tipo_perfil.nombre}}
                         <td><span class="badge" style="background: #2A628F;">${{autorizacion.solicitud.total}}</span></td>
-                        {% comment %}    
-                        <th>
-                            <button class="btn btn-rojo btn-sm" title="Eliminar solicitud"><i class="fas fa-trash-alt"></i></button>
-                        </th>
-                        {% endcomment %}
+            
                         <th>
                             <a href="{% url 'verDetalleSolicitud' autorizacion.solicitud.id %}" title="Ver detalles de la solicitud" class="btn btn-sm btn-success"><i class="fas fa-list"></i></a>
                         </th>
                         {% if autorizacion.estado.id == 4 and usuario.tipo.nombre == "Supervisor" %}
                         <th>
-                            <a href="#" title="Verificar la solicitud" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'verificarSolicitudBonosVarilleros' autorizacion.solicitud.id %}" title="Aplicar cambios a la solicitud" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
                         </th>
                         {% endif %}
-
-                        {% comment %}    
+                        {% if autorizacion.estado.id == 3 and usuario.tipo.id == autorizacion.tipo_perfil.id %}                      
                         <th>
-                            <a href="{% url 'updateSolicitudBonosVarilleros' autorizacion.solicitud.id %}" title="Editar solicitud" class="btn btn-success btn-sm"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'verDetalleSolicitud' autorizacion.solicitud.id %}" title="La soliciutd está pendiente" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
                         </th>
-                        {% endcomment %}
+                        {% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-    {% comment %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <nav aria-label="Page navigation example">
-                        <ul class="pagination justify-content-center">
-                              
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endcomment %}
     {% else %}
     <div class="card mt-3">
         <div class="card-body">

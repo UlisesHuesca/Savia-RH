@@ -35,7 +35,7 @@
                             <div class="input-group">
                                 
                                 <span class="input-group-text"><i class="fas fa-bookmark"></i></span>
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{datos.0}}" readonly>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.solicitud.folio}}" readonly>
                             </div>
                         </div>
                         {% comment %} Fecha {% endcomment %} 
@@ -43,7 +43,7 @@
                             <label for="" class="fw-bold">Fecha Emisión</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-bookmark"></i></span>
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{datos.1|date:'d/M/Y H:m'}}" readonly>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.solicitud.fecha|date:'d/M/Y H:m'}}" readonly>
                             </div>
                         </div>
                     </div>
@@ -53,7 +53,7 @@
                             <label for="" class="fw-bold">Supervisor</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{datos.2}}" readonly>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.solicitud.solicitante}}" readonly>
                             </div>
                         </div>
                         {% comment %} Distrito {% endcomment %}
@@ -61,7 +61,7 @@
                             <label for="" class="fw-bold">Distrito</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-location-dot"></i></span>
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{datos.3}}" readonly>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.solicitud.solicitante.distrito}}" readonly>
                             </div>
                         </div>
                         {% comment %} Bono {% endcomment %}
@@ -69,7 +69,7 @@
                             <label for="" class="fw-bold">Bono</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-sack-dollar"></i></span>
-                                <input type="text" class="form-control text-capitalize bg-white" name="" id="" value="{{datos.4}}" readonly>
+                                <input type="text" class="form-control text-capitalize bg-white" name="" id="" value="{{autorizaciones.solicitud.bono}}" readonly>
                             </div>
                         </div>
                     </div>
@@ -100,7 +100,7 @@
                     <tr>
                         <td></td>
                         <td></td>
-                        <td class="fw-bold">Total: $<span id="total">{{datos.5}}</span> </td>
+                        <td class="fw-bold">Total: $<span id="total">{{autorizaciones.solicitud.total}}</span> </td>
                     </tr>
                 </tfoot>
             </table>
@@ -147,17 +147,12 @@
                             {% endfor %}
                         {% endif %}
                         <div class="col-12 col-md-4 mb-3 mb-md-0">
-                            {% comment %} Muestra el nombre depependiento el logeo {% endcomment %} 
-                            {% if datos.9 == 6 %}
-                                <label for="" class="fw-bold">Superintendente</label>
-                            {% elif datos.9 == 7 %}
-                                <label for="" class="fw-bold">Control Técnico</label>
-                            {% elif datos.9 == 8 %}
-                                <label for="" class="fw-bold">Gerencia</label>
-                            {% endif %}
+                           
+                            <label for="" class="fw-bold">{{autorizaciones.tipo_perfil.nombre}}</label>
+                            
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{datos.8}}" readonly>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.tipo_perfil.nombre}}" readonly>
                             </div>
                         </div>
                         {% comment %} Fecha {% endcomment %} 
@@ -165,12 +160,16 @@
                             <label for="" class="fw-bold">Fecha Revisión</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-bookmark"></i></span>
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{datos.10|date:'d/M/Y H:m'}}" readonly>
+                                {% if autorizaciones.estado.id == 3 %}
+                                <input type="text" class="form-control bg-white" name="" id="" value="" readonly>
+                                {% else %}
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.updated_at|date:'d/M/Y H:m'}}" readonly>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
                     {% comment %}si rol supervisor y estado verificar{% endcomment %}
-                    {% if usuario.tipo.id == 5 and datos.6.id == 4 %}
+                    {% if usuario.tipo.id == 5 and autorizaciones.estado.id == 4 %}
                     <div class="row mb-3">
                         {% csrf_token %}
                         <div class="col-12 col-md-4 mb-3 mb-md-0">
@@ -188,12 +187,12 @@
                         <div class="col-12 col-md-4 mb-3 mb-md-0">
                             <label for="" class="fw-bold"></label>
                             <div class="input-group">                                        
-                                <a href="{% url 'verificarSolicitudBonosVarilleros' datos.0 %}" title="Editar solicitud" class="btn btn-primary"><i class="fas fa-edit"></i> Editar la solicitud</a>
+                                <a href="{% url 'verificarSolicitudBonosVarilleros' autorizaciones.solicitud.folio %}" title="Editar solicitud" class="btn btn-primary"><i class="fas fa-edit"></i> Editar la solicitud</a>
                             </div>
                         </div>       
                     </div>
                     {% else %}
-                        <form action="{% url 'autorizarSolicitudes' datos.0 %}" method="post">
+                        <form action="{% url 'autorizarSolicitudes' autorizaciones.solicitud.folio %}" method="post">
                             <div class="row mb-3">
                                 {% csrf_token %}
                                 <div class="col-12 col-md-4 mb-3 mb-md-0">
@@ -212,8 +211,8 @@
                                     <label for="" class="fw-bold"></label>
                                     <div class="input-group">                                        
                                         {% comment %}Si el rol fue quien mismo realizo la peticion | estado pendiente {% endcomment %}
-                                        {% if usuario.tipo.id == datos.9 %}
-                                            {% if datos.6.id == 3   %}
+                                        {% if usuario.tipo.id == autorizaciones.tipo_perfil.id %}
+                                            {% if autorizaciones.estado.id == 3   %}
                                                 <button type="submit" class="btn btn-primary btn-block">Enviar</button>
                                             {% endif %}
                                         {% endif %}

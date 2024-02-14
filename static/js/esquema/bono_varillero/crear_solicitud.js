@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", (e) => {
-
     /**Mensajes de alerta*/
     function mensajeBonoNa(){
         document.getElementById('cantidad').setAttribute('value','') 
@@ -225,9 +224,28 @@ document.addEventListener("DOMContentLoaded", (e) => {
                     title: "Exitoso",
                     text: "Se ha enviado la solicitud",
                     icon: "success",
-                })
+                }).then((result) => {
+                    // Este código se ejecuta después de que el usuario hace clic en OK
+                    if (result.isConfirmed) {
+                      console.log('El usuario hizo clic en OK');
+                      window.location.href = 'http://127.0.0.1:8000/esquema/bonos_varillero/';
+                    }
+                });
+               
+                //desactivar los botones
                 var botonEnviar = document.getElementById('enviar_solicitud');
+                var botonSubir = document.getElementById('subirArchivos');
+                var botonAgragarBono = document.getElementById('btnAgregar')
+                var botonRemoverBono = document.getElementById('removerBono')
                 botonEnviar.setAttribute('disabled',true);
+                botonSubir.setAttribute('disabled',true);
+                botonAgragarBono.setAttribute('disabled',true);
+                botonRemoverBono.setAttribute('disabled',true);
+                var boton = document.getElementsByClassName('subirArchivos')
+                var primerElemento = boton[0];
+                primerElemento.disabled = true;
+                primerElemento.disabled = true;
+
             }else{
                 Swal.fire({
                     title: "Error",

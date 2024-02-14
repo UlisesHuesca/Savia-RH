@@ -59,7 +59,7 @@ Crear Solicitud - Bonos Varilleros
                                 <div class="btn-group" role="group" aria-label="Basic example">
                                     {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png, .jpg, .jpeg, .pdf" %}
                                     <input type="hidden" name="valor" value="{{folio}}">
-                                    <button id="subirArchivos" name="btn_archivos" type="submit" class="btn btn-primary btn-sm w-25" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> <span class="">Subir</span></button>
+                                    <button id="subirArchivos" name="btn_archivos" type="submit" class="btn btn-primary btn-sm w-25 subirArchivos" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> <span class="">Subir</span></button>
                                 </div><br>
                                 <small class="text-danger" id="url-error">{{ requerimientoForm.url.errors }}</small> 
                                 </form>
@@ -174,7 +174,7 @@ Crear Solicitud - Bonos Varilleros
                                     <td>{{bono.trabajador}}</td>
                                     <td>{{bono.puesto}}</td>
                                     <td>${{bono.cantidad}}</td>
-                                    <td><button type="button" class="btn btn-danger btn-sm" title="Quitar un bono de la solicitud"><i class="fas fa-minus"></i></button></td>
+                                    <td><button id="removerBono" type="button" class="btn btn-danger btn-sm" title="Quitarlo de la solicitud"><i class="fas fa-minus"></i></button></td>
                                 </tr>
                                 {% endfor %}
                                 

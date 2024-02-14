@@ -17,12 +17,10 @@ def autorizarSolicitud(request,solicitud):
                 
         if autorizarSolicitudesUpdateForm.is_valid():
             usuario = request.user  
-            rol = UserDatos.objects.get(user_id = usuario.id)#se obtiene el rol
+            rol = UserDatos.objects.get(user_id = usuario.id)
             
-            autorizar = get_object_or_404(AutorizarSolicitudes,solicitud_id = solicitud, tipo_perfil_id = rol.tipo_id)#se obtiene la autorizacion
+            autorizar = get_object_or_404(AutorizarSolicitudes,solicitud_id = solicitud, tipo_perfil_id = rol.tipo_id)
             
-            
-            #datos enviados por el formulario
             estadoDato = autorizarSolicitudesUpdateForm.cleaned_data['estado']
             comentarioDato = autorizarSolicitudesUpdateForm.cleaned_data['comentario']
              
@@ -49,7 +47,6 @@ def autorizarSolicitud(request,solicitud):
                         #entra en el flujo de verifica o cambios
                         if autorizar.revisar and not created:
                             control_tecnico.estado_id = 3
-                            #control_tecnico.tipo_perfil_id = perfil_control_tecnico['id']
                             control_tecnico.save()
                             
                         messages.success(request, "La solicitud se aprobó por el Superintendente, pasa a revisión a Control Técnico")
@@ -59,35 +56,13 @@ def autorizarSolicitud(request,solicitud):
                     #autorizar - asignar el estado de la solicitud
                     autorizar.estado_id = estadoDato.id
                     autorizar.comentario = comentarioDato
-                    autorizar.save()  
+                    autorizar.save() 
                     
-                    """
-                    gerencia = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=8).values('numero_de_trabajador').first()
-                    perfil_gerente = Perfil.objects.filter(numero_de_trabajador = gerencia['numero_de_trabajador']).values('id').first() 
-                    
-                    AutorizarSolicitudes.objects.create(
-                        solicitud_id = solicitud,
-                        perfil_id =  perfil_gerente['id'],
-                        tipo_perfil_id = 8, # gerente
-                        estado_id = 3, # pendiente
-                    )
-                    """
                     messages.success(request, "La solicitud se aprobó por Control Técnico")
                     return redirect('listarBonosVarilleros')
                 
-                """
-                elif rol.tipo_id == 8: #control tecnico -> gerencia 
-                    #autorizar - asignar el estado de la solicitud
-                    autorizar.estado_id = estadoDato.id
-                    autorizar.comentario = comentarioDato
-                    autorizar.save()  
-                    
-                    #IMPLEMENTAR LOGICA DEL COSTO DEL BONO
-                    
-                    messages.success(request, "La solicitud se aprobó por el Gerente")
-                    return redirect('listarBonosVarilleros')
-                """
-                
+                #IMPLEMENTAR COSTO
+                  
             elif estadoDato.id == 2:#rechazado 
                 #autorizar - asignar el estado de la solicitud
                 autorizar.estado_id = estadoDato.id
@@ -106,19 +81,7 @@ def autorizarSolicitud(request,solicitud):
                 autorizar.comentario = comentarioDato
                 autorizar.revisar = True
                 autorizar.save()
-                """
-                if rol.tipo_id == 6:#superintendente           
-                    autorizar.estado_id = 4
-                    autorizar.comentario = comentarioDato
-                    autorizar.revisar = True
-                    autorizar.save()
-                    print("FLUJO DE LA SOLICITUD REVISAR")      
-                elif rol.tipo_id == 7:#control técnico       
-                    autorizar.estado_id = 4
-                    autorizar.comentario = comentarioDato
-                    autorizar.save()       
-                """ 
-                        
+                         
                 messages.success(request, "El supervisor verificará la solicitud emitida")
                 return redirect('verDetalleSolicitud', solicitud_id=solicitud)
             

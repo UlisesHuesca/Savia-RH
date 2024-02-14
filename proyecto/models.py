@@ -141,9 +141,9 @@ class TipoPerfil(models.Model): #Boleanos para filtrar lo que puede hacer cada u
     info_general = models.BooleanField(null=True, default=False)
     solicitudes = models.BooleanField(null=True, default=False)
     esquema_bono = models.BooleanField(null=True, default=False)
-
+    
     def __str__(self):
-        return f'{self.nombre}, admin: {self.admin}'
+        return f'{self.nombre}'
 
 class UserDatos(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
