@@ -36,9 +36,9 @@ class Bono(models.Model):
     importe = models.DecimalField(max_digits=10,decimal_places=2,null=True)
 
     def __str__(self):
-        if self.esquema_subcategoria ==None:
-            return "Campo vacio"
-        return f'{self.subcategoria.nombre}'
+        if self.esquema_subcategoria is None:
+            return "Campo vacío"
+        return f'{self.esquema_subcategoria.nombre}'
     
 #El bono que pasara a revisión
 class Solicitud(models.Model):

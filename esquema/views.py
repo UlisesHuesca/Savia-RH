@@ -17,7 +17,7 @@ import logging
 from proyecto.models import Distrito,Perfil,Puesto,UserDatos
 from .models import Categoria,Subcategoria,Bono,Solicitud,BonoSolicitado,Requerimiento
 from revisar.models import AutorizarSolicitudes
-from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm,AutorizarSolicitudesUpdateForm
+from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm,AutorizarSolicitudesUpdateForm,AutorizarSolicitudesGerenteUpdateForm
 from django.db import connection
 from django.core.paginator import Paginator
 from .filters import SolicitudFilter,AutorizarSolicitudesFilter
@@ -69,7 +69,7 @@ def listarBonosVarilleros(request):
     autorizaciones_filter = AutorizarSolicitudesFilter(request.GET, queryset=autorizaciones)
     autorizaciones = autorizaciones_filter.qs
     
-    p = Paginator(autorizaciones, 10)
+    p = Paginator(autorizaciones, 50)
     page = request.GET.get('page')
     salidas_list = p.get_page(page)
     autorizaciones= p.get_page(page)
@@ -426,13 +426,15 @@ def verDetallesSolicitud(request,solicitud_id):
     
     #se carga el formulario con datos iniciales
     autorizarSolicitudesUpdateForm = AutorizarSolicitudesUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
+    autorizarSolicitudesGerenteUpdateForm = AutorizarSolicitudesGerenteUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
     
     contexto = {
         "usuario":usuario,
         "autorizaciones":autorizaciones,
         "bonos":bonos,
         "requerimientos": requerimientos,
-        "autorizarSolicitudesUpdateForm":autorizarSolicitudesUpdateForm
+        "autorizarSolicitudesUpdateForm":autorizarSolicitudesUpdateForm,
+        "autorizarSolicitudesGerenteUpdateForm":autorizarSolicitudesGerenteUpdateForm
     }
     
     return render(request,'esquema/bonos_varilleros/detalles_solicitud.html',contexto)

@@ -195,16 +195,25 @@
                         <form action="{% url 'autorizarSolicitudes' autorizaciones.solicitud.folio %}" method="post">
                             <div class="row mb-3">
                                 {% csrf_token %}
+                                
+                                {% comment %}No se muestra cuando es Gerente{% endcomment %}
+                                {% if usuario.tipo.id != 8 %}
                                 <div class="col-12 col-md-4 mb-3 mb-md-0">
                                     <label for="" class="fw-bold">Comentario</label>
                                     <div class="input-group">
                                     {% render_field autorizarSolicitudesUpdateForm.comentario class="form-control" %}  
                                     </div>   
                                 </div>
+                                {% endif %}
                                 <div class="col-12 col-md-4 mb-3 mb-md-0">
                                     <label for="" class="fw-bold">Estado</label>
                                     <div class="input-group">
-                                    {% render_field autorizarSolicitudesUpdateForm.estado class="form-control text-capitalize"%}
+                                    {% if usuario.tipo.id != 8 %}
+                                        {% render_field autorizarSolicitudesUpdateForm.estado class="form-control text-capitalize"%}
+                                    {% else %}
+                                        {% render_field autorizarSolicitudesGerenteUpdateForm.estado class="form-control text-capitalize"%}
+                                    {% endif %}
+                                   
                                     </div>
                                 </div>       
                                 <div class="col-12 col-md-4 mb-3 mb-md-0">

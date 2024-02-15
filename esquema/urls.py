@@ -8,7 +8,6 @@ urlpatterns = [
     path('bonos_varillero/crear_solicitud/', views.crearSolicitudBonosVarilleros, name="crearSolicitudBonosVarilleros"),
     path('bonos_varillero/<int:solicitud_id>/ver-detalles-solicitud/', views.verDetallesSolicitud, name="verDetalleSolicitud"),
     path('bonos_varillero/<int:solicitud>/verificar-solicitud/', views.verificarSolicitudBonosVarilleros, name="verificarSolicitudBonosVarilleros"),
-    #path('bonos_varillero/int:solicitud/autorizar-solicitud'),views.
     #api
     path('solicitar_esquema_bonos/',views.solicitarEsquemaBono),
     path('remover_bono/<int:bono_id>/',views.removerBono),
