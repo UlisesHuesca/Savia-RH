@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.db.models import Sum
 import os
 import logging
-from proyecto.models import Distrito,Perfil,Puesto,UserDatos
+from proyecto.models import Distrito,Perfil,Puesto,UserDatos,Catorcenas
 from .models import Categoria,Subcategoria,Bono,Solicitud,BonoSolicitado,Requerimiento
 from revisar.models import AutorizarSolicitudes
 from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm,AutorizarSolicitudesUpdateForm,AutorizarSolicitudesGerenteUpdateForm
@@ -24,6 +24,8 @@ from .filters import SolicitudFilter,AutorizarSolicitudesFilter
 from django.db.models import Max
 from django.db.models import Subquery, OuterRef
 from django.http import Http404
+import datetime
+
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -45,6 +47,10 @@ def listarBonosVarilleros(request):
     #se obtiene el perfil del usuario logueado
     solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
     
+    #Se muestran por catorcenas
+    fecha_actual = datetime.date.today()
+    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
+    
     subconsulta_ultima_fecha = AutorizarSolicitudes.objects.values('solicitud_id').annotate(
             ultima_fecha=Max('created_at')
         ).filter(solicitud_id=OuterRef('solicitud_id')).values('ultima_fecha')[:1]
@@ -55,14 +61,14 @@ def listarBonosVarilleros(request):
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__complete = 1
+            solicitud__complete = 1,updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
         ).order_by("-created_at")
     else:
         #obtiene la ultima autorizacion independientemente en el flujo que se encuentre
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1, updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
             #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     

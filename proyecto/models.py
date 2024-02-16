@@ -379,6 +379,7 @@ class Costo(models.Model):
     total_apoyosbonos_empleadocomp = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     #Variables
     total_prima_vacacional = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    bono_total = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     total_apoyosbonos_agregcomis = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     comision_complemeto_salario_bonos = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     total_costo_empresa = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
