@@ -267,7 +267,13 @@
                                 </div>
                             </div>
                             <div class="row my-2">
-                                <label for="form.fecha_ingreso" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Fecha alta IMSS:</strong></label>
+                                <label for="form.fecha_ingreso" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Fecha Ingreso:</strong></label>
+                                <div class="col-12 col-md-4">
+                                    {% render_field form.fecha_ingreso type="date" class="form-control" %}
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <label for="form.fecha_alta_imss" class="col-auto col-form-label my-1 col-12 col-md-2 col-form-label"><strong>Fecha alta IMSS:</strong></label>
                                 <div class="col-12 col-md-4">
                                     {% render_field form.fecha_alta_imss type="date" class="form-control" %}
                                 </div>

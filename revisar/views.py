@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from esquema.forms import AutorizarSolicitudesUpdateForm
 from .models import AutorizarSolicitudes
 from esquema.models import BonoSolicitado
-from proyecto.models import UserDatos,Perfil,Status,Costo,Catorcenas
+from proyecto.models import UserDatos,Perfil,Status,Costo,Catorcenas,SalarioDatos
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.shortcuts import redirect
@@ -12,6 +12,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from datetime import date
 import datetime
+from decimal import Decimal
 
 def asignarBonoCosto(solicitud):
     #una lista que lleva cada cantidad del bono
@@ -21,7 +22,10 @@ def asignarBonoCosto(solicitud):
        
     #trae los empleados con sus respectivos bonos
     empleados = BonoSolicitado.objects.filter(solicitud_id = solicitud).values("trabajador_id","cantidad")
-    
+    porcentaje = SalarioDatos.objects.get(pk = 1)
+
+    print(porcentaje.comision_bonos)
+
     for item in empleados:
         trabajador_id = item['trabajador_id']
         cantidad_obtenida = item['cantidad']
@@ -32,12 +36,29 @@ def asignarBonoCosto(solicitud):
     for index,perfil in enumerate(lista_perfiles):
         costo = Costo.objects.get(status__perfil_id = perfil)
         costo.bono_total = cantidad[index]
+        #costo.save()
         
+        #realizar calculo bono - costo 
+        costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
+        costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(porcentaje.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
+        costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
+        costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+        costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
+        costo.save()
+    
+        print("bonos: ",costo.total_apoyosbonos_agregcomis)
+        print("comision: ",costo.comision_complemeto_salario_bonos)
+        print("costo total empresa: ",costo.total_costo_empresa)
+        print("costo total empleado: ",costo.ingreso_mensual_neto_empleado)
         
-      
     
-    
-    
+        """
+        costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
+        costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
+        costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
+        costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+        costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
+        """
         
         
 @login_required(login_url='user-login')

@@ -489,11 +489,19 @@ def StatusUpdate(request, pk):
                 valido=True
                 
         if valido == True:
+            if estado.fecha_alta_imss is not None:
+                if estado.fecha_alta_imss > ahora:
+                    messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
+                    valido = False
+            else:
+                valido=True
+            """
             if estado.fecha_alta_imss > ahora:
                 messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
                 valido = False
             else:
                 valido=True
+            """
             """
             if estado.fecha_alta_imss is None:
                 messages.error(request, '(Fecha alta IMSS) La fecha alta de imss es obligratoria')
@@ -504,6 +512,7 @@ def StatusUpdate(request, pk):
             else:
                 valido=True
             """
+            
             
         
         if form.is_valid() and valido == True:
