@@ -1,0 +1,121 @@
+{% extends 'partials/base.html' %}
+
+{% load static %}
+{% load widget_tweaks %}
+{% load tt_extras %}
+
+{% block title %}
+    Bonos Varilleros
+{% endblock title %}
+    
+
+{% block css %}
+
+{% endblock css %}
+    
+
+{% block content %}
+<div class="container-fluid margen-alto">
+    {% csrf_token %}
+    <div class="row">
+        {% comment %}Mesajes de confirmación{% endcomment %}
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header d-flex justify-content-between">
+                    <div class="card-title"><h5>Bonos Varilleros</h5></div>
+                </div>
+              
+                <div class="card-body">
+                    {% comment %} Realizar Busquedas {% endcomment %}
+                    <form method="get">
+                        <div class="row g-3 align-items-center">
+                            
+                        </div>
+                    </form>
+                </div>
+
+              </div>
+        </div>
+    </div>
+    {% comment %} Listar Solicitudes {% endcomment %}
+    {% if datos %}
+    <div class="row">
+        <div class="col-12 my-3 table-responsive">
+            <table class="table bg-white table-hover table-striped shadow" id="tabla">
+                <thead>
+                    <tr class="tabla-encabezado">
+                        <th>Folio</th>
+                        <th>Nombre</th>
+                        <th>No. Cuenta</th>
+                        <th>No. Tarjeta</th>
+                        <th>Banco</th>
+                        <th>Distrito</th>
+                        <th>Bono</th>
+                        <th>Puesto</th>
+                        <th>Cantidad</th>
+                        <th colspan="3" style="width: 5%;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bono, bancario in bonos_paginados %}
+                    <tr> 
+                        <td>{{bono.solicitud.folio}}</td>
+                        <td>{{bono.trabajador}}</td>
+                        <td>{{bancario.no_de_cuenta}}</td>
+                        <td>{{bancario.numero_de_tarjeta}}</td>
+                        <td>{{bancario.banco}}</td>
+                        <td>{{bono.distrito}}</td>
+                        <td>{{bono.solicitud.bono}}</td>
+                        <td>{{bono.puesto}}</td>
+                        <td>${{bono.cantidad}}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card mt-3">
+        <div class="card-body">
+            <p class="text-muted">No se entraron resultados</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        {% if salidas_list.has_previous %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url 1 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-left"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.previous_page_number  'page' request.GET.urlencode %}"><i class="fa-solid fa-angle-left"></i></a></li>
+        {% endif %}
+
+        {% for item in salidas_list.paginator.page_range %}
+            {% if salidas_list.number == item %}
+                <li class="page-item active"><a href="#" class="page-link bg-dark">{{item}}</a></li>
+            {% elif item > salidas_list.number|add:'-2' and item < salidas_list.number|add:'2' %}
+                <li class="page-item "><a class="page-link" style="color:#3E92CC" href="{% my_url item 'page' request.GET.urlencode %}" class="page-link">{{item}}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if salidas_list.paginator.num_pages > salidas_list.number|add:'2' %}
+            <li><a class="page-link" style="color:#3E92CC" href="?page={{salidas_list.number|add:'2'}}">&hellip;</a></li>
+            <li><a style="color:#3E92CC" href="?page={{ item }}">{{item}}</a></li>
+            <li><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}">{{salidas_list.paginator.num_pages}}</a></li>
+        {% endif %}
+
+        {% if salidas_list.has_next %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.next_page_number 'page' request.GET.urlencode %}"><i class="fa-solid fa-chevron-right"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-right"></i></a></a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+{% endblock content %}
+ 
+
+{% block js %}
+
+{% endblock js %}

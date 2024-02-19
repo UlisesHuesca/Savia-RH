@@ -1240,6 +1240,12 @@ def CostoUpdate(request, pk):
                                                                     costo.impuesto_marginal= costo.excedente * costo.tasa
                                                                     costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
                                                                     costo.isr= costo.impuesto
+                                                                    costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
+                                                                    costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
+                                                                    costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
+                                                                    costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+                                                                    costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
+                                                                    """
                                                                     costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
                                                                     costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
                                                                     costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
@@ -1247,7 +1253,7 @@ def CostoUpdate(request, pk):
                                                                     print("costo total empresa: ",costo.total_costo_empresa)
                                                                     costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
                                                                     costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-
+                                                                    """
                                                                     #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
 
                                                                     if form.is_valid():
@@ -1335,6 +1341,9 @@ def Costo_revisar(request, pk):
     costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
     costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
     costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+    #se agrego el bono
+    costo.bono_total=locale.currency(costo.bono_total, grouping=True)
+    print("bono: ",costo.bono_total)
     bonototal = locale.currency(bonototal, grouping=True)
     if request.method =='POST' and 'Pdf' in request.POST:
         return reporte_pdf_costo_detalles(costo,bonototal)
@@ -3555,7 +3564,8 @@ def reporte_pdf_costo_detalles(costo,bonototal):
     c.drawString(365,250,costo.impuesto)
     c.drawString(365,225,costo.subsidio)
     c.drawString(525,200,costo.total_apoyosbonos_empleadocomp)
-    c.drawString(375,175,bonototal)
+    #c.drawString(375,175,bonototal)
+    c.drawString(375,175,costo.bono_total)
     c.drawString(515,150,costo.comision_complemeto_salario_bonos)
     c.drawString(465,125,costo.total_costo_empresa)
     c.drawString(485,100,costo.ingreso_mensual_neto_empleado)

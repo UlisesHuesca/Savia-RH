@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.db.models import Sum
 import os
 import logging
-from proyecto.models import Distrito,Perfil,Puesto,UserDatos,Catorcenas
+from proyecto.models import Distrito,Perfil,Puesto,UserDatos,Catorcenas,DatosBancarios
 from .models import Categoria,Subcategoria,Bono,Solicitud,BonoSolicitado,Requerimiento
 from revisar.models import AutorizarSolicitudes
 from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm,AutorizarSolicitudesUpdateForm,AutorizarSolicitudesGerenteUpdateForm
@@ -25,6 +25,7 @@ from django.db.models import Max
 from django.db.models import Subquery, OuterRef
 from django.http import Http404
 import datetime
+from django.db.models import Q
 
 
 #Pagina inicial de los esquemas de los bonos
@@ -57,18 +58,26 @@ def listarBonosVarilleros(request):
     
     #Si es usuario administrador de distrito matriz
     if usuario.distrito.id == 1 and usuario.tipo.id ==  1:
-        #obtiene la ultima autorizacion independientemente en el flujo que se encuentre
+        #obtiene todas las ultimas autorizaciones de todos los distritos y roles independientemente en el flujo que se encuentre
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
             solicitud__complete = 1,updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
+        ).order_by("-created_at")
+    elif usuario.tipo.id ==  5: #supervisor
+        #obtiene todas las ultimas autorizaciones de su distrito y roles
+        autorizaciones = AutorizarSolicitudes.objects.filter(
+            created_at=Subquery(subconsulta_ultima_fecha)
+        ).select_related('solicitud', 'perfil').filter(
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
+            #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     else:
         #obtiene la ultima autorizacion independientemente en el flujo que se encuentre
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1, updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,tipo_perfil_id=usuario.tipo.id ,updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
             #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     
@@ -444,7 +453,72 @@ def verDetallesSolicitud(request,solicitud_id):
     }
     
     return render(request,'esquema/bonos_varilleros/detalles_solicitud.html',contexto)
+
+#lista bonos aprobados
+@login_required(login_url='user-login')
+def listarBonosVarillerosAprobados(request):
+    #se obtiene el usuario logueado
+    usuario = get_object_or_404(UserDatos,user_id = request.user.id)
+    #se obtiene el perfil del usuario logueado
+    #solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
     
+    #Se muestran por catorcenas
+    fecha_actual = datetime.date.today()
+    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
+
+
+    #Si es usuario administrador de distrito matriz
+    if usuario.distrito.id == 1 and usuario.tipo.id ==  1:
+        #obtiene todos los bonos aprobados de todos los distritos | gerente aprobado
+        autorizaciones = AutorizarSolicitudes.objects.filter(
+            solicitud__complete = 1,
+            estado_id = 1,
+            tipo_perfil_id = 8,
+            updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
+           
+        ).order_by("-created_at").values('solicitud_id')
+        
+        #se buscan los perfiles acredores al bono
+        solicitudes = []
+        for item in autorizaciones:
+            solicitud_id = item['solicitud_id']
+            solicitudes.append(solicitud_id)
+            
+        bonos = BonoSolicitado.objects.filter(solicitud_id__in = solicitudes).order_by('trabajador_id')
+        
+        query = Q()
+        for bono in bonos:
+            query |= Q(status__perfil=bono.trabajador)
+            
+        # Realiza una única consulta para obtener todos los DatosBancarios asociados a los Bonos
+        bancarios = DatosBancarios.objects.select_related('status__perfil').filter(query).order_by('status__perfil_id')
+        
+        datos = zip(bonos,bancarios)
+        
+        p = Paginator(bonos, 2)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+        bonos_paginados = p.get_page(page)
+        
+        # Combina los bonos paginados con los bancarios
+        datos_paginados = list(zip(bonos_paginados, bancarios))
+
+                
+        contexto = {
+            'datos': datos_paginados,
+            'bonos_paginados': bonos_paginados,
+        }
+                    
+        return render(request,'esquema/bonos_varilleros/listar_bonos_aprobados.html',contexto)
+    
+    else:
+        return render(request, 'revisar/403.html')
+               
+            
+            
+    response = HttpResponse("cargando datos bonos aprobados")
+
+    return response
 
 #para remover bonos agregados
 @login_required(login_url='user-login')
