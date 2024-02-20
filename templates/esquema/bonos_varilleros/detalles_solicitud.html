@@ -24,7 +24,9 @@
                 <div class="card-header pb-0">
                     <div class="card-title d-flex justify-content-between">
                         <h5>Detalles de la solicitud</h5>
+                        {% comment %}    
                         <a href="{% url 'listarBonosVarilleros' %}" class="btn btn-light btn-lg py-0" title="volver"><i class="fas fa-arrow-left"></i></a>
+                        {% endcomment %}
                     </div>
                 </div>
                 <div class="card-body">
@@ -43,7 +45,7 @@
                             <label for="" class="fw-bold">Fecha Emisión</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-bookmark"></i></span>
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.solicitud.fecha|date:'d/M/Y H:m'}}" readonly>
+                                <input type="text" class="form-control bg-white" name="fecha-emision" id="" value="{{autorizaciones.solicitud.fecha|date:'d/m/Y H:i'}}" readonly>
                             </div>
                         </div>
                     </div>
@@ -152,7 +154,7 @@
                             
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.tipo_perfil.nombre}}" readonly>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.perfil}}" readonly>
                             </div>
                         </div>
                         {% comment %} Fecha {% endcomment %} 
@@ -163,7 +165,7 @@
                                 {% if autorizaciones.estado.id == 3 %}
                                 <input type="text" class="form-control bg-white" name="" id="" value="" readonly>
                                 {% else %}
-                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.updated_at|date:'d/M/Y H:m'}}" readonly>
+                                <input type="text" class="form-control bg-white" name="" id="" value="{{autorizaciones.created_at|date:'d/m/Y H:i'}}" readonly>
                                 {% endif %}
                             </div>
                         </div>

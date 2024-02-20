@@ -72,9 +72,20 @@
                                 <label for="" class="fw-bold">Bono</label>
                                 {% render_field autorizaciones_filter.form.bono class="form-control text-capitalize"%}
                             </div>
+                            {% comment %}si es tipo supervisor o de tipo admimistrador mostrar el filtro{% endcomment %}                                
+                            {% if usuario.tipo.id == 5 or usuario.tipo.id == 1%}
                             <div class="col-auto">
                                 <label for="" class="fw-bold">Rol</label>
                                 {% render_field autorizaciones_filter.form.rol class="form-control text-capitalize"%}
+                            </div>
+                            {% endif %}
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Fecha Inicio</label>
+                                {% render_field autorizaciones_filter.form.fecha_inicio type="date" class="form-control"%}
+                            </div>
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Fecha Fin</label>
+                                {% render_field autorizaciones_filter.form.fecha_fin type="date" class="form-control"%}
                             </div>
                             <div class="col-auto">
                                 <br>

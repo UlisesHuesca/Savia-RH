@@ -20,12 +20,28 @@ from revisar.models import AutorizarSolicitudes
 from .forms import SolicitudForm, BonoSolicitadoForm, RequerimientoForm,AutorizarSolicitudesUpdateForm,AutorizarSolicitudesGerenteUpdateForm
 from django.db import connection
 from django.core.paginator import Paginator
-from .filters import SolicitudFilter,AutorizarSolicitudesFilter
+from .filters import SolicitudFilter,AutorizarSolicitudesFilter,BonoSolicitadoFilter
 from django.db.models import Max
 from django.db.models import Subquery, OuterRef
 from django.http import Http404
 import datetime
 from django.db.models import Q
+#Excel
+from openpyxl import Workbook
+import openpyxl
+from openpyxl.chart import PieChart, Reference
+from openpyxl.chart.series import DataPoint
+from openpyxl.chart.label import DataLabelList
+from openpyxl.drawing.image import Image
+from openpyxl.styles import NamedStyle, Font, PatternFill
+from openpyxl.utils import get_column_letter
+from django.db.models.functions import Concat
+from django.db.models import Value
+from django.db.models import Sum
+from django.db.models import Count
+from django.db.models import IntegerField
+from django.db.models.functions import Cast
+from django.http import HttpResponseRedirect
 
 
 #Pagina inicial de los esquemas de los bonos
@@ -442,7 +458,7 @@ def verDetallesSolicitud(request,solicitud_id):
     #se carga el formulario con datos iniciales
     autorizarSolicitudesUpdateForm = AutorizarSolicitudesUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
     autorizarSolicitudesGerenteUpdateForm = AutorizarSolicitudesGerenteUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
-    
+        
     contexto = {
         "usuario":usuario,
         "autorizaciones":autorizaciones,
@@ -485,32 +501,26 @@ def listarBonosVarillerosAprobados(request):
             solicitudes.append(solicitud_id)
             
         bonos = BonoSolicitado.objects.filter(solicitud_id__in = solicitudes).order_by('trabajador_id')
+                
+        bonosolicitado_filter = BonoSolicitadoFilter(request.GET, queryset=bonos) 
+        bonos = bonosolicitado_filter.qs
         
-        query = Q()
-        for bono in bonos:
-            query |= Q(status__perfil=bono.trabajador)
-            
-        # Realiza una única consulta para obtener todos los DatosBancarios asociados a los Bonos
-        bancarios = DatosBancarios.objects.select_related('status__perfil').filter(query).order_by('status__perfil_id')
-        
-        datos = zip(bonos,bancarios)
-        
-        p = Paginator(bonos, 2)
+        p = Paginator(bonos, 50)
         page = request.GET.get('page')
         salidas_list = p.get_page(page)
-        bonos_paginados = p.get_page(page)
-        
-        # Combina los bonos paginados con los bancarios
-        datos_paginados = list(zip(bonos_paginados, bancarios))
+        bonos = p.get_page(page)
 
-                
+        if request.method =='POST' and 'excel' in request.POST:
+            return convert_excel_bonos_aprobados(bonos)
+        
         contexto = {
-            'datos': datos_paginados,
-            'bonos_paginados': bonos_paginados,
+            'bonos':bonos,
+            'salidas_list':salidas_list,
+            'bonosolicitado_filter':bonosolicitado_filter
         }
-                    
+        
         return render(request,'esquema/bonos_varilleros/listar_bonos_aprobados.html',contexto)
-    
+        
     else:
         return render(request, 'revisar/403.html')
                
@@ -615,4 +625,10 @@ def solicitarEsquemaBono(request):
 
         #datos = {'mensaje': 'comunicacion con el back'}
         #return JsonResponse(datos)
-            
+
+
+#GENERACION DE REPORTES EN EXCEL
+def convert_excel_bonos_aprobados(bono):
+    response = HttpResponse("cargando reporte datos bonos aprobados")
+    return response           
+

@@ -218,7 +218,7 @@ class Dia_vacacion(models.Model):
         return f'{self.nombre}'
 
 class Status(models.Model):
-    perfil = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True)
+    perfil = models.OneToOneField(Perfil, on_delete = models.CASCADE,related_name='status',null=True)
     registro_patronal = models.ForeignKey(RegistroPatronal, on_delete = models.CASCADE, null=True)
     nss = models.CharField(max_length=50,null=True)
     curp = models.CharField(max_length=50,null=True)
@@ -265,7 +265,7 @@ class Status(models.Model):
         return f'{self.perfil.nombres} {self.perfil.apellidos}' or ''
 
 class DatosBancarios(models.Model):
-    status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
+    status = models.OneToOneField(Status, on_delete = models.CASCADE, null=True)
     no_de_cuenta = models.CharField(max_length=35,null=True)
     numero_de_tarjeta = models.CharField(max_length=35,null=True,blank=True)
     clabe_interbancaria = models.CharField(max_length=35,null=True)
@@ -338,7 +338,7 @@ class Variables_imss_patronal(models.Model):
 
 class Costo(models.Model):
     #Independientes (formulario)
-    status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
+    status = models.OneToOneField(Status, on_delete = models.CASCADE, null=True)
     laborados = models.IntegerField(null=True, default=0)
     seccion = models.CharField(max_length=50,null=True)
     amortizacion_infonavit = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)

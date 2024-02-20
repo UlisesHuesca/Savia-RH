@@ -26,12 +26,68 @@
                 <div class="card-header d-flex justify-content-between">
                     <div class="card-title"><h5>Bonos Varilleros</h5></div>
                 </div>
-              
+                
+                <div class="card-body mb-0 pb-0">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="col-12">
+                            <div class="card card-body">
+                                 <div class = "row mt-2 bg-white">
+                                    <ul class="nav nav-pills">
+                                        <li class="mx-2">
+                                            <button type="submit" name="excel" class="btn btn-outline-success" value='Reporte Excel'>
+                                                <i class="fa-solid fa-file-excel fa-2xl"></i>
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
                 <div class="card-body">
                     {% comment %} Realizar Busquedas {% endcomment %}
                     <form method="get">
                         <div class="row g-3 align-items-center">
-                            
+                            <div class="row g-3 align-items-center">
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Folio</label>
+                                    {% render_field  bonosolicitado_filter.form.folio class="form-control text-capitalize"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Nombre</label>
+                                    {% render_field  bonosolicitado_filter.form.nombres_apellidos class="form-control text-capitalize"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Distrito</label>
+                                {% render_field  bonosolicitado_filter.form.distrito class="form-control text-capitalize"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Bono</label>
+                                    {% render_field  bonosolicitado_filter.form.bono class="form-control text-capitalize"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Puesto</label>
+                                    {% render_field  bonosolicitado_filter.form.puesto class="form-control text-capitalize"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">No. Trabajador</label>
+                                    {% render_field  bonosolicitado_filter.form.no_trabajador class="form-control text-capitalize"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Fecha Inicio</label>
+                                    {% render_field  bonosolicitado_filter.form.fecha_inicio type="date" class="form-control"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Fecha Fin</label>
+                                    {% render_field  bonosolicitado_filter.form.fecha_fin type="date" class="form-control"%}
+                                </div>
+                                <div class="col-auto">
+                                    <br>
+                                    <button type="search" class="btn btn-success"><i class="fas fa-search"></i></button>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -40,13 +96,14 @@
         </div>
     </div>
     {% comment %} Listar Solicitudes {% endcomment %}
-    {% if datos %}
+    {% if bonos|length != 0 %}
     <div class="row">
         <div class="col-12 my-3 table-responsive">
             <table class="table bg-white table-hover table-striped shadow" id="tabla">
                 <thead>
                     <tr class="tabla-encabezado">
                         <th>Folio</th>
+                        <th>Fecha</th>
                         <th>Nombre</th>
                         <th>No. Cuenta</th>
                         <th>No. Tarjeta</th>
@@ -55,21 +112,26 @@
                         <th>Bono</th>
                         <th>Puesto</th>
                         <th>Cantidad</th>
-                        <th colspan="3" style="width: 5%;"></th>
+                     
+                        <th style="width: 5%;"></th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for bono, bancario in bonos_paginados %}
-                    <tr> 
+                    {% for bono in bonos %}
+                    <tr class="text-capitalize"> 
                         <td>{{bono.solicitud.folio}}</td>
+                        <td>{{bono.fecha|date:"d/m/Y H:i"}}</td>
                         <td>{{bono.trabajador}}</td>
-                        <td>{{bancario.no_de_cuenta}}</td>
-                        <td>{{bancario.numero_de_tarjeta}}</td>
-                        <td>{{bancario.banco}}</td>
+                        <td>{{bono.trabajador.status.datosbancarios.no_de_cuenta}}</td>
+                        <td>{{bono.trabajador.status.datosbancarios.numero_de_tarjeta}}</td>
+                        <td>{{bono.trabajador.status.datosbancarios.banco}}</td>
                         <td>{{bono.distrito}}</td>
                         <td>{{bono.solicitud.bono}}</td>
                         <td>{{bono.puesto}}</td>
-                        <td>${{bono.cantidad}}</td>
+                        
+
+                        <td><span class="badge " style="background: #2A628F;">${{bono.cantidad}}</span></td>
+                        <td><a href="{% url 'verDetalleSolicitud' bono.solicitud.id %}" title="La soliciutd está pendiente" class="btn btn-sm btn-success"><i class="fas fa-list"></i></a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
