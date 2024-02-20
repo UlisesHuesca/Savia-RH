@@ -27,22 +27,19 @@
                     <div class="card-title"><h5>Bonos Varilleros</h5></div>
                 </div>
                 
+                
+                {% comment %} Generar el reporte excel {% endcomment %}                    
                 <div class="card-body mb-0 pb-0">
                     <form method="post">
                         {% csrf_token %}
-                        <div class="col-12">
-                            <div class="card card-body">
-                                 <div class = "row mt-2 bg-white">
-                                    <ul class="nav nav-pills">
-                                        <li class="mx-2">
-                                            <button type="submit" name="excel" class="btn btn-outline-success" value='Reporte Excel'>
-                                                <i class="fa-solid fa-file-excel fa-2xl"></i>
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" name="excel" class="btn btn-outline-success" title="Descargar reporte en excel" value='Reporte Excel'>
+                                    <i class="fa-solid fa-file-excel fa-2xl"></i>
+                                </button>
                             </div>
                         </div>
+                        <hr>
                     </form>
                 </div>
 

@@ -33,7 +33,7 @@ from openpyxl.chart import PieChart, Reference
 from openpyxl.chart.series import DataPoint
 from openpyxl.chart.label import DataLabelList
 from openpyxl.drawing.image import Image
-from openpyxl.styles import NamedStyle, Font, PatternFill
+from openpyxl.styles import NamedStyle, Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 from django.db.models.functions import Concat
 from django.db.models import Value
@@ -440,13 +440,13 @@ def listarBonosVarillerosAprobados(request):
         bonosolicitado_filter = BonoSolicitadoFilter(request.GET, queryset=bonos) 
         bonos = bonosolicitado_filter.qs
         
+        if request.method =='POST' and 'excel' in request.POST:
+            return convert_excel_bonos_aprobados(bonos)
+        
         p = Paginator(bonos, 50)
         page = request.GET.get('page')
         salidas_list = p.get_page(page)
         bonos = p.get_page(page)
-
-        if request.method =='POST' and 'excel' in request.POST:
-            return convert_excel_bonos_aprobados(bonos)
         
         contexto = {
             'bonos':bonos,
@@ -458,13 +458,7 @@ def listarBonosVarillerosAprobados(request):
         
     else:
         return render(request, 'revisar/403.html')
-               
-            
-            
-    response = HttpResponse("cargando datos bonos aprobados")
-
-    return response
-
+    
 #para remover bonos agregados
 @login_required(login_url='user-login')
 def removerBono(request,bono_id):
@@ -563,7 +557,91 @@ def solicitarEsquemaBono(request):
 
 
 #GENERACION DE REPORTES EN EXCEL
-def convert_excel_bonos_aprobados(bono):
-    response = HttpResponse("cargando reporte datos bonos aprobados")
-    return response           
-
+def convert_excel_bonos_aprobados(bonos):
+    response= HttpResponse(content_type = "application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Reporte_bonos_varilleros_aprobados_' + str(datetime.date.today())+'.xlsx'
+    wb = Workbook()
+    ws = wb.create_sheet(title='Reporte')
+    #Comenzar en la fila 1
+    row_num = 1
+    
+    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name = "head_style")
+    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
+    head_style.fill = PatternFill("solid", fgColor = '00003366')
+    wb.add_named_style(head_style)
+    #Create body style and adding to workbook
+    body_style = NamedStyle(name = "body_style")
+    body_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(body_style)
+    #Create messages style and adding to workbook
+    messages_style = NamedStyle(name = "mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size = 11)
+    wb.add_named_style(messages_style)
+    #Create date style and adding to workbook
+    number_style = NamedStyle(name='number_style', number_format='#,##0')
+    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY HH:MM')
+    date_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(date_style)
+    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+    money_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(money_style)
+    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
+    wb.add_named_style(money_resumen_style)
+    
+    #se crea el encabezado de la tabla en excel 
+    columns = ['Folio','Fecha','Nombre','No. de cuenta','No. de tarjeta','Banco','Distrito','Bono','Puesto','Cantidad']
+    
+    #se añade el ancho de cada columna
+    for col_num in range(len(columns)):
+        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
+        if col_num < 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
+        if col_num == 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        else:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+            
+    columna_max = len(columns)+2
+    
+    (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
+    (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    ws.column_dimensions[get_column_letter(columna_max)].width = 45
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 45
+    
+    rows = []
+    
+    #aqui se recorre el query de los bonos y se debe formatear los objectos a un tipo de dato
+    for bono in bonos:
+        row = (
+            bono.solicitud.folio,
+            bono.fecha.strftime('%Y-%m-%d %H:%M'),
+            str(bono.trabajador),
+            bono.trabajador.status.datosbancarios.no_de_cuenta,
+            bono.trabajador.status.datosbancarios.numero_de_tarjeta,
+            str(bono.trabajador.status.datosbancarios.banco),
+            str(bono.distrito),
+            str(bono.solicitud.bono),
+            str(bono.puesto),
+            bono.cantidad
+        )
+        rows.append(row)
+        
+        #aqui se empieza el recorrido para el llenado de datos de acuerdo a su tipo
+        for row_num, row in enumerate(rows, start=2):
+            for col_num, value in enumerate(row, start=1):
+                if col_num == 1:
+                    ws.cell(row=row_num, column=col_num, value=value).style = number_style
+                elif col_num == 2:
+                    ws.cell(row=row_num, column=col_num, value=value).style = date_style
+                elif col_num <= 9:
+                    ws.cell(row=row_num, column=col_num, value=value).style = body_style
+                else:
+                    ws.cell(row=row_num, column=col_num, value=value).style = money_style
+    
+    sheet = wb['Sheet']
+    wb.remove(sheet)
+    wb.save(response)
+    
+    return(response)
