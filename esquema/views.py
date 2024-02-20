@@ -121,11 +121,8 @@ def crearSolicitudBonosVarilleros(request):
     
     #Todos los supervisores pueden crear solicitudes
     if usuario.userdatos.tipo_id == 5:
-        print(usuario)
         superintendente = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=6).values('numero_de_trabajador').first()
-        print(superintendente)
         perfil_superintendente = Perfil.objects.filter(numero_de_trabajador = superintendente['numero_de_trabajador']).values('id').first() 
-        print(perfil_superintendente)
         #se obtiene el usuario logueado
         usuario = get_object_or_404(UserDatos,user_id = request.user.id)
         #se obtiene el perfil del usuario logueado
@@ -135,7 +132,7 @@ def crearSolicitudBonosVarilleros(request):
         bonoSolicitadoForm = BonoSolicitadoForm()
         requerimientoForm = RequerimientoForm()
         #se hace una consulta con los empleados del distrito que pertenecen
-        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).order_by('nombres')
+        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
         #se carga el formulario en automatico definiendo filtros
         bonoSolicitadoForm.fields["trabajador"].queryset = empleados 
         #crea el contexto
@@ -288,152 +285,90 @@ def crearSolicitudBonosVarilleros(request):
     
 def verificarSolicitudBonosVarilleros(request,solicitud):
     
-    usuario = get_object_or_404(UserDatos,user_id = request.user.id)
-    perfil = Perfil.objects.filter(numero_de_trabajador = usuario.numero_de_trabajador).values('id')
-    #Solo el mismo usuario que creo la solicitud puede editarla
-    permiso = Solicitud.objects.filter(solicitante_id = perfil[0]['id'], folio = solicitud)
+    usuario = get_object_or_404(UserDatos, user_id=request.user.id)
+    perfil = Perfil.objects.filter(numero_de_trabajador=usuario.numero_de_trabajador).values('id')
     
-    if permiso:
-        autorizacion = AutorizarSolicitudes.objects.select_related('solicitud').filter(solicitud=solicitud).last()
-        requerimientoForm = RequerimientoForm()
-        solicitudForm = SolicitudForm(initial={'bono': autorizacion.solicitud.bono.id})
-        bonoSolicitadoForm = BonoSolicitadoForm()
-        datos_bonos_solicitud = BonoSolicitado.objects.filter(solicitud_id = solicitud)
-            
-        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).order_by('nombres')
-        bonoSolicitadoForm.fields["trabajador"].queryset = empleados 
-        lista_archivos = Requerimiento.objects.filter(solicitud_id = solicitud).values("id","url")
-        
-        if request.method == 'POST':  
-            if 'btn_archivos' in request.POST:                 
-                
-                requerimientoForm = RequerimientoForm(request.POST, request.FILES)  
-                archivos = request.FILES.getlist('url')
-                
-                if requerimientoForm.is_valid():                 
-                    for archivo in archivos:
-                        Requerimiento.objects.create(
-                            solicitud_id = solicitud,
-                            url = archivo,
-                        )
-                    messages.success(request, "Los archivos se han subido correctamente")
-                
-                    contexto = {
-                        'requerimientoForm':requerimientoForm,
-                        'solicitudForm':solicitudForm,
-                        'bonoSolicitadoForm': bonoSolicitadoForm,
-                        'solicitud':solicitud,
-                        'solicitante':autorizacion.solicitud,
-                        'datos_bonos_solicitud':datos_bonos_solicitud,
-                        'total':autorizacion.solicitud.total,
-                        'lista_archivos':lista_archivos,
-                        'estado':autorizacion
-                    }
-                
-                    return render(request,'esquema/bonos_varilleros/verificar_solicitud.html',contexto)
-                
-                else:
-                    print('error de validaicion del archivo')
-                    contexto = {
-                        'requerimientoForm':requerimientoForm,
-                        'solicitudForm':solicitudForm,
-                        'bonoSolicitadoForm': bonoSolicitadoForm,
-                        'solicitud':solicitud,
-                        'solicitante':autorizacion.solicitud,
-                        'datos_bonos_solicitud':datos_bonos_solicitud,
-                        'total':autorizacion.solicitud.total,
-                        'lista_archivos':lista_archivos,
-                        'estado':autorizacion
-                    }
-                    
-                    #return redirect('verificarSolicitudBonosVarilleros', solicitud=solicitud)
-                    return render(request,'esquema/bonos_varilleros/verificar_solicitud.html',contexto)
-            
-            elif 'btn_agregar' in request.POST:
-                solicitudForm = SolicitudForm(request.POST)      
-                bonoSolicitadoForm = BonoSolicitadoForm(request.POST)
-                bonoSolicitadoForm.fields["trabajador"].queryset = empleados
-                
-                if solicitudForm.is_valid() and bonoSolicitadoForm.is_valid():
-                    bono = solicitudForm.cleaned_data['bono']
-                    trabajador = bonoSolicitadoForm.cleaned_data['trabajador']
-                    puesto = bonoSolicitadoForm.cleaned_data['puesto']
-                    cantidad = bonoSolicitadoForm.cleaned_data['cantidad']
-                    #actualizar el bono
-                    Solicitud.objects.filter(pk=solicitud).update(bono=bono)
-                    #verificar el bono para que no se asignen dos veces
-                    verificar_puesto = BonoSolicitado.objects.filter(solicitud_id = solicitud, puesto_id=puesto).values("puesto_id").first()
-                
-                    if verificar_puesto is None:
-                        BonoSolicitado.objects.create(
-                            solicitud_id = solicitud,
-                            trabajador_id = trabajador.id,
-                            puesto_id = puesto.id,
-                            distrito_id = usuario.distrito.id,
-                            cantidad = cantidad,
-                        )
-                            
-                        total = BonoSolicitado.objects.filter(solicitud_id = solicitud).values("cantidad").aggregate(total=Sum('cantidad'))['total']                 
-                        Solicitud.objects.filter(pk=solicitud).values("total").update(total=total)
-                        messages.success(request, "El bono se ha agregado a la solicitud correctamente")    
-                        bonoSolicitadoForm = BonoSolicitadoForm()
-                        bonoSolicitadoForm.fields["trabajador"].queryset = empleados 
-                    else:
-                        messages.error(request, "No se puede agregar el mismo puesto")
-                        
-                    contexto = {
-                            'requerimientoForm':requerimientoForm,
-                            'solicitudForm':solicitudForm,
-                            'bonoSolicitadoForm': bonoSolicitadoForm,
-                            'solicitud':solicitud,
-                            'solicitante':autorizacion.solicitud,
-                            'datos_bonos_solicitud':datos_bonos_solicitud,
-                            'total':autorizacion.solicitud.total,
-                            'lista_archivos':lista_archivos,
-                            'estado':autorizacion
-                    }
-                    return render(request,'esquema/bonos_varilleros/verificar_solicitud.html',contexto)
-                else:
-                    contexto = {
-                        'requerimientoForm':requerimientoForm,
-                        'solicitudForm':solicitudForm,
-                        'bonoSolicitadoForm': bonoSolicitadoForm,
-                        'solicitud':solicitud,
-                        'solicitante':autorizacion.solicitud,
-                        'datos_bonos_solicitud':datos_bonos_solicitud,
-                        'total':autorizacion.solicitud.total,
-                        'lista_archivos':lista_archivos,
-                        'estado':autorizacion
-                    }
-                    return render(request,'esquema/bonos_varilleros/verificar_solicitud.html',contexto)
-            
-            elif 'btn_actualizar' in request.POST:
-                #siempre que haya un cambio se regresa al Supervisor
-                autorizar = AutorizarSolicitudes.objects.get(solicitud_id = solicitud, tipo_perfil_id = 6)
-                autorizar.estado_id = 3 #pendiente
-                autorizar.comentario = autorizacion.comentario
-                autorizar.revisar = True
-                autorizar.save()
-                messages.success(request, "Se ha actualizado la solicitud y se envia al Superintendete")
-                return redirect('listarBonosVarilleros')
-        
-        else:
-            contexto = {
-                'requerimientoForm':requerimientoForm,
-                'solicitudForm':solicitudForm,
-                'bonoSolicitadoForm': bonoSolicitadoForm,
-                'solicitud':solicitud,
-                'solicitante':autorizacion.solicitud,
-                'datos_bonos_solicitud':datos_bonos_solicitud,
-                'total':autorizacion.solicitud.total,
-                'lista_archivos':lista_archivos,
-                'estado':autorizacion
-            }
-            
-            #return redirect('verificarSolicitudBonosVarilleros', solicitud=solicitud)
-            return render(request,'esquema/bonos_varilleros/verificar_solicitud.html',contexto)    
-    else:
+    permiso = Solicitud.objects.filter(solicitante_id=perfil[0]['id'], folio=solicitud)
+    
+    if not permiso:
         return render(request, 'revisar/403.html')
+    
+    autorizacion = AutorizarSolicitudes.objects.select_related('solicitud').filter(solicitud=solicitud).last()
+    requerimientoForm = RequerimientoForm()
+    solicitudForm = SolicitudForm(initial={'bono': autorizacion.solicitud.bono.id})
+    bonoSolicitadoForm = BonoSolicitadoForm()
+    datos_bonos_solicitud = BonoSolicitado.objects.filter(solicitud_id=solicitud)
+    empleados = Perfil.objects.filter(distrito_id=usuario.distrito.id).exclude(numero_de_trabajador=usuario.numero_de_trabajador).exclude(baja=1).order_by('nombres')
+    bonoSolicitadoForm.fields["trabajador"].queryset = empleados
+    lista_archivos = Requerimiento.objects.filter(solicitud_id=solicitud).values("id", "url")
+
+    if request.method == 'POST':
+        if 'btn_archivos' in request.POST:
+            requerimientoForm = RequerimientoForm(request.POST, request.FILES)
+            archivos = request.FILES.getlist('url')
+
+            if requerimientoForm.is_valid():
+                for archivo in archivos:
+                    Requerimiento.objects.create(
+                        solicitud_id=solicitud,
+                        url=archivo,
+                    )
+                messages.success(request, "Los archivos se han subido correctamente")
+            
+               
+
+        elif 'btn_agregar' in request.POST:
+            solicitudForm = SolicitudForm(request.POST)
+            bonoSolicitadoForm = BonoSolicitadoForm(request.POST)
+            bonoSolicitadoForm.fields["trabajador"].queryset = empleados
+
+            if solicitudForm.is_valid() and bonoSolicitadoForm.is_valid():
+                bono = solicitudForm.cleaned_data['bono']
+                trabajador = bonoSolicitadoForm.cleaned_data['trabajador']
+                puesto = bonoSolicitadoForm.cleaned_data['puesto']
+                cantidad = bonoSolicitadoForm.cleaned_data['cantidad']
+
+                Solicitud.objects.filter(pk=solicitud).update(bono=bono)
+                verificar_puesto = BonoSolicitado.objects.filter(solicitud_id=solicitud, puesto_id=puesto).values("puesto_id").first()
+
+                if verificar_puesto is None:
+                    BonoSolicitado.objects.create(
+                        solicitud_id=solicitud,
+                        trabajador_id=trabajador.id,
+                        puesto_id=puesto.id,
+                        distrito_id=usuario.distrito.id,
+                        cantidad=cantidad,
+                    )
+                    total = BonoSolicitado.objects.filter(solicitud_id=solicitud).values("cantidad").aggregate(total=Sum('cantidad'))['total']
+                    Solicitud.objects.filter(pk=solicitud).values("total").update(total=total)
+                    messages.success(request, "El bono se ha agregado a la solicitud correctamente")
+                    bonoSolicitadoForm = BonoSolicitadoForm()
+                    bonoSolicitadoForm.fields["trabajador"].queryset = empleados
+                else:
+                    messages.error(request, "No se puede agregar el mismo puesto")
+
+        elif 'btn_actualizar' in request.POST:
+            autorizar = AutorizarSolicitudes.objects.get(solicitud_id=solicitud, tipo_perfil_id=6)
+            autorizar.estado_id = 3  # pendiente
+            autorizar.comentario = autorizacion.comentario
+            autorizar.revisar = True
+            autorizar.save()
+            messages.success(request, "Se ha actualizado la solicitud y se envía al Superintendente")
+            return redirect('listarBonosVarilleros')
+
+    contexto = {
+        'requerimientoForm': requerimientoForm,
+        'solicitudForm': solicitudForm,
+        'bonoSolicitadoForm': bonoSolicitadoForm,
+        'solicitud': solicitud,
+        'solicitante': autorizacion.solicitud,
+        'datos_bonos_solicitud': datos_bonos_solicitud,
+        'total': autorizacion.solicitud.total,
+        'lista_archivos': lista_archivos,
+        'estado': autorizacion
+    }
+
+    return render(request, 'esquema/bonos_varilleros/verificar_solicitud.html', contexto)
     
 #para ver detalles de la solicitud
 @login_required(login_url='user-login')
