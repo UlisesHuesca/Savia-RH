@@ -50,17 +50,9 @@
                         {% else %}
                         <div>
                         <hr>
-                        <h6 class="dropdown-header">Información del usuario</h6>                            
+                        <h6 class="dropdown-header">Información del usuario</h6>
                         <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Perfil_revisar' usuario_fijo.id %}">Perfil</a>
-                            {% if usuario.tipo.esquema_bono == True %}
-                            <a class="dropdown-item" href="{% url 'bono_inicio' %}">Esquema Bonos</a>
-                            1. {{usuario}}<br>
-                            2. {{usuario.tipo}}<br>
-                            3. {{usuario.tipo.usuario}}<br>
-                            4. {{usuario.tipo.nombre}}<br>
-                            5. {{usuario.tipo.esquema_bono}}
-                            {% endif %}
                             {% if usuario_fijo.complete_status == True %}
                                 <a class="dropdown-item" href="{% url 'Status_revisar' status_fijo.id %}">Status</a>
                             {% endif %}
@@ -75,10 +67,18 @@
                             {% endif %}
                             {% if status_fijo.complete_costo == True %}
                             <a class="dropdown-item" href="{% url 'Empleado_costo' status_fijo.id %}">Costo</a>
+                            {% if usuario.tipo.id >= 5 and usuario.tipo.id <= 8 %}
+                            <h6 class="dropdown-header">Bonos</h6>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{% url 'listarBonosVarilleros' %}">Solicitudes Bonos</a>
+                            
+                            {% endif %}
+                            {% comment %}
                             <a class="dropdown-item" href="{% url 'Empleado_bonos' status_fijo.id %}">Bonos</a>
+                             {% endcomment %}
                             {% endif %}
                             {% if status_fijo.complete_uniformes == True %}
-                            <a class="dropdown-item" href="{% url 'Uniformes_completados_revisar' status_fijo.id %}">Uniformes</a>
+                            <a class="dropdown-item" href="{% url 'Uniformes_completados_revisar' status_fijo.id %}">Uniformes</a
                             {% endif %}
                             <div class="dropdown-divider"></div>
                         {% endif %}
@@ -89,6 +89,9 @@
                         <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Perfil' %}">Tabla Perfiles</a>
                             <a class="dropdown-item" href="{% url 'Status' %}">Tabla Status</a>
+                            {% if usuario.tipo.id == 1  %}
+                                <a class="dropdown-item" href="{% url 'listarBonosVarillerosAprobados' %}">Tabla Bonos</a>
+                            {% endif %}
                             <hr>
                         <div>   
                         {% endif %}
@@ -115,21 +118,34 @@
                                 <div class="dropdown-divider"></div>
                         <div>
                         {% endif %}
+                        {% if usuario.tipo.nombre == "Gerencia" or usuario.tipo.nombre == "Control Tecnico" %}
+                            <h6 class="dropdown-header">Prenomina</h6>
+                            <div class="dropdown-divider"></div>
+                            {% if usuario.tipo.nombre == "Gerencia" and prenomina_estado == 1 %} <!--Aquí es 1-->
+                                <a class="dropdown-item" href="{% url 'Prenominas_solicitudes' %}">Solicitudes prenominas                                    <span class="badge bg-danger"></span>
+                                    <span class="badge bg-danger">Listo para autorizar</span></a>
+                            {% elif usuario.tipo.nombre == "Gerencia" and prenomina_estado == 2 %} <!--Aquí es 2-->
+                                <a class="dropdown-item" href="{% url 'Prenominas_solicitudes' %}">Solicitudes prenominas                                    <span class="badge bg-danger"></span>
+                                    <span class="badge bg-success">Ya autorizadas</span>
+                            {% else %}
+                                <a class="dropdown-item" href="{% url 'Prenominas_solicitudes' %}">Solicitudes prenominas</a>
+                            {% endif %}
+                            <div class="dropdown-divider"></div>
+                        {% endif %}
                         {% if usuario.tipo.tablas_empleados == True %}
                         <div>
                             <h6 class="dropdown-header">Tablas datos empleados</h6>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Tabla_datosbancarios' %}">Datos bancarios</a>
                             <a class="dropdown-item" href="{% url 'Tabla_costo' %}">Costos</a>
+                            <a class="dropdown-item" href="{% url 'Prenomina' %}">Prenomina RH</a>
+                            <a class="dropdown-item" href="{% url 'listarBonosVarilleros' %}">Bonos</a>
+                            {% comment %}
                             <a class="dropdown-item" href="{% url 'Tabla_bonos' %}">Bonos</a>
+                             {% endcomment %}
                             <a class="dropdown-item" href="{% url 'Tabla_vacaciones_empleados' %}">Vacaciones</a>
                             <a class="dropdown-item" href="{% url 'Tabla_uniformes' %}">Uniformes</a>
                             <a class="dropdown-item" href="{% url 'Tabla_economicos' %}">Días económicos</a>
-
-                            {# Se cargan todos los tipos de los quemas de bonos para las solicitudes #}
-                           
-
-
                             <div class="dropdown-divider"></div>
                         {% if usuario.tipo.info_general == True %}
                         <div>

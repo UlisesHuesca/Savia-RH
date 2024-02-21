@@ -11,7 +11,7 @@ class Estado(models.Model):
     
     def __str__(self):
         return self.tipo
-
+    
 class AutorizarSolicitudes(models.Model):
     solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,related_name='autorizarsolicitudes')
     perfil = models.ForeignKey(Perfil,on_delete=models.CASCADE) #nombre 

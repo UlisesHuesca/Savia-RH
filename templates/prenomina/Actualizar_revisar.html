@@ -1,0 +1,139 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+{% load tt_extras %}
+
+<html>
+<head>
+{% block title %}Prenomina revisar{% endblock %}
+</head>
+<body>
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+<hr>
+<div class="container card card-body">
+    <div class="columns is-mobile">
+        <div class="column is-half is-offset-one-quarter">
+            <h4 class="title is-size-2">Prenomina del empleado</h4>
+            <span class="h4">{{cos.nombres}} {{empleado.apellidos}}</span>
+        </div>
+        <hr>
+        <div class="card-body">
+            <div class="row">
+                <span class="h5">{{costo.status.perfil.nombres}} {{costo.status.perfil.apellidos}}</span>
+                <span class="h6">Catorcena: {{catorcena_actual.fecha_inicial}} al {{catorcena_actual.fecha_final}}</span>
+                <span class="h6">Control Tecnico: {{autorizacion1.perfil.nombres}} {{autorizacion1.perfil.apellidos}}</span>
+                <span class="h6">Comentario: {{autorizacion1.comentario}}--Fecha:{{autorizacion1.updated_at}}--Estado:{{autorizacion1.estado.tipo}}</span>
+                <span class="h6">Gerencia: {{autorizacion2.perfil.nombres}} {{autorizacion2.perfil.apellidos}}</span>
+                <span class="h6">Comentario: {{autorizacion2.comentario}}--Fecha:{{autorizacion2.updated_at}}--Estado:{{autorizacion2.estado.tipo}}</span>
+                <form method="POST">
+                {% csrf_token %}
+                <table class="table table-striped table-hover bg-white">
+                    <thead class="text-black" style="background-color: #F5F5F5;">
+                        <tr style="background-color:#2A628F;color:#ffffff;">
+                            <th>Fecha</th>
+                            <th>Estado actual</th>
+                            <th>Comentario</th>
+                            <th>Cambiar Estado</th>
+                        </tr>
+                    </thead>
+                <tbody>
+                    {% for fecha, etiqueta, comentario in fechas_con_etiquetas %}
+                        <tr>
+                            <td>{{ fecha|date:'Y-m-d' }}</td>
+                            <td>{{ etiqueta }}</td>
+                            <td>
+                                {% if etiqueta == "festivo" %}
+                                    Festivo
+                                {% elif etiqueta == "economico" %}
+                                    Economico
+                                {% elif etiqueta == "vacaciones" %}
+                                    Vacaciones
+                                {% else %}
+                                    <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}">
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if etiqueta == "festivo" %}
+                                    Festivo
+                                {% elif etiqueta == "economico" %}
+                                    Economico
+                                {% elif etiqueta == "vacaciones" %}
+                                    Vacaciones      
+                                {% else %}
+                                    <select name="estado_{{ fecha|date:'Y-m-d' }}">
+                                        <option value="asistencia" {% if etiqueta == "asistencia" %}selected{% endif %}>Asistencia</option>
+                                        <option value="retardo" {% if etiqueta == "retardo" %}selected{% endif %}>Retardo</option>
+                                        <option value="castigo" {% if etiqueta == "castigo" %}selected{% endif %}>Castigo</option>
+                                        <option value="permiso_goce" {% if etiqueta == "permiso_goce" %}selected{% endif %}>Permiso con goce de sueldo</option>
+                                        <option value="permiso_sin" {% if etiqueta == "permiso_sin" %}selected{% endif %}>Permiso sin goce de sueldo</option>
+                                        <option value="descanso" {% if etiqueta == "descanso" %}selected{% endif %}>Descanso</option>
+                                        <option value="incapacidades" {% if etiqueta == "incapacidades" %}selected{% endif %}>Incapacidades</option>
+                                        <option value="faltas" {% if etiqueta == "faltas" %}selected{% endif %}>Faltas</option>
+                                        <option value="comision" {% if etiqueta == "comision" %}selected{% endif %}>Comisión</option>
+                                        <option value="domingo" {% if etiqueta == "domingo" %}selected{% endif %}>Domingo</option>
+                                        <!-- Agrega más opciones según tus factores -->
+                                    </select>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                </table>
+                <button type="submit" name="guardar_cambios" class="btn btn-primary">Guardar Cambios</button>
+                <br></br>
+                </form>
+                <hr>
+                
+                {% if usuario.tipo.admin == False %}
+                <div class="d-none">
+                {% else %}
+                <div>
+                {% endif %}
+                <a href="{% url 'Prenomina' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // JavaScript para mostrar u ocultar el histórico al hacer clic en el botón
+    function toggleHistorico(id) {
+        var historico = document.getElementById("historico" + id);
+        if (historico.style.display === "none") {
+            historico.style.display = "table-row";  // Mostrar fila del histórico
+        } else {
+            historico.style.display = "none";  // Ocultar fila del histórico
+        }
+    }
+</script>
+{% endblock %}
+</body>
+</html>

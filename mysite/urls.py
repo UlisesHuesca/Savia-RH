@@ -25,6 +25,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('esquema/',include('esquema.urls')), #bonos
+    path('prenomina/', include('prenomina.urls')),#prenominas
     path('revisar/',include('revisar.urls')), #autorizaciones
     path('proyecto/', include('proyecto.urls')),
     path('user/', include('user.urls')),

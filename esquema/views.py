@@ -410,6 +410,8 @@ def verDetallesSolicitud(request,solicitud_id):
 #lista bonos aprobados
 @login_required(login_url='user-login')
 def listarBonosVarillerosAprobados(request):
+    
+    
     #se obtiene el usuario logueado
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
     #se obtiene el perfil del usuario logueado

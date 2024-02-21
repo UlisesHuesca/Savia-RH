@@ -10,8 +10,8 @@ import math
 
 locale.setlocale( locale.LC_ALL, '' )
 
-from .models import DatosISR, Costo, TablaVacaciones, Perfil, Status, Uniformes, DatosBancarios, Bonos, Vacaciones, Economicos, Puesto, Empleados_Batch, RegistroPatronal, Banco, TablaFestivos
-from .models import Status_Batch, Empresa, Distrito, Nivel, Contrato, Sangre, Sexo, Civil, UserDatos, Catorcenas, Uniforme, Tallas, Ropa, SubProyecto, Proyecto,Costos_Batch, Bancarios_Batch, Tallas
+from .models import DatosISR, Costo, TablaVacaciones, Perfil, Status, Uniformes, DatosBancarios, Bonos, Vacaciones, Economicos, Puesto, Empleados_Batch, RegistroPatronal, Banco, TablaFestivos,Vacaciones_dias_tomados
+from .models import Status_Batch, Empresa, Distrito, Nivel, Contrato, Sangre, Sexo, Civil, UserDatos, Catorcenas, Uniforme, Tallas, Ropa, SubProyecto, Proyecto,Costos_Batch, Bancarios_Batch, Tallas,Economicos_dia_tomado
 from .models import Seleccion, SalarioDatos, FactorIntegracion, TablaCesantia, Solicitud_economicos, Solicitud_vacaciones, Empleado_cv
 from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados, Vacaciones_anteriores_Batch, Dia_vacacion, Datos_baja
 from .models import Variables_carga_social, Variables_imss_patronal
@@ -1701,6 +1701,9 @@ def VacacionesUpdate(request, pk):
                             messages.success(request, f'Datos capturados con éxito empleado {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos} y descontados a sus días pendientes')
                         descanso.comentario +=" " + "Dias tomados:" + str(dias_vacacion)
                         form.save()
+                        #Parte para la prenomina
+                        prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=descanso,fecha_inicio=descanso.fecha_inicio,fecha_fin=descanso.fecha_fin,
+                                                                dia_inhabil=descanso.dia_inhabil,comentario=descanso.comentario,editado=descanso.editado)
                         return redirect('Tabla_vacaciones_empleados')
             else:
                 messages.error(request, 'Ya a tomado todos sus días de vacaciones')
@@ -1974,6 +1977,8 @@ def EconomicosUpdate(request, pk):
                 economico.complete=True
                 orden.save()
                 form.save()
+                prenomina_dia_tomado = Economicos_dia_tomado.objects.create(prenomina=economico,fecha=economico.fecha,
+                                                        comentario=economico.comentario,editado=economico.editado)
                 return redirect('Tabla_economicos')
 
     context = {'form':form,'economico':economico,'status':status,}
@@ -3985,6 +3990,10 @@ def solicitud_vacacion_verificar(request, pk):
                 vacacion.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
                 vacacion.save()
                 status.save()
+                
+                #Parte para la prenomina
+                prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=vacacion,fecha_inicio=vacacion.fecha_inicio,fecha_fin=vacacion.fecha_fin,
+                                        dia_inhabil=vacacion.dia_inhabil,comentario=vacacion.comentario,editado=vacacion.editado)
                 messages.success(request, 'Solicitud autorizada y días de vacaciones agregados')
             else:
                 messages.success(request, 'Solicitud guardada como no autorizado')
@@ -4468,6 +4477,8 @@ def solicitud_economico_verificar(request, pk):
                 economico.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
                 economico.save()
                 status.save()
+                prenomina_dia_tomado = Economicos_dia_tomado.objects.create(prenomina=economico,fecha=economico.fecha,
+                                                                            comentario=economico.comentario,editado=economico.editado)
                 messages.success(request, 'Solicitud autorizada y días economicos agregados')
             else:
                 messages.success(request, 'Solicitud guardada como no autorizado')
