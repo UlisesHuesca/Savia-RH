@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404
 from datetime import date
 import datetime
 from decimal import Decimal
+from django.db.models import F
 
 def asignarBonoCosto(solicitud):
     #una lista que lleva cada cantidad del bono
@@ -85,7 +86,7 @@ def autorizarSolicitud(request,solicitud):
                             #se guardan los datos de la autorizacion en el superintendente
                             autorizar.estado_id = estadoDato.id
                             autorizar.comentario = comentarioDato
-                            autorizar.save()
+                            autorizar.save(update_fields=['estado_id', 'comentario'])
                             
                             #se busca el perfil del control tecnico corresponsiente al distrito
                             rol = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=7).values('numero_de_trabajador').first()
@@ -111,7 +112,8 @@ def autorizarSolicitud(request,solicitud):
                             #se guardan los datos de la autorizacion del control tecnico
                             autorizar.estado_id = estadoDato.id
                             autorizar.comentario = comentarioDato
-                            autorizar.save()
+                            autorizar.save(update_fields=['estado_id', 'comentario'])
+                            
                             
                             #se busca el perfil del gerente corresponsiente al distrito
                             rol = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=8).values('numero_de_trabajador').first()
@@ -164,7 +166,7 @@ def autorizarSolicitud(request,solicitud):
                     autorizar.revisar = True
                     autorizar.save()
                             
-                    messages.success(request, "El supervisor verificará la solicitud emitida")
+                    messages.success(request, "El supervisor hará cambios en la solicitud emitida")
                     return redirect('verDetalleSolicitud', solicitud_id=solicitud)
                 
             else:

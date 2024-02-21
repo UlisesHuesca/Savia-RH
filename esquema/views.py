@@ -390,6 +390,8 @@ def verDetallesSolicitud(request,solicitud_id):
         solicitud__folio=solicitud_id
     ).first()
     
+    
+    
     #se carga el formulario con datos iniciales
     autorizarSolicitudesUpdateForm = AutorizarSolicitudesUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
     autorizarSolicitudesGerenteUpdateForm = AutorizarSolicitudesGerenteUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
