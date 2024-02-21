@@ -566,6 +566,17 @@ class Vacaciones(models.Model):
             return "Campo vacio"
         return f'{self.status.perfil.nombres} {self.status.perfil.apellidos} {self.periodo} {self.total_pendiente}'
 
+class Vacaciones_dias_tomados(models.Model):
+    prenomina = models.ForeignKey(Vacaciones, on_delete = models.CASCADE, null=True)
+    fecha_inicio = models.DateField(null=True)
+    fecha_fin = models.DateField(null=True)
+    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
+    complete = models.BooleanField(default=False)
+    created_at=models.DateTimeField(auto_now=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    comentario = models.CharField(max_length=100,null=True, blank=True)
+    editado = models.CharField(max_length=100,blank=True)
+
 class Solicitud_economicos(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     periodo = models.CharField(max_length=50,null=True)
@@ -597,6 +608,15 @@ class Economicos(models.Model):
         if self.status == None:
             return "Campo vacio"
         return f'{self.status.perfil.nombres} {self.status.perfil.apellidos}'
+
+class Economicos_dia_tomado(models.Model):
+    prenomina = models.ForeignKey(Economicos, on_delete = models.CASCADE, null=True)
+    fecha = models.DateField(null=True)
+    complete = models.BooleanField(default=False)
+    created_at=models.DateTimeField(auto_now=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    comentario = models.CharField(max_length=100,null=True, blank=True)
+    editado = models.CharField(max_length=100,blank=True)
 
 class Empleados_Batch(models.Model):
     file_name = models.FileField(upload_to='product_bash')

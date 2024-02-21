@@ -4,6 +4,7 @@ from django.db import models
 from django.db import models
 from esquema.models import Solicitud
 from proyecto.models import Perfil,TipoPerfil
+from prenomina.models import Prenomina
 
 class Estado(models.Model):
     tipo = models.CharField(max_length=20)
@@ -21,3 +22,11 @@ class AutorizarSolicitudes(models.Model):
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
     
+class AutorizarPrenomina(models.Model):
+    prenomina = models.ForeignKey(Prenomina,on_delete=models.CASCADE,null=True)
+    perfil = models.ForeignKey(Perfil,on_delete=models.CASCADE,null=True) #nombre 
+    tipo_perfil = models.ForeignKey(TipoPerfil,on_delete=models.CASCADE,null=True)
+    estado = models.ForeignKey(Estado,on_delete=models.CASCADE,null=True)
+    comentario = models.CharField(max_length=255,null=True)
+    created_at=models.DateTimeField(auto_now=True)
+    updated_at=models.DateTimeField(auto_now=True)
