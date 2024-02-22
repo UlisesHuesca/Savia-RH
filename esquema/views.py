@@ -72,8 +72,8 @@ def listarBonosVarilleros(request):
             ultima_fecha=Max('created_at')
         ).filter(solicitud_id=OuterRef('solicitud_id')).values('ultima_fecha')[:1]
     
-    #Si es usuario administrador de distrito matriz
-    if usuario.distrito.id == 1 and usuario.tipo.id ==  1:
+    #Si es usuario RH de distrito matriz
+    if usuario.distrito.id == 1 and usuario.tipo.id ==  4:
         #obtiene todas las ultimas autorizaciones de todos los distritos y roles independientemente en el flujo que se encuentre
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
@@ -422,8 +422,8 @@ def listarBonosVarillerosAprobados(request):
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
 
 
-    #Si es usuario administrador de distrito matriz
-    if usuario.distrito.id == 1 and usuario.tipo.id ==  1:
+    #Si es usuario RH de distrito matriz
+    if usuario.distrito.id == 1 and usuario.tipo.id ==  4:
         #obtiene todos los bonos aprobados de todos los distritos | gerente aprobado
         autorizaciones = AutorizarSolicitudes.objects.filter(
             solicitud__complete = 1,

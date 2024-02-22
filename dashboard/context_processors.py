@@ -31,6 +31,7 @@ def contadores_processor(request):
         else:
             status_fijo = Status.objects.get(perfil__numero_de_trabajador = usuario.numero_de_trabajador, perfil__distrito = usuario.distrito)
             
+                   
         #prenominas - autorizaciones       
         if usuario.tipo.nombre == "Gerencia":
             ahora = datetime.date.today()
@@ -38,7 +39,7 @@ def contadores_processor(request):
             if usuario.distrito.distrito == 'Matriz':
                 costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
             else:
-                costo = Costo.objects.filter(distrito=usuario.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+                costo = Costo.objects.filter(status__perfil__distrito=usuario.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
 
             prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Control Tecnico",fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).distinct()    
             rh = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena

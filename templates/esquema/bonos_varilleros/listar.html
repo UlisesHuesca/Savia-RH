@@ -108,7 +108,7 @@
                     <tr class="tabla-encabezado">
                         <th>Folio</th>
                         <th>Fecha</th>
-                        {% if usuario.tipo.id == 1 and usuario.distrito.id == 1  %}
+                        {% if usuario.tipo.id == 4 and usuario.distrito.id == 1  %}
                         <th>Distrito</th>
                         {% endif %}
                         <th>Bono</th>
@@ -124,7 +124,7 @@
                         
                         <td>{{autorizacion.solicitud.folio}}</td>
                         <td class="">{{autorizacion.solicitud.fecha|date:"d/M/Y H:m"}}</td>
-                        {% if usuario.tipo.id == 1 and usuario.distrito.id == 1  %}
+                        {% if usuario.tipo.id == 4 and usuario.distrito.id == 1  %}
                             <td>{{autorizacion.perfil.distrito}}</td>
                         {% endif %}
                         <td class="text-capitalize">{{autorizacion.solicitud.bono}}</td>

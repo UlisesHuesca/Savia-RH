@@ -35,52 +35,56 @@ from django.http import HttpResponseRedirect
 # Create your views here.
 
 @login_required(login_url='user-login')
+@login_required(login_url='user-login')
 def Tabla_prenomina(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    ahora = datetime.date.today()
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    if user_filter.distrito.distrito == 'Matriz':
-        costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+    if user_filter.tipo.nombre == "RH":
+        ahora = datetime.date.today()
+        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        if user_filter.distrito.distrito == 'Matriz':
+            costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+        else:
+            costo = Costo.objects.filter(distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+
+        costo_filter = CostoFilter(request.GET, queryset=costo)
+        costo = costo_filter.qs
+
+        prenominas = Prenomina.objects.filter(empleado__in=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
+
+        #crear las prenominas actuales si es que ya es nueva catorcena
+        for empleado in costo:
+            #checar si existe prenomina para el empleado en la catorcena actual
+            prenomina_existente = prenominas.filter(empleado=empleado).exists()
+            #si no existe crear una nueva prenomina
+            if not prenomina_existente:
+                nueva_prenomina = Prenomina(empleado=empleado, fecha=datetime.date.today())
+                nueva_prenomina.save()
+        
+        prenominas = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador")
+
+        for prenomina in prenominas:
+            ultima_autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina).order_by('-updated_at').first() #Ultimo modificado
+
+            if ultima_autorizacion is not None:
+                prenomina.valor = ultima_autorizacion.estado.tipo #Esta bien como agarra el dato de RH arriba que es el primero
+            prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
+
+        if request.method =='POST' and 'Excel' in request.POST:
+            return Excel_estado_prenomina(prenominas, user_filter)
+        
+        p = Paginator(prenominas, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+
+        context = {
+            'costo_filter':costo_filter,
+            #'costo': costo,
+            'salidas_list': salidas_list,
+            'prenominas':prenominas
+        }
+        return render(request, 'prenomina/Tabla_prenomina.html', context)
     else:
-        costo = Costo.objects.filter(distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
-
-    costo_filter = CostoFilter(request.GET, queryset=costo)
-    costo = costo_filter.qs
-
-    prenominas = Prenomina.objects.filter(empleado__in=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
-
-    #crear las prenominas actuales si es que ya es nueva catorcena
-    for empleado in costo:
-        #checar si existe prenomina para el empleado en la catorcena actual
-        prenomina_existente = prenominas.filter(empleado=empleado).exists()
-        #si no existe crear una nueva prenomina
-        if not prenomina_existente:
-            nueva_prenomina = Prenomina(empleado=empleado, fecha=datetime.date.today())
-            nueva_prenomina.save()
-    
-    prenominas = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador")
-
-    for prenomina in prenominas:
-        ultima_autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina).order_by('-updated_at').first() #Ultimo modificado
-
-        if ultima_autorizacion is not None:
-            prenomina.valor = ultima_autorizacion.estado.tipo #Esta bien como agarra el dato de RH arriba que es el primero
-        prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
-
-    if request.method =='POST' and 'Excel' in request.POST:
-        return Excel_estado_prenomina(prenominas, user_filter)
-    
-    p = Paginator(prenominas, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    context = {
-        'costo_filter':costo_filter,
-        #'costo': costo,
-        'salidas_list': salidas_list,
-        'prenominas':prenominas
-    }
-    return render(request, 'prenomina/Tabla_prenomina.html', context)
+            return render(request, 'revisar/403.html')
 
 def prenomina_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
@@ -172,127 +176,130 @@ def prenomina_revisar_ajax(request, pk):
 @login_required(login_url='user-login')
 def PrenominaRevisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
-    ahora = datetime.date.today()
-    costo = Costo.objects.get(id=pk)
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
-    dato=prenomina
-    festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
-    economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
-    vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
-    #vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status) #Comparar con la fecha final tambien
+    if user_filter.tipo.nombre == "RH":
+        ahora = datetime.date.today()
+        costo = Costo.objects.get(id=pk)
+        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
+        dato=prenomina
+        festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
+        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
+        vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
+        #vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status) #Comparar con la fecha final tambien
 
-    
-    autorizacion1 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Control Tecnico").first()
-    autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
+        
+        autorizacion1 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Control Tecnico").first()
+        autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
 
-    #obtener factores de días asociados a cada prenomina
-    prenomina.retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-    prenomina.castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-    prenomina.permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) 
-    prenomina.permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-    prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-    prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-    prenomina.faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-    prenomina.comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-    prenomina.domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        #obtener factores de días asociados a cada prenomina
+        prenomina.retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        prenomina.castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        prenomina.permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) 
+        prenomina.permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        prenomina.faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        prenomina.comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        prenomina.domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
 
-    #fechas con factores
-    fechas_con_retardos = [retardo.fecha for retardo in prenomina.retardos]
-    fechas_con_castigos = [castigo.fecha for castigo in prenomina.castigos]
-    fechas_con_permiso_goce = [permiso_goc.fecha for permiso_goc in prenomina.permiso_goce]
-    fechas_con_permiso_sin = [permiso_si.fecha for permiso_si in prenomina.permiso_sin]
-    fechas_con_descanso = [descans.fecha for descans in prenomina.descanso]
-    fechas_con_incapacidades = [incapacidade.fecha for incapacidade in prenomina.incapacidades]
-    fechas_con_faltas = [falta.fecha for falta in prenomina.faltas]
-    fechas_con_comision = [comisio.fecha for comisio in prenomina.comision]
-    fechas_con_domingo = [doming.fecha for doming in prenomina.domingo]
-    fechas_con_festivos = [festivo.dia_festivo for festivo in festivos]
-    fechas_con_economicos = [economico.fecha for economico in economicos]
+        #fechas con factores
+        fechas_con_retardos = [retardo.fecha for retardo in prenomina.retardos]
+        fechas_con_castigos = [castigo.fecha for castigo in prenomina.castigos]
+        fechas_con_permiso_goce = [permiso_goc.fecha for permiso_goc in prenomina.permiso_goce]
+        fechas_con_permiso_sin = [permiso_si.fecha for permiso_si in prenomina.permiso_sin]
+        fechas_con_descanso = [descans.fecha for descans in prenomina.descanso]
+        fechas_con_incapacidades = [incapacidade.fecha for incapacidade in prenomina.incapacidades]
+        fechas_con_faltas = [falta.fecha for falta in prenomina.faltas]
+        fechas_con_comision = [comisio.fecha for comisio in prenomina.comision]
+        fechas_con_domingo = [doming.fecha for doming in prenomina.domingo]
+        fechas_con_festivos = [festivo.dia_festivo for festivo in festivos]
+        fechas_con_economicos = [economico.fecha for economico in economicos]
 
-    # todas las fechas de la catorcena actual
-    delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
-    dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
-
-    #lista de tuplas con la fecha y su etiqueta
-    fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
-                            else (fecha, "castigo", prenomina.castigos.filter(fecha=fecha).first().comentario if fecha in fechas_con_castigos else "") if fecha in fechas_con_castigos
-                            else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha=fecha).first().comentario if fecha in fechas_con_permiso_goce else "") if fecha in fechas_con_permiso_goce
-                            else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha=fecha).first().comentario if fecha in fechas_con_permiso_sin else "") if fecha in fechas_con_permiso_sin
-                            else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
-                            else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha=fecha).first().comentario if fecha in fechas_con_incapacidades else "") if fecha in fechas_con_incapacidades
-                            else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
-                            else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario if fecha in fechas_con_comision else "") if fecha in fechas_con_comision
-                            else (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
-                            else (fecha, "economico", "") if fecha in fechas_con_economicos
-                            else (fecha, "festivo", "") if fecha in fechas_con_festivos
-                            else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
-                            else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
-
-    if catorcena_actual:
+        # todas las fechas de la catorcena actual
         delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
         dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
 
-    if request.method == 'POST' and 'guardar_cambios' in request.POST:
-        revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
-        estado_verificado = Estado.objects.get(tipo="aprobado")
-        revisado_rh.estado=estado_verificado
-        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-        revisado_rh.perfil=nombre
-        revisado_rh.comentario="Revisado por RH"
-        revisado_rh.save()
-        for fecha, etiqueta, comentario in fechas_con_etiquetas:
-            fecha_str = fecha.strftime('%Y-%m-%d')
-            nuevo_estado = request.POST.get(f'estado_{fecha_str}')
-            nuevo_comentario = request.POST.get(f'comentario_{fecha_str}')
+        #lista de tuplas con la fecha y su etiqueta
+        fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
+                                else (fecha, "castigo", prenomina.castigos.filter(fecha=fecha).first().comentario if fecha in fechas_con_castigos else "") if fecha in fechas_con_castigos
+                                else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha=fecha).first().comentario if fecha in fechas_con_permiso_goce else "") if fecha in fechas_con_permiso_goce
+                                else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha=fecha).first().comentario if fecha in fechas_con_permiso_sin else "") if fecha in fechas_con_permiso_sin
+                                else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
+                                else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha=fecha).first().comentario if fecha in fechas_con_incapacidades else "") if fecha in fechas_con_incapacidades
+                                else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
+                                else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario if fecha in fechas_con_comision else "") if fecha in fechas_con_comision
+                                else (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
+                                else (fecha, "economico", "") if fecha in fechas_con_economicos
+                                else (fecha, "festivo", "") if fecha in fechas_con_festivos
+                                else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
+                                else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
 
-            # revisa si el estado ha cambiado
-            if nuevo_estado and nuevo_estado != etiqueta:
-                # elimina el dato asociado a la fecha
-                prenomina.retardos.filter(fecha=fecha).delete()
-                prenomina.castigos.filter(fecha=fecha).delete()
-                prenomina.permiso_goce.filter(fecha=fecha).delete()
-                prenomina.permiso_sin.filter(fecha=fecha).delete()
-                prenomina.descanso.filter(fecha=fecha).delete()
-                prenomina.incapacidades.filter(fecha=fecha).delete()
-                prenomina.faltas.filter(fecha=fecha).delete()
-                prenomina.comision.filter(fecha=fecha).delete()
-                prenomina.domingo.filter(fecha=fecha).delete()
+        if catorcena_actual:
+            delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
+            dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
 
-            # crea el nuevo dato según el nuevo estado o comentario
-            if nuevo_estado and nuevo_estado != 'asistencia':
-                evento_model = {
-                    'retardo': Retardos,
-                    'castigo': Castigos,
-                    'permiso_goce': Permiso_goce,  
-                    'permiso_sin': Permiso_sin,  
-                    'descanso': Descanso,  
-                    'incapacidades': Incapacidades,  
-                    'faltas': Faltas,  
-                    'comision': Comision,  
-                    'domingo': Domingo  
-                }.get(nuevo_estado)
+        if request.method == 'POST' and 'guardar_cambios' in request.POST:
+            revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
+            estado_verificado = Estado.objects.get(tipo="aprobado")
+            revisado_rh.estado=estado_verificado
+            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            revisado_rh.perfil=nombre
+            revisado_rh.comentario="Revisado por RH"
+            revisado_rh.save()
+            for fecha, etiqueta, comentario in fechas_con_etiquetas:
+                fecha_str = fecha.strftime('%Y-%m-%d')
+                nuevo_estado = request.POST.get(f'estado_{fecha_str}')
+                nuevo_comentario = request.POST.get(f'comentario_{fecha_str}')
 
-                if evento_model:
-                    evento_model.objects.update_or_create(fecha=fecha, prenomina=prenomina, defaults={'comentario': nuevo_comentario}, editado=str("E:"+nombre.nombres+" "+nombre.apellidos))
-                else:
-                    #  donde nuevo_estado no tiene un mapeo en el diccionario
-                    print(f"Error: nuevo_estado desconocido - {nuevo_estado}")
+                # revisa si el estado ha cambiado
+                if nuevo_estado and nuevo_estado != etiqueta:
+                    # elimina el dato asociado a la fecha
+                    prenomina.retardos.filter(fecha=fecha).delete()
+                    prenomina.castigos.filter(fecha=fecha).delete()
+                    prenomina.permiso_goce.filter(fecha=fecha).delete()
+                    prenomina.permiso_sin.filter(fecha=fecha).delete()
+                    prenomina.descanso.filter(fecha=fecha).delete()
+                    prenomina.incapacidades.filter(fecha=fecha).delete()
+                    prenomina.faltas.filter(fecha=fecha).delete()
+                    prenomina.comision.filter(fecha=fecha).delete()
+                    prenomina.domingo.filter(fecha=fecha).delete()
 
-        messages.success(request, 'Cambios guardados exitosamente')
-        # redirigir a la misma página para evitar reenvío del formulario al recargar
-        return redirect('Prenomina')
-    context = {
-        'dias_entre_fechas': dias_entre_fechas, #Dias de la catorcena
-        'prenomina':prenomina,
-        'costo':costo,
-        'catorcena_actual':catorcena_actual,
-        'fechas_con_etiquetas': fechas_con_etiquetas,
-        'autorizacion1':autorizacion1,
-        'autorizacion2':autorizacion2,
-        }
+                # crea el nuevo dato según el nuevo estado o comentario
+                if nuevo_estado and nuevo_estado != 'asistencia':
+                    evento_model = {
+                        'retardo': Retardos,
+                        'castigo': Castigos,
+                        'permiso_goce': Permiso_goce,  
+                        'permiso_sin': Permiso_sin,  
+                        'descanso': Descanso,  
+                        'incapacidades': Incapacidades,  
+                        'faltas': Faltas,  
+                        'comision': Comision,  
+                        'domingo': Domingo  
+                    }.get(nuevo_estado)
 
-    return render(request, 'prenomina/Actualizar_revisar.html',context)
+                    if evento_model:
+                        evento_model.objects.update_or_create(fecha=fecha, prenomina=prenomina, defaults={'comentario': nuevo_comentario}, editado=str("E:"+nombre.nombres+" "+nombre.apellidos))
+                    else:
+                        #  donde nuevo_estado no tiene un mapeo en el diccionario
+                        print(f"Error: nuevo_estado desconocido - {nuevo_estado}")
+
+            messages.success(request, 'Cambios guardados exitosamente')
+            # redirigir a la misma página para evitar reenvío del formulario al recargar
+            return redirect('Prenomina')
+        context = {
+            'dias_entre_fechas': dias_entre_fechas, #Dias de la catorcena
+            'prenomina':prenomina,
+            'costo':costo,
+            'catorcena_actual':catorcena_actual,
+            'fechas_con_etiquetas': fechas_con_etiquetas,
+            'autorizacion1':autorizacion1,
+            'autorizacion2':autorizacion2,
+            }
+
+        return render(request, 'prenomina/Actualizar_revisar.html',context)
+    else:
+        return render(request, 'revisar/403.html')
 
 def determinar_estado_general(ultima_autorizacion):
     if ultima_autorizacion is None:
