@@ -421,7 +421,6 @@ def listarBonosVarillerosAprobados(request):
     fecha_actual = datetime.date.today()
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
 
-
     #Si es usuario RH de distrito matriz
     if usuario.distrito.id == 1 and usuario.tipo.id ==  4:
         #obtiene todos los bonos aprobados de todos los distritos | gerente aprobado

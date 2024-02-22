@@ -61,9 +61,7 @@ def asignarBonoCosto(solicitud):
     #trae los empleados con sus respectivos bonos
     empleados = BonoSolicitado.objects.filter(solicitud_id = solicitud).values("trabajador_id","cantidad")
     porcentaje = SalarioDatos.objects.get(pk = 1)
-
-    print(porcentaje.comision_bonos)
-
+    
     for item in empleados:
         trabajador_id = item['trabajador_id']
         cantidad_obtenida = item['cantidad']
@@ -133,6 +131,7 @@ def autorizarSolicitud(request,solicitud):
                             control_tecnico, created = AutorizarSolicitudes.objects.get_or_create(
                                 solicitud_id=solicitud,
                                 tipo_perfil_id=7,
+                                comentario = comentarioDato,
                                 perfil_id = perfil_control_tecnico['id'],
                                 defaults={'estado_id': 3}  # Pendiente
                             )
@@ -160,6 +159,7 @@ def autorizarSolicitud(request,solicitud):
                             gerente, created = AutorizarSolicitudes.objects.get_or_create(
                                 solicitud_id=solicitud,
                                 tipo_perfil_id=8,
+                                comentario = comentarioDato,
                                 perfil_id = perfil_gerente['id'],
                                 defaults={'estado_id': 3}  # Pendiente
                             )
@@ -174,7 +174,7 @@ def autorizarSolicitud(request,solicitud):
                     elif rol.tipo_id == 8:# gerente
                             #autorizar - asignar el estado de la solicitud
                             autorizar.estado_id = estadoDato.id
-                            autorizar.comentario = comentarioDato
+                            autorizar.comentario = None
                             autorizar.save() 
                                                         
                             #IMPLEMENTAR COSTO

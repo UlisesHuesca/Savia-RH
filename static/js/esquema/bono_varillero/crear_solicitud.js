@@ -222,7 +222,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
             if (datos.mensaje === 1){
                 Swal.fire({
                     title: "Exitoso",
-                    text: "Se ha enviado la solicitud",
+                    text: "Su solicitud será revisada por el superintendente",
                     icon: "success",
                 }).then((result) => {
                     // Este código se ejecuta después de que el usuario hace clic en OK

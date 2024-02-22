@@ -55,7 +55,7 @@ Verificar Solicitud - Bonos Varilleros
                                 {% endif %}
                             </div>
                             <div class="card-body">
-                                <form id="archivosForm" class="" action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST" enctype="multipart/form-data" novalidate>
+                                <form id="archivosForm" class="" action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST" enctype="multipart/form-data">
                                 {% csrf_token %}
                                 <div class="btn-group" role="group" aria-label="Basic example">
                                     {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png, .jpg, .jpeg, .pdf" %}
@@ -67,7 +67,7 @@ Verificar Solicitud - Bonos Varilleros
                             </div>
                         </div>
 
-                    <form action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST" novalidate>
+                    <form action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST">
                     {% csrf_token %}
                     <div class="card shadow">
                         <div class="card-header">
@@ -186,7 +186,7 @@ Verificar Solicitud - Bonos Varilleros
                             <tfoot>
                                 <tr>
                                     <td>
-                                        <form action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST" novalidate>
+                                        <form action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST">
                                             {% csrf_token %}
                                             <button type="submit" name="btn_actualizar" class="btn btn-primary btn-sm" id="actualizar_solicitud"><i class="fas fa-rotate"></i> Actualizar Solicitud</button>
                                         </form>
