@@ -90,15 +90,6 @@
                     {% endfor %}
                 </tbody>
                 </table>
-                <!-- Campo Autorizar como un select -->
-                <label for="id_autorizar" class="col-auto col-form-label my-1"><strong>Autorizar:</strong></label>
-                <div class="col-3">
-                    <select name="autorizar" id="id_autorizar" class="form-control">
-                        <option value="default" selected>Seleccionar...</option>
-                        <option value="rechazado">Rechazado</option>
-                        <option value="aprobado">Aprobado</option>
-                    </select>
-                </div>
                 <!-- Campo Comentario como un input independiente -->
                 <div class="row my-2 align-items-center">
                     <label for="comentario_id" class="col-auto col-form-label my-1"><strong>Comentario:</strong></label>
@@ -106,16 +97,17 @@
                         <input type="text" name="comentario" id="comentario_id" class="form-control" maxlength="250">
                     </div>
                 </div>
-                <button type="submit" name="guardar_cambios" class="btn btn-primary">Guardar Cambios</button>
+                <!-- Botones para 'Aprobar' y 'Rechazar' -->
+                <div class="row my-2 align-items-center">
+                    <div class="col-3 d-flex justify-content-between ">
+                        <button type="submit" name="aprobar" class="btn btn-success">Aprobar</button>
+                        <button type="submit" name="rechazar" class="btn btn-danger">Rechazar</button>
+                    </div>
+                </div>
                 <br></br>
                 </form>
                 <hr>
-                
-                {% if usuario.tipo.admin == False %}
-                <div class="d-none">
-                {% else %}
                 <div>
-                {% endif %}
                 <a href="{% url 'Prenominas_solicitudes' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
             </div>
         </div>

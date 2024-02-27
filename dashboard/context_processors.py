@@ -66,5 +66,5 @@ def contadores_processor(request):
     'status_fijo':status_fijo,
     'economicos_count':economicos_count,
     'vacaciones_count':vacaciones_count,
-    'prenomina_estado':None,
+    #'prenomina_estado':prenomina_estado,
     }

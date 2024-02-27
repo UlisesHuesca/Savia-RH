@@ -67,12 +67,6 @@
                             {% endif %}
                             {% if status_fijo.complete_costo == True %}
                             <a class="dropdown-item" href="{% url 'Empleado_costo' status_fijo.id %}">Costo</a>
-                            {% if usuario.tipo.id >= 5 and usuario.tipo.id <= 8 %}
-                            <h6 class="dropdown-header">Bonos</h6>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="{% url 'listarBonosVarilleros' %}">Solicitudes Bonos</a>
-                            
-                            {% endif %}
                             {% comment %}
                             <a class="dropdown-item" href="{% url 'Empleado_bonos' status_fijo.id %}">Bonos</a>
                              {% endcomment %}

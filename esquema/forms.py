@@ -48,16 +48,17 @@ class RequerimientoForm(forms.ModelForm):
 class AutorizarSolicitudesUpdateForm(forms.ModelForm):
     class Meta:
         model = AutorizarSolicitudes
-        fields = ['estado','comentario']
+        fields = ['comentario']
     
     comentario = forms.CharField(required=False)
     
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         #se filtran los estados de las autorizaciones
        
         self.fields['estado'].queryset = Estado.objects.all().order_by('tipo')
-        
+    """   
 class AutorizarSolicitudesGerenteUpdateForm(forms.ModelForm):
     class Meta:
         model = AutorizarSolicitudes

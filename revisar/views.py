@@ -15,6 +15,8 @@ from datetime import date
 import datetime
 from decimal import Decimal
 from django.db.models import F
+from prenomina.filters import PrenominaFilter
+
 
 #Prenomina
 from django.shortcuts import render
@@ -113,13 +115,15 @@ def autorizarSolicitud(request,solicitud):
             
             #verifica si la autorizacion del bono esta en la catorcena actual
             if autorizar is not None:
-                estadoDato = autorizarSolicitudesUpdateForm.cleaned_data['estado']
+                #estadoDato = autorizarSolicitudesUpdateForm.cleaned_data['estado']
+                estadoDato = 0
                 comentarioDato = autorizarSolicitudesUpdateForm.cleaned_data['comentario']
-                if estadoDato.id == 1:#aprobado                    
+                if 'aprobar' in request.POST:#aprobado
+                                                         
                     if rol.tipo_id == 6:#superintendente -> control tecnico   
                             
                             #se guardan los datos de la autorizacion en el superintendente
-                            autorizar.estado_id = estadoDato.id
+                            autorizar.estado_id = 1 #aprobado
                             autorizar.comentario = comentarioDato
                             autorizar.save(update_fields=['estado_id', 'comentario'])
                             
@@ -146,7 +150,7 @@ def autorizarSolicitud(request,solicitud):
                         
                     elif rol.tipo_id == 7: #control tecnico -> gerente
                             #se guardan los datos de la autorizacion del control tecnico
-                            autorizar.estado_id = estadoDato.id
+                            autorizar.estado_id = 1#aprobado
                             autorizar.comentario = comentarioDato
                             autorizar.save(update_fields=['estado_id', 'comentario'])
                             
@@ -173,8 +177,8 @@ def autorizarSolicitud(request,solicitud):
                             return redirect('listarBonosVarilleros')
                     elif rol.tipo_id == 8:# gerente
                             #autorizar - asignar el estado de la solicitud
-                            autorizar.estado_id = estadoDato.id
-                            autorizar.comentario = None
+                            autorizar.estado_id = 1
+                            autorizar.comentario = comentarioDato
                             autorizar.save() 
                                                         
                             #IMPLEMENTAR COSTO
@@ -184,35 +188,28 @@ def autorizarSolicitud(request,solicitud):
                             return redirect('listarBonosVarilleros')
                         
                     
-                elif estadoDato.id == 2:#rechazado 
+                elif 'rechazar' in request.POST :#rechazado 
                     #autorizar - asignar el estado de la solicitud
-                    autorizar.estado_id = estadoDato.id
+                    autorizar.estado_id = 2#rechazado
                     autorizar.comentario = comentarioDato
                     autorizar.save()  
                     
                     messages.error(request, "La solicitud fue rechazada")
                     return redirect('listarBonosVarilleros')
-                
-                elif estadoDato.id == 3:#pendiente
-                    messages.error(request, "Debes seleccionar un estado de la lista")
-                    return redirect('verDetalleSolicitud', solicitud_id=solicitud)
-                
-                elif estadoDato.id == 4:#revisar
+                    
+                elif 'cambios': #revisar
                     autorizar.estado_id = 4
                     autorizar.comentario = comentarioDato
                     autorizar.revisar = True
                     autorizar.save()
                             
-                    messages.success(request, "El supervisor hará cambios en la solicitud emitida")
-                    return redirect('verDetalleSolicitud', solicitud_id=solicitud)
-                
+                    messages.success(request, "El supervisor debe realizar cambios en la solicitud emitida")
+                    return redirect('listarBonosVarilleros')
+                    #return redirect('verDetalleSolicitud', solicitud_id=solicitud)
             else:
                 messages.error(request, "El bono no esta dentro de la fecha de la catorcena actual")
                 return redirect('verDetalleSolicitud',solicitud)
-                    
-        else:
-            messages.error(request, "Debes seleccionar un estado de la lista")
-              
+            
 #PRENOMINA
 @login_required(login_url='user-login')
 def Tabla_solicitudes_prenomina(request):
@@ -225,8 +222,8 @@ def Tabla_solicitudes_prenomina(request):
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
 
-        costo_filter = CostoFilter(request.GET, queryset=costo)
-        costo = costo_filter.qs
+        #costo_filter = CostoFilter(request.GET, queryset=costo)
+        #costo = costo_filter.qs
         #Trae las prenominas que le toca a cada perfil
         if user_filter.tipo.nombre ==  "Control Tecnico": #1er perfil
             prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="RH",fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).distinct()
@@ -234,7 +231,7 @@ def Tabla_solicitudes_prenomina(request):
             rh = rh.count()
             ct = prenominas_verificadas.count()
             if ct < rh:
-                mensaje_gerencia="Aún no estan listas las prenominas, pendientes por autorizar por RH= "+ str(rh-ct)
+                mensaje_gerencia="Pendientes por autorizar por RH = "+ str(rh-ct)
             elif ct == rh:
                 mensaje_gerencia = "Todas revisadas por RH"
         elif user_filter.tipo.nombre ==  "Gerencia":  #2do perfil
@@ -243,11 +240,13 @@ def Tabla_solicitudes_prenomina(request):
             rh = rh.count()
             ct = prenominas_verificadas.count()
             if ct < rh:
-                mensaje_gerencia="Aún no estan listas las prenominas, pendientes por autorizar entre RH y CT= "+ str(rh-ct)
+                mensaje_gerencia="Pendientes por autorizar entre RH y CT = "+ str(rh-ct)
             elif ct == rh:
                 mensaje_gerencia = "Todas revisadas por RH y CT"
         #Las ordena por numero de trabajador
         prenominas = prenominas_verificadas.order_by("empleado__status__perfil__numero_de_trabajador")
+        prenomina_filter = PrenominaFilter(request.GET, queryset=prenominas)
+        prenominas = prenomina_filter.qs
         #Asigna el estado
         for prenomina in prenominas:
             ultima_autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina).order_by('-updated_at').first()
@@ -263,7 +262,6 @@ def Tabla_solicitudes_prenomina(request):
             if ultima_rechazada is not None:
                 prenomina.ultima = ultima_rechazada.tipo_perfil.nombre
             prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
-
         if request.method =='POST' and 'Excel' in request.POST:
             return Excel_estado_prenomina(prenominas, user_filter)
         
@@ -285,15 +283,12 @@ def Tabla_solicitudes_prenomina(request):
                     # Si no hay prenominas que cumplan la condición, manejar según sea necesario
                     messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
 
-            
-
-
         p = Paginator(prenominas, 50)
         page = request.GET.get('page')
         salidas_list = p.get_page(page)
 
         context = {
-            'costo_filter':costo_filter,
+            'prenomina_filter':prenomina_filter,
             'salidas_list': salidas_list,
             'user_filter':user_filter,
             'mensaje_gerencia':mensaje_gerencia,
@@ -366,18 +361,26 @@ def Prenomina_Solicitud_Revisar(request, pk):
             delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
             dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
 
-        if request.method == 'POST' and 'guardar_cambios' in request.POST:
-            revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
-            revisado.tipo_perfil=user_filter.tipo
-            autorizar_valor = request.POST.get('autorizar')
-            revisado.estado = Estado.objects.get(tipo=autorizar_valor)
-            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-            revisado.perfil=nombre
-            comentario = request.POST.get('comentario')
-            revisado.comentario=comentario
-            revisado.save()
-            messages.success(request, 'Cambios guardados exitosamente')
-            return redirect('Prenominas_solicitudes')
+        if request.method == 'POST' and 'aprobar' or request.method == 'POST' and 'rechazar' in request.POST:
+            if 'aprobar' in request.POST:
+                estado = 'aprobado'
+            elif 'rechazar' in request.POST:
+                estado = 'rechazado'
+            else:
+                estado = None
+            if estado:
+                revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
+                revisado.tipo_perfil=user_filter.tipo
+                revisado.estado = Estado.objects.get(tipo=estado)
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                revisado.perfil=nombre
+                comentario = request.POST.get('comentario')
+                revisado.comentario=comentario
+                revisado.save()
+                messages.success(request, 'Cambios guardados exitosamente')
+                return redirect('Prenominas_solicitudes')
+            else:
+                messages.error(request,'No se pudo procesar el estado intentalo de nuevo')
         context = {
             'dias_entre_fechas': dias_entre_fechas, #Dias de la catorcena
             'prenomina':prenomina,

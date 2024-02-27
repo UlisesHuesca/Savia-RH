@@ -10,6 +10,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 import datetime 
 from datetime import timedelta, date
+from .filters import PrenominaFilter
 
 
 from django.contrib import messages
@@ -35,7 +36,6 @@ from django.http import HttpResponseRedirect
 # Create your views here.
 
 @login_required(login_url='user-login')
-@login_required(login_url='user-login')
 def Tabla_prenomina(request):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "RH":
@@ -44,10 +44,7 @@ def Tabla_prenomina(request):
         if user_filter.distrito.distrito == 'Matriz':
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
         else:
-            costo = Costo.objects.filter(distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
-
-        costo_filter = CostoFilter(request.GET, queryset=costo)
-        costo = costo_filter.qs
+            costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
 
         prenominas = Prenomina.objects.filter(empleado__in=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
 
@@ -59,8 +56,11 @@ def Tabla_prenomina(request):
             if not prenomina_existente:
                 nueva_prenomina = Prenomina(empleado=empleado, fecha=datetime.date.today())
                 nueva_prenomina.save()
-        
+        #costo_filter = CostoFilter(request.GET, queryset=costo)
+        #costo = costo_filter.qs
         prenominas = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador")
+        prenomina_filter = PrenominaFilter(request.GET, queryset=prenominas)
+        prenominas = prenomina_filter.qs
 
         for prenomina in prenominas:
             ultima_autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina).order_by('-updated_at').first() #Ultimo modificado
@@ -72,20 +72,21 @@ def Tabla_prenomina(request):
         if request.method =='POST' and 'Excel' in request.POST:
             return Excel_estado_prenomina(prenominas, user_filter)
         
+
+
         p = Paginator(prenominas, 50)
         page = request.GET.get('page')
         salidas_list = p.get_page(page)
 
         context = {
-            'costo_filter':costo_filter,
-            #'costo': costo,
+            'prenomina_filter':prenomina_filter,
             'salidas_list': salidas_list,
             'prenominas':prenominas
         }
         return render(request, 'prenomina/Tabla_prenomina.html', context)
     else:
             return render(request, 'revisar/403.html')
-
+        
 def prenomina_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     ahora = datetime.date.today()
