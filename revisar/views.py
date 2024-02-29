@@ -151,7 +151,7 @@ def autorizarSolicitud(request,solicitud):
                     elif rol.tipo_id == 7: #control tecnico -> gerente
                             #se guardan los datos de la autorizacion del control tecnico
                             autorizar.estado_id = 1#aprobado
-                            autorizar.comentario = comentarioDato
+                            autorizar.comentario = None
                             autorizar.save(update_fields=['estado_id', 'comentario'])
                             
                             

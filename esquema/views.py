@@ -419,8 +419,9 @@ def listarBonosVarillerosAprobados(request):
     
     #Se muestran por catorcenas
     fecha_actual = datetime.date.today()
+    
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
-
+    
     #Si es usuario RH de distrito matriz
     if usuario.distrito.id == 1 and usuario.tipo.id ==  4:
         #obtiene todos los bonos aprobados de todos los distritos | gerente aprobado
@@ -431,7 +432,7 @@ def listarBonosVarillerosAprobados(request):
             updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
            
         ).order_by("-created_at").values('solicitud_id')
-        
+                
         #se buscan los perfiles acredores al bono
         solicitudes = []
         for item in autorizaciones:
@@ -439,7 +440,7 @@ def listarBonosVarillerosAprobados(request):
             solicitudes.append(solicitud_id)
             
         bonos = BonoSolicitado.objects.filter(solicitud_id__in = solicitudes).order_by('trabajador_id')
-                
+                                    
         bonosolicitado_filter = BonoSolicitadoFilter(request.GET, queryset=bonos) 
         bonos = bonosolicitado_filter.qs
         
@@ -594,7 +595,7 @@ def convert_excel_bonos_aprobados(bonos):
     wb.add_named_style(money_resumen_style)
     
     #se crea el encabezado de la tabla en excel 
-    columns = ['Folio','Fecha','Nombre','No. de cuenta','No. de tarjeta','Banco','Distrito','Bono','Puesto','Cantidad']
+    columns = ['Folio','Fecha emisión','Nombre','No. de cuenta','No. de tarjeta','Banco','Distrito','Bono','Puesto','Cantidad']
     
     #se añade el ancho de cada columna
     for col_num in range(len(columns)):

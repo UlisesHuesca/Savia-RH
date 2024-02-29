@@ -100,7 +100,7 @@
                 <thead>
                     <tr class="tabla-encabezado">
                         <th>Folio</th>
-                        <th>Fecha</th>
+                        <th>Fecha emisión</th>
                         <th>Nombre</th>
                         <th>No. Cuenta</th>
                         <th>No. Tarjeta</th>
@@ -117,7 +117,7 @@
                     {% for bono in bonos %}
                     <tr class="text-capitalize"> 
                         <td>{{bono.solicitud.folio}}</td>
-                        <td>{{bono.fecha|date:"d/m/Y H:i"}}</td>
+                        <td>{{bono.solicitud.fecha|date:"d/m/Y H:i"}}</td>
                         <td>{{bono.trabajador}}</td>
                         <td>{{bono.trabajador.status.datosbancarios.no_de_cuenta}}</td>
                         <td>{{bono.trabajador.status.datosbancarios.numero_de_tarjeta}}</td>

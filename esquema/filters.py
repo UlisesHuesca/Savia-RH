@@ -17,8 +17,10 @@ class BonoSolicitadoFilter(django_filters.FilterSet):
     bono = django_filters.ModelChoiceFilter(queryset=Subcategoria.objects.all(), field_name='solicitud__bono')
     puesto = django_filters.ModelChoiceFilter(queryset=Puesto.objects.all().order_by('puesto'), field_name='puesto')
     no_trabajador = django_filters.NumberFilter(field_name="trabajador__numero_de_trabajador")
+    #Fecha emision
     fecha_inicio = django_filters.DateFilter(field_name='fecha', lookup_expr='gte', label='Fecha de inicio')
     fecha_fin = django_filters.DateFilter(field_name='fecha', lookup_expr='lte', label='Fecha de fin', method='sumar_un_dia')
+    
    
     #suma un dia a la fecha fin. porque a la hora de buscar me resta un dia, tal vez tenga que ver por las horas y minutos
     def sumar_un_dia(self, queryset, name, value):
@@ -42,9 +44,12 @@ class AutorizarSolicitudesFilter(django_filters.FilterSet):
     rol = django_filters.ModelChoiceFilter(queryset=TipoPerfil.objects.filter(id__in=[6,7,8]), field_name='tipo_perfil__nombre')
     distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.filter(id__in=[4,2,6,5]), field_name="perfil__distrito")
     folio = django_filters.NumberFilter(field_name="solicitud_id")
+    #fecha emision
     fecha_inicio = django_filters.DateFilter(field_name='solicitud__fecha', lookup_expr='gte', label='Fecha de inicio')
     fecha_fin = django_filters.DateFilter(field_name='solicitud__fecha', lookup_expr='lte', label='Fecha de fin', method='sumar_un_dia')
-   
+    #fecha revision
+    fecha_inicio_r = django_filters.DateFilter(field_name='created_at', lookup_expr='gte', label='Fecha de inicio')
+    fecha_fin_r = django_filters.DateFilter(field_name='created_at', lookup_expr='lte', label='Fecha de fin', method='sumar_un_dia')
     #suma un dia a la fecha fin. porque a la hora de buscar me resta un dia, tal vez tenga que ver por las horas y minutos
     def sumar_un_dia(self, queryset, name, value):
         sumar = value + timedelta(1)
@@ -52,7 +57,7 @@ class AutorizarSolicitudesFilter(django_filters.FilterSet):
     
     class Meta:
         model = AutorizarSolicitudes
-        fields = ['estado','bono','rol','folio','distrito','fecha_inicio','fecha_fin']
+        fields = ['estado','bono','rol','folio','distrito','fecha_inicio','fecha_fin','fecha_inicio_r','fecha_fin_r']
         
     def sumar_un_dia(self, queryset, name, value):
         sumar = value + timedelta(1)

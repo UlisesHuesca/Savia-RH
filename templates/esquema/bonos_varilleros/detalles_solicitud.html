@@ -123,7 +123,12 @@
                     <div class="row">
                         <div class="col-8">
                             <p><span class="fw-bold"><i class="fas fa-user"></i> {{autorizaciones.tipo_perfil.nombre}}: </span> {{autorizaciones.perfil}}</p>
-                            <p><span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha revisión </span>{{autorizaciones.created_at|date:'d/m/Y H:i'}}</p>
+                            {% if autorizaciones.estado.id != 3 %}
+                                <p><span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha revisión: </span>{{autorizaciones.created_at|date:'d/m/Y H:i'}}</p>
+                            {% else %}
+                            <p><span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha revisión: </span> <span class="text-muted">pendiente</span></p>
+                            {% endif %}
+                          
                             <p><span class="fw-bold"><i class="fas fa-comment"></i> Comentario: </span> 
                                 {% if autorizaciones.comentario is None %} 
                                     <span class="text-muted">No hay comentarios</span> 

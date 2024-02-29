@@ -80,12 +80,20 @@
                             </div>
                             {% endif %}
                             <div class="col-auto">
-                                <label for="" class="fw-bold">Fecha Inicio</label>
+                                <label for="" class="fw-bold">Fecha Inicio - Emisión</label>
                                 {% render_field autorizaciones_filter.form.fecha_inicio type="date" class="form-control"%}
                             </div>
                             <div class="col-auto">
-                                <label for="" class="fw-bold">Fecha Fin</label>
+                                <label for="" class="fw-bold">Fecha Fin - Emisión</label>
                                 {% render_field autorizaciones_filter.form.fecha_fin type="date" class="form-control"%}
+                            </div>
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Fecha Inicio - Revisión</label>
+                                {% render_field autorizaciones_filter.form.fecha_inicio_r type="date" class="form-control"%}
+                            </div>
+                            <div class="col-auto">
+                                <label for="" class="fw-bold">Fecha Fin - Revisión</label>
+                                {% render_field autorizaciones_filter.form.fecha_fin_r type="date" class="form-control"%}
                             </div>
                             <div class="col-auto">
                                 <br>
@@ -124,7 +132,7 @@
                     <tr> 
                         
                         <td>{{autorizacion.solicitud.folio}}</td>
-                        <td class="">{{autorizacion.solicitud.fecha|date:"d/M/Y H:m"}}</td>
+                        <td class="">{{autorizacion.solicitud.fecha|date:'d/m/Y H:i'}}</td>
                         <td class="">
                             {% if autorizacion.estado.id != 3 %}
                                 {{autorizacion.created_at|date:'d/m/Y H:i'}}
