@@ -20,7 +20,9 @@ class BonoSolicitadoFilter(django_filters.FilterSet):
     #Fecha emision
     fecha_inicio = django_filters.DateFilter(field_name='fecha', lookup_expr='gte', label='Fecha de inicio')
     fecha_fin = django_filters.DateFilter(field_name='fecha', lookup_expr='lte', label='Fecha de fin', method='sumar_un_dia')
-    
+    #fecha aprobacion
+    fecha_inicio_a = django_filters.DateFilter(field_name='solicitud__fecha_autorizacion', lookup_expr='gte', label='Fecha de inicio')
+    fecha_fin_a = django_filters.DateFilter(field_name='solicitud__fecha_autorizacion', lookup_expr='lte', label='Fecha de fin', method='sumar_un_dia')
    
     #suma un dia a la fecha fin. porque a la hora de buscar me resta un dia, tal vez tenga que ver por las horas y minutos
     def sumar_un_dia(self, queryset, name, value):

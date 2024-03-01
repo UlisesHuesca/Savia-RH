@@ -30,17 +30,31 @@
                 
                 {% comment %} Generar el reporte excel {% endcomment %}                    
                 <div class="card-body mb-0 pb-0">
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="row">
-                            <div class="col-12">
-                                <button type="submit" name="excel" class="btn btn-outline-success" title="Descargar reporte en excel" value='Reporte Excel'>
-                                    <i class="fa-solid fa-file-excel fa-2xl"></i>
-                                </button>
-                            </div>
+                   <div class="row">
+                        <div class="col-12">
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="row d-flex justify-content-between">
+                                    <div class="col-6">
+                                        <button type="submit" name="excel" class="btn btn-outline-success" title="Descargar reporte en excel" value='Reporte Excel'>
+                                            <i class="fa-solid fa-file-excel fa-2xl"></i>
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="row">
+                                            <div class="col-auto">
+                                                <p class="fw-bold">Total bonos aprobados: {{cantidad_bonos_aprobados}}</p> 
+                                            </div>
+                                            <div class="col-auto">
+                                                <p class="fw-bold">Total $: {{total_monto}}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                            </form>
                         </div>
-                        <hr>
-                    </form>
+                   </div>
                 </div>
 
                 <div class="card-body">
@@ -73,12 +87,20 @@
                                     {% render_field  bonosolicitado_filter.form.no_trabajador class="form-control text-capitalize"%}
                                 </div>
                                 <div class="col-auto">
-                                    <label for="" class="fw-bold">Fecha Inicio</label>
+                                    <label for="" class="fw-bold">Fecha Inicio - Emisión</label>
                                     {% render_field  bonosolicitado_filter.form.fecha_inicio type="date" class="form-control"%}
                                 </div>
                                 <div class="col-auto">
-                                    <label for="" class="fw-bold">Fecha Fin</label>
+                                    <label for="" class="fw-bold">Fecha Fin - Emisión</label>
                                     {% render_field  bonosolicitado_filter.form.fecha_fin type="date" class="form-control"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Fecha Inicio - Aprobación</label>
+                                    {% render_field  bonosolicitado_filter.form.fecha_inicio_a type="date" class="form-control"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Fecha Fin - Aprobación</label>
+                                    {% render_field  bonosolicitado_filter.form.fecha_fin_a type="date" class="form-control"%}
                                 </div>
                                 <div class="col-auto">
                                     <br>
@@ -101,6 +123,7 @@
                     <tr class="tabla-encabezado">
                         <th>Folio</th>
                         <th>Fecha emisión</th>
+                        <th>Fecha aprobación</th>
                         <th>Nombre</th>
                         <th>No. Cuenta</th>
                         <th>No. Tarjeta</th>
@@ -118,6 +141,7 @@
                     <tr class="text-capitalize"> 
                         <td>{{bono.solicitud.folio}}</td>
                         <td>{{bono.solicitud.fecha|date:"d/m/Y H:i"}}</td>
+                        <td>{{bono.solicitud.fecha_autorizacion|date:"d/m/Y H:i"}}</td>
                         <td>{{bono.trabajador}}</td>
                         <td>{{bono.trabajador.status.datosbancarios.no_de_cuenta}}</td>
                         <td>{{bono.trabajador.status.datosbancarios.numero_de_tarjeta}}</td>

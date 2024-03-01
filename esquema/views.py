@@ -25,6 +25,7 @@ from django.db.models import Max
 from django.db.models import Subquery, OuterRef
 from django.http import Http404
 import datetime
+from datetime import date, timedelta
 from django.db.models import Q
 #Excel
 from openpyxl import Workbook
@@ -42,7 +43,10 @@ from django.db.models import Count
 from django.db.models import IntegerField
 from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect
-
+from datetime import datetime
+from datetime import datetime, timedelta
+from django.utils import timezone
+from datetime import date
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -65,8 +69,12 @@ def listarBonosVarilleros(request):
     solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
     
     #Se muestran por catorcenas
-    fecha_actual = datetime.date.today()
+    fecha_actual = datetime.now()
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
+    fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
+    print("fecha inicial con H:i ", fecha_inicial)
+    fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
+    print("fecha final con H:i ", fecha_final)
     
     subconsulta_ultima_fecha = AutorizarSolicitudes.objects.values('solicitud_id').annotate(
             ultima_fecha=Max('created_at')
@@ -78,14 +86,14 @@ def listarBonosVarilleros(request):
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__complete = 1,updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
+            solicitud__complete = 1,updated_at__range=(fecha_inicial,fecha_final)
         ).order_by("-created_at")
     elif usuario.tipo.id ==  5: #supervisor
         #obtiene todas las ultimas autorizaciones de su distrito y roles
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,updated_at__range=(fecha_inicial,fecha_final)
             #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     else:
@@ -93,7 +101,7 @@ def listarBonosVarilleros(request):
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,tipo_perfil_id=usuario.tipo.id ,updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,tipo_perfil_id=usuario.tipo.id ,updated_at__range=(fecha_inicial,fecha_final)
             #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     
@@ -411,16 +419,20 @@ def verDetallesSolicitud(request,solicitud_id):
 @login_required(login_url='user-login')
 def listarBonosVarillerosAprobados(request):
     
-    
     #se obtiene el usuario logueado
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
     #se obtiene el perfil del usuario logueado
     #solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
     
     #Se muestran por catorcenas
-    fecha_actual = datetime.date.today()
+    #fecha_actual = datetime.date.today()
+    fecha_actual = datetime.now()
     
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
+    fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
+    #print("fecha inicial con H:i ", fecha_inicial)
+    fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
+    #print("fecha final con H:i ", fecha_final)
     
     #Si es usuario RH de distrito matriz
     if usuario.distrito.id == 1 and usuario.tipo.id ==  4:
@@ -429,10 +441,10 @@ def listarBonosVarillerosAprobados(request):
             solicitud__complete = 1,
             estado_id = 1,
             tipo_perfil_id = 8,
-            updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)
+            updated_at__range=(fecha_inicial,fecha_final)
            
         ).order_by("-created_at").values('solicitud_id')
-                
+        
         #se buscan los perfiles acredores al bono
         solicitudes = []
         for item in autorizaciones:
@@ -440,12 +452,14 @@ def listarBonosVarillerosAprobados(request):
             solicitudes.append(solicitud_id)
             
         bonos = BonoSolicitado.objects.filter(solicitud_id__in = solicitudes).order_by('trabajador_id')
-                                    
+        total_monto = bonos.aggregate(total_monto=Sum('cantidad'))['total_monto']
+        cantidad_bonos_aprobados = bonos.count()
+                    
         bonosolicitado_filter = BonoSolicitadoFilter(request.GET, queryset=bonos) 
         bonos = bonosolicitado_filter.qs
         
         if request.method =='POST' and 'excel' in request.POST:
-            return convert_excel_bonos_aprobados(bonos)
+            return convert_excel_bonos_aprobados(bonos,total_monto,cantidad_bonos_aprobados)
         
         p = Paginator(bonos, 50)
         page = request.GET.get('page')
@@ -455,7 +469,9 @@ def listarBonosVarillerosAprobados(request):
         contexto = {
             'bonos':bonos,
             'salidas_list':salidas_list,
-            'bonosolicitado_filter':bonosolicitado_filter
+            'bonosolicitado_filter':bonosolicitado_filter,
+            'cantidad_bonos_aprobados':cantidad_bonos_aprobados,
+            'total_monto':total_monto,
         }
         
         return render(request,'esquema/bonos_varilleros/listar_bonos_aprobados.html',contexto)
@@ -561,9 +577,9 @@ def solicitarEsquemaBono(request):
 
 
 #GENERACION DE REPORTES EN EXCEL
-def convert_excel_bonos_aprobados(bonos):
+def convert_excel_bonos_aprobados(bonos,total_monto,cantidad_bonos_aprobados):
     response= HttpResponse(content_type = "application/ms-excel")
-    response['Content-Disposition'] = 'attachment; filename = Reporte_bonos_varilleros_aprobados_' + str(datetime.date.today())+'.xlsx'
+    response['Content-Disposition'] = 'attachment; filename = Reporte_bonos_varilleros_aprobados_' + str(date.today())+'.xlsx'
     wb = Workbook()
     ws = wb.create_sheet(title='Reporte')
     #Comenzar en la fila 1
@@ -595,7 +611,7 @@ def convert_excel_bonos_aprobados(bonos):
     wb.add_named_style(money_resumen_style)
     
     #se crea el encabezado de la tabla en excel 
-    columns = ['Folio','Fecha emisión','Nombre','No. de cuenta','No. de tarjeta','Banco','Distrito','Bono','Puesto','Cantidad']
+    columns = ['Folio','Fecha emisión','Fecha aprobación','Nombre','No. de cuenta','No. de tarjeta','Banco','Distrito','Bono','Puesto','Cantidad']
     
     #se añade el ancho de cada columna
     for col_num in range(len(columns)):
@@ -611,7 +627,13 @@ def convert_excel_bonos_aprobados(bonos):
     
     (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
     (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    (ws.cell(column = columna_max, row = 3, value='')).style = messages_style
+    (ws.cell(column = columna_max, row = 4, value=f'Bonos aprobados: {cantidad_bonos_aprobados}')).style = messages_style
+    (ws.cell(column = columna_max, row = 5, value=f'Total $: {total_monto}')).style = messages_style
     ws.column_dimensions[get_column_letter(columna_max)].width = 45
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 45
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 45
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 45
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 45
     
     rows = []
@@ -621,6 +643,7 @@ def convert_excel_bonos_aprobados(bonos):
         row = (
             bono.solicitud.folio,
             bono.fecha.strftime('%Y-%m-%d %H:%M'),
+            bono.solicitud.fecha_autorizacion.strftime('%Y-%m-%d %H:%M'),
             str(bono.trabajador),
             bono.trabajador.status.datosbancarios.no_de_cuenta,
             bono.trabajador.status.datosbancarios.numero_de_tarjeta,
@@ -637,7 +660,7 @@ def convert_excel_bonos_aprobados(bonos):
             for col_num, value in enumerate(row, start=1):
                 if col_num == 1:
                     ws.cell(row=row_num, column=col_num, value=value).style = number_style
-                elif col_num == 2:
+                elif col_num == 2 or col_num == 3:
                     ws.cell(row=row_num, column=col_num, value=value).style = date_style
                 elif col_num <= 9:
                     ws.cell(row=row_num, column=col_num, value=value).style = body_style

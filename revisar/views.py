@@ -16,12 +16,15 @@ import datetime
 from decimal import Decimal
 from django.db.models import F
 from prenomina.filters import PrenominaFilter
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 
 #Prenomina
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from proyecto.models import UserDatos, Perfil, Catorcenas, Costo, TablaFestivos, Vacaciones, Economicos, Economicos_dia_tomado, Vacaciones_dias_tomados
+from proyecto.models import UserDatos,Perfil, Catorcenas, Costo, TablaFestivos, Vacaciones, Economicos, Economicos_dia_tomado, Vacaciones_dias_tomados
+from esquema.models import Solicitud
 from .models import AutorizarPrenomina, Estado
 from django.db.models import Q
 from proyecto.filters import CostoFilter
@@ -59,11 +62,16 @@ def asignarBonoCosto(solicitud):
     cantidad = []
     #la lista de los perfiles que recibiran los bonos
     lista_perfiles = []
-       
+    
+    #se guarda la fecha de la solicitud aprobada por el gerente
+    aprobada = Solicitud.objects.get(id=solicitud)
+    aprobada.fecha_autorizacion = timezone.now()
+    aprobada.save()
+        
     #trae los empleados con sus respectivos bonos
     empleados = BonoSolicitado.objects.filter(solicitud_id = solicitud).values("trabajador_id","cantidad")
     porcentaje = SalarioDatos.objects.get(pk = 1)
-    
+   
     for item in empleados:
         trabajador_id = item['trabajador_id']
         cantidad_obtenida = item['cantidad']
@@ -74,7 +82,7 @@ def asignarBonoCosto(solicitud):
     for index,perfil in enumerate(lista_perfiles):
         costo = Costo.objects.get(status__perfil_id = perfil)
         costo.bono_total = cantidad[index]
-        #costo.save()
+        costo.save()
         
         #realizar calculo bono - costo 
         costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
@@ -101,6 +109,7 @@ def asignarBonoCosto(solicitud):
         
 @login_required(login_url='user-login')
 def autorizarSolicitud(request,solicitud):
+    from datetime import datetime
     if request.method == "POST": 
         autorizarSolicitudesUpdateForm = AutorizarSolicitudesUpdateForm(request.POST)
                 
@@ -109,9 +118,16 @@ def autorizarSolicitud(request,solicitud):
             rol = UserDatos.objects.get(user_id = usuario.id)
             
             #VERIFICAR CATORCENA
-            fecha_actual = datetime.date.today()
+            fecha_actual = datetime.now()
             catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
-            autorizar = AutorizarSolicitudes.objects.filter(solicitud_id = solicitud, tipo_perfil_id = rol.tipo_id, updated_at__range=(catorcena_actual.fecha_inicial,catorcena_actual.fecha_final)).first()
+            fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
+            print("fecha inicial con H:i ", fecha_inicial)
+            fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
+            print("fecha final con H:i ", fecha_final)
+            
+            autorizar = AutorizarSolicitudes.objects.get(solicitud_id = solicitud, tipo_perfil_id = rol.tipo_id, updated_at__range=(fecha_inicial,fecha_final))
+            
+            print("BONOS: ",autorizar)
             
             #verifica si la autorizacion del bono esta en la catorcena actual
             if autorizar is not None:
