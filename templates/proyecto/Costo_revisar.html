@@ -64,10 +64,16 @@
                                 <span class="h4">{{costo.status.perfil.nombres}} {{costo.status.perfil.apellidos}}</span>
                         <form method=POST>
                         {% csrf_token %}
-                        <li class="nav-item mx-2">
+                        <li class="nav-item mx-2"><span class="h6">PDF Costo general </span>
                             <button type="submit" name="Pdf" class="btn btn-outline-danger" value='Reporte Pdf'>
                                 <i class="fa-solid fa-file-pdf fa-2xl"></i>
                             </button>
+                            {% if existe == 1 %}
+                                <span class="h6"> PDF Costo incidencias </span><button type="submit" name="Pdf2" class="btn btn-primary" value='Reporte Pdf2'>
+                                    <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                                </button>
+                            {% endif %}
+
                         </li>
                         <hr>
                         </form>

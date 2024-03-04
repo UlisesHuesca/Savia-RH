@@ -68,26 +68,26 @@
                 {% csrf_token %}
                     <div class="col-12">
                         <div class="card card-body">
-                            {% if user_filter.tipo.nombre == "Gerencia" %}
-                                <h5>Autorización rapida y Excel</h5>
-                            {% else %}
-                                <h5>Excel</h5>
-                            {% endif %}
+                            <h5>Excel</h5>
                             <h6 style="text-align: right;">{{mensaje_gerencia}}</h6>
                             <ul class="nav nav-pills">
-                                {% if user_filter.tipo.nombre == "Gerencia" %}
-                                <li class="nav-item mx-4">
-                                    <button type="submit" name="Autorizar" class="btn btn-outline-success" value='Autorizar'>
-                                        <i class="fa-solid fa-file-circle-check"></i>
-                                    </button>
-                                </li>
-                                {% endif %}
                                 <li class="nav-item mx-2">
                                     <button type="submit" name="Excel" class="btn btn-outline-success" value='Reporte Excel'>
                                         <i class="fa-solid fa-file-excel fa-2xl"></i>
                                     </button>
                                 </li>
                             </ul>
+                                {% if user_filter.tipo.nombre == "Gerencia" %}
+                                <ul class="nav d-flex justify-content-end"><h6>Autorización rapida</h6>
+                                    <!-- Utiliza la clase 'ml-auto' en el elemento li para alinear a la derecha -->
+                                    <li class="nav-item mx-4 ml-auto">
+                                        <!-- Cambia la clase 'btn-outline-success' a 'btn-primary' para tener el color azul -->
+                                        <button type="submit" name="Autorizar" class="btn btn-primary">
+                                            <i class="fa-solid fa-file-circle-check"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                                {% endif %}
                         </div>
                     </div>
                 </form>

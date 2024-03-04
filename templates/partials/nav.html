@@ -119,7 +119,7 @@
                                     <span class="badge bg-danger">Listo para autorizar</span></a>
                             {% elif usuario.tipo.nombre == "Gerencia" and prenomina_estado == 2 %} <!--Aquí es 2-->
                                 <a class="dropdown-item" href="{% url 'Prenominas_solicitudes' %}">Solicitudes prenominas                                    <span class="badge bg-danger"></span>
-                                    <span class="badge bg-success">Ya autorizadas</span>
+                                    <span class="badge bg-success">Autorizadas</span>
                             {% else %}
                                 <a class="dropdown-item" href="{% url 'Prenominas_solicitudes' %}">Solicitudes prenominas</a>
                             {% endif %}
