@@ -452,14 +452,14 @@ def listarBonosVarillerosAprobados(request):
             solicitudes.append(solicitud_id)
             
         bonos = BonoSolicitado.objects.filter(solicitud_id__in = solicitudes).order_by('trabajador_id')
-        total_monto = bonos.aggregate(total_monto=Sum('cantidad'))['total_monto']
-        cantidad_bonos_aprobados = bonos.count()
-                    
         bonosolicitado_filter = BonoSolicitadoFilter(request.GET, queryset=bonos) 
         bonos = bonosolicitado_filter.qs
         
+        total_monto = bonos.aggregate(total_monto=Sum('cantidad'))['total_monto']
+        cantidad_bonos_aprobados = bonos.count()
+        
         if request.method =='POST' and 'excel' in request.POST:
-            return convert_excel_bonos_aprobados(bonos,total_monto,cantidad_bonos_aprobados)
+            return convert_excel_bonos_aprobados(bonos,catorcena_actual,total_monto,cantidad_bonos_aprobados)
         
         p = Paginator(bonos, 50)
         page = request.GET.get('page')
@@ -472,13 +472,75 @@ def listarBonosVarillerosAprobados(request):
             'bonosolicitado_filter':bonosolicitado_filter,
             'cantidad_bonos_aprobados':cantidad_bonos_aprobados,
             'total_monto':total_monto,
+            'catorcena':catorcena_actual
         }
         
         return render(request,'esquema/bonos_varilleros/listar_bonos_aprobados.html',contexto)
         
     else:
         return render(request, 'revisar/403.html')
+
+#generar reportes bonos aprobados
+@login_required(login_url='user-login')
+def generarReporteBonosVarillerosAprobados(request):
     
+    #se obtiene el usuario logueado
+    usuario = get_object_or_404(UserDatos,user_id = request.user.id)
+    
+    #Si es usuario RH de distrito matriz
+    if usuario.distrito.id == 1 and usuario.tipo.id ==  4:
+        #se buscan los perfiles acredores al bono
+        folios = Solicitud.objects.filter(fecha_autorizacion__isnull=False).values('folio')
+        
+        #se prepara un 
+        solicitudes = []
+        for item in folios:
+            solicitud_id = item['folio']
+            solicitudes.append(solicitud_id)
+            
+        bonos = BonoSolicitado.objects.filter(solicitud_id__in = solicitudes).order_by('trabajador_id')
+                
+        bonosolicitado_filter = BonoSolicitadoFilter(request.GET, queryset=bonos) 
+        bonos = bonosolicitado_filter.qs
+        
+        if not bonos.exists():
+            messages.error(request, "No existen registros")
+            #return redirect('generarReporteBonosVarillerosAprobados')
+        
+        bono = bonos.first()
+        
+        if bono is not None:
+            catorcena = Catorcenas.objects.filter(fecha_inicial__lte=bono.solicitud.fecha_autorizacion, fecha_final__gte=bono.solicitud.fecha_autorizacion).first()
+        else:
+            catorcena = None
+
+            
+                    
+        total_monto = bonos.aggregate(total_monto=Sum('cantidad'))['total_monto']
+        cantidad_bonos_aprobados = bonos.count()
+            
+        if request.method =='POST' and 'excel' in request.POST:
+            return convert_excel_bonos_aprobados(bonos,catorcena,total_monto,cantidad_bonos_aprobados)
+            
+        p = Paginator(bonos, 2)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+        bonos = p.get_page(page)
+            
+        contexto = {
+            'bonos':bonos,
+            'bonosolicitado_filter':bonosolicitado_filter,
+            'cantidad_bonos_aprobados':cantidad_bonos_aprobados,
+            'catorcena':catorcena,
+            'total_monto':total_monto,
+            'salidas_list':salidas_list,
+        }
+                
+        return render(request,'esquema/bonos_varilleros/generar_reporte_bonos.html',contexto)
+    
+    else:
+        return render(request, 'revisar/403.html')
+
 #para remover bonos agregados
 @login_required(login_url='user-login')
 def removerBono(request,bono_id):
@@ -577,7 +639,7 @@ def solicitarEsquemaBono(request):
 
 
 #GENERACION DE REPORTES EN EXCEL
-def convert_excel_bonos_aprobados(bonos,total_monto,cantidad_bonos_aprobados):
+def convert_excel_bonos_aprobados(bonos,catorcena,total_monto,cantidad_bonos_aprobados):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_bonos_varilleros_aprobados_' + str(date.today())+'.xlsx'
     wb = Workbook()
@@ -609,6 +671,10 @@ def convert_excel_bonos_aprobados(bonos,total_monto,cantidad_bonos_aprobados):
     money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
     money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
     wb.add_named_style(money_resumen_style)
+    dato_style = NamedStyle(name='dato_style',number_format='DD/MM/YYYY')
+    dato_style.font = Font(name="Arial Narrow", size = 11)
+    
+    
     
     #se crea el encabezado de la tabla en excel 
     columns = ['Folio','Fecha emisión','Fecha aprobación','Nombre','No. de cuenta','No. de tarjeta','Banco','Distrito','Bono','Puesto','Cantidad']
@@ -628,8 +694,9 @@ def convert_excel_bonos_aprobados(bonos,total_monto,cantidad_bonos_aprobados):
     (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
     (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
     (ws.cell(column = columna_max, row = 3, value='')).style = messages_style
-    (ws.cell(column = columna_max, row = 4, value=f'Bonos aprobados: {cantidad_bonos_aprobados}')).style = messages_style
-    (ws.cell(column = columna_max, row = 5, value=f'Total $: {total_monto}')).style = messages_style
+    (ws.cell(column = columna_max, row = 5, value=f'Catorcena: {catorcena.catorcena}: {catorcena.fecha_inicial} - {catorcena.fecha_final}')).style = dato_style
+    (ws.cell(column = columna_max, row = 6, value=f'Bonos aprobados: {cantidad_bonos_aprobados}')).style = messages_style
+    (ws.cell(column = columna_max, row = 7, value=f'Total $: {total_monto}')).style = messages_style
     ws.column_dimensions[get_column_letter(columna_max)].width = 45
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 45
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 45

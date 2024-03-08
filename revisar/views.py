@@ -81,7 +81,7 @@ def asignarBonoCosto(solicitud):
     #se asigna cada empleado con su respectivo bono        
     for index,perfil in enumerate(lista_perfiles):
         costo = Costo.objects.get(status__perfil_id = perfil)
-        costo.bono_total = cantidad[index]
+        costo.bono_total = costo.bono_total + cantidad[index]
         costo.save()
         
         #realizar calculo bono - costo 
@@ -151,7 +151,7 @@ def autorizarSolicitud(request,solicitud):
                             control_tecnico, created = AutorizarSolicitudes.objects.get_or_create(
                                 solicitud_id=solicitud,
                                 tipo_perfil_id=7,
-                                comentario = comentarioDato,
+                                #comentario = comentarioDato,
                                 perfil_id = perfil_control_tecnico['id'],
                                 defaults={'estado_id': 3}  # Pendiente
                             )
@@ -159,6 +159,7 @@ def autorizarSolicitud(request,solicitud):
                             #entra en el flujo de verifica o cambios
                             if autorizar.revisar and not created:
                                 control_tecnico.estado_id = 3
+                                control_tecnico.comentario = comentarioDato
                                 control_tecnico.save()
                                 
                             messages.success(request, "La solicitud se aprobó por el Superintendente, pasa a revisión a Control Técnico")
@@ -179,7 +180,7 @@ def autorizarSolicitud(request,solicitud):
                             gerente, created = AutorizarSolicitudes.objects.get_or_create(
                                 solicitud_id=solicitud,
                                 tipo_perfil_id=8,
-                                comentario = comentarioDato,
+                                #comentario = comentarioDato,
                                 perfil_id = perfil_gerente['id'],
                                 defaults={'estado_id': 3}  # Pendiente
                             )

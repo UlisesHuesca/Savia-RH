@@ -98,4 +98,6 @@ urlpatterns = [
     path('Solicitudes_revisadas/Empleado', views.Solicitudes_revisar_empleado, name='Solicitudes_vista_empleado'), #Vista empleado generar pdf
     path('antiguedad/<int:pk>/', views.Antiguedad, name='antiguedad'),
     
+    path('costo-mensual',views.costo_mensual,name="costo_mensual")
+    
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -25,8 +25,8 @@
             <div class="card shadow">
                 <div class="card-header d-flex justify-content-between">
                     <div class="card-title">
-                        <h5>Bonos Varilleros</h5>
-                        
+                        <h5>Bonos Varilleros - Sección de reportes </h5>
+                        <small class="text-muted">Puede generar reportes por catorcena</small>
                     </div>
                 </div>
                 
@@ -34,6 +34,21 @@
                 {% comment %} Generar el reporte excel {% endcomment %}                    
                 <div class="card-body mb-0 pb-0">
                    <div class="row">
+                        {% if messages %}
+                            {% for message in messages %}
+                                {% if message.tags == "success" %}
+                                <div class="alert alerta-success alert-dismissible fade show" role="alert">
+                                    <strong><i class="fas fa-check"></i> {{ message }}</strong> 
+                                    <button type="button" class="btn-close white" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                {% else %}
+                                <div class="alert alerta-danger alert-dismissible fade show" role="alert">
+                                    <strong><i class="fas fa-exclamation-triangle"></i> {{ message }} </strong> 
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                         <div class="col-12">
                             <form method="post">
                                 {% csrf_token %}
@@ -45,6 +60,7 @@
                                     </div>
                                     <div class="col-8">
                                         <div class="row">
+                                            {% if request.GET.fecha_inicial_catorcena != '' and request.GET.fecha_final_catorcena != '' %}
                                             <div class="col-auto">
                                                 <p class="fw-bold">Catorcena {{catorcena.catorcena}}: {{catorcena.fecha_inicial|date:"d/m/Y"}} - {{catorcena.fecha_final|date:"d/m/Y"}}</p> 
                                             </div>
@@ -52,12 +68,16 @@
                                                 <p class="fw-bold">Total bonos aprobados: {{cantidad_bonos_aprobados}}</p> 
                                             </div>
                                             <div class="col-auto">
-                                                {% if total_monto is not None%}
-                                                    <p class="fw-bold">Total $: {{total_monto}}</p>
+                                                
+                                                {% if total_monto is None %}
+                                                    <p class="fw-bold">Total $: 0.00</p>
                                                 {% else %}
-                                                    <p class="fw-bold">Total $: 0.00 </p>
+                                                    <p class="fw-bold">Total $: {{total_monto}}</p>
                                                 {% endif %}
+                                                    
+                                                
                                             </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -70,52 +90,30 @@
                 <div class="card-body">
                     {% comment %} Realizar Busquedas {% endcomment %}
                     <form method="get">
+                        {% csrf_token %}
                         <div class="row g-3 align-items-center">
                             <div class="row g-3 align-items-center">
                                 <div class="col-auto">
-                                    <label for="" class="fw-bold">Folio</label>
-                                    {% render_field  bonosolicitado_filter.form.folio class="form-control text-capitalize"%}
-                                </div>
-                                <div class="col-auto">
-                                    <label for="" class="fw-bold">Nombre</label>
-                                    {% render_field  bonosolicitado_filter.form.nombres_apellidos class="form-control text-capitalize"%}
-                                </div>
-                                <div class="col-auto">
                                     <label for="" class="fw-bold">Distrito</label>
-                                {% render_field  bonosolicitado_filter.form.distrito class="form-control text-capitalize"%}
+                                    {% render_field  bonosolicitado_filter.form.distrito class="form-control text-capitalize"%}
                                 </div>
                                 <div class="col-auto">
-                                    <label for="" class="fw-bold">Bono</label>
-                                    {% render_field  bonosolicitado_filter.form.bono class="form-control text-capitalize"%}
+                                    <label for="" class="fw-bold">Catorcena - Fecha inicial</label>
+                                    {% render_field  bonosolicitado_filter.form.fecha_inicial_catorcena type="date" class="form-control"%}
                                 </div>
                                 <div class="col-auto">
-                                    <label for="" class="fw-bold">Puesto</label>
-                                    {% render_field  bonosolicitado_filter.form.puesto class="form-control text-capitalize"%}
-                                </div>
-                                <div class="col-auto">
-                                    <label for="" class="fw-bold">No. Trabajador</label>
-                                    {% render_field  bonosolicitado_filter.form.no_trabajador class="form-control text-capitalize"%}
-                                </div>
-                                <div class="col-auto">
-                                    <label for="" class="fw-bold">Fecha Inicio - Emisión</label>
-                                    {% render_field  bonosolicitado_filter.form.fecha_inicio type="date" class="form-control"%}
-                                </div>
-                                <div class="col-auto">
-                                    <label for="" class="fw-bold">Fecha Fin - Emisión</label>
-                                    {% render_field  bonosolicitado_filter.form.fecha_fin type="date" class="form-control"%}
-                                </div>
-                                <div class="col-auto">
-                                    <label for="" class="fw-bold">Fecha Inicio - Aprobación</label>
-                                    {% render_field  bonosolicitado_filter.form.fecha_inicio_a type="date" class="form-control"%}
-                                </div>
-                                <div class="col-auto">
-                                    <label for="" class="fw-bold">Fecha Fin - Aprobación</label>
-                                    {% render_field bonosolicitado_filter.form.fecha_fin_a type="date" class="form-control"%}
+                                    <label for="" class="fw-bold">Catorcena - Fecha final</label>
+                                    {% render_field  bonosolicitado_filter.form.fecha_final_catorcena type="date" class="form-control"%}
                                 </div>
                                 <div class="col-auto">
                                     <br>
-                                    <button type="search" class="btn btn-success"><i class="fas fa-search"></i></button>
+                                    <button type="search" class="btn btn-outline-success" title="ver las catorcenas en pestaña nueva"><i class="fas fa-search"></i></button>
                                 </div>
+                                <div class="col-auto">
+                                    <br>
+                                    <a href="{% url 'Tabla_catorcenas' %}" target="_blank" class="btn btn-outline-success mx-5"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                                </div>
+                                                                
                             </div>
                         </div>
                     </form>
@@ -124,6 +122,7 @@
               </div>
         </div>
     </div>
+   
     {% comment %} Listar Solicitudes {% endcomment %}
     {% if bonos|length != 0 %}
     <div class="row">

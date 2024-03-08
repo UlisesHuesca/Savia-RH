@@ -398,6 +398,63 @@ class Costo(models.Model):
             return "Campo vacio"
         return f'{self.status.perfil.numero_de_trabajador} {self.status.perfil.nombres} {self.status.perfil.apellidos}'
 
+class CostoAnterior(models.Model):
+    #Independientes (formulario)
+    status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
+    laborados = models.IntegerField(null=True, default=0)
+    laborados_imss = models.IntegerField(null=True, default=0)
+    seccion = models.CharField(max_length=50,null=True)
+    amortizacion_infonavit = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    fonacot = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    neto_catorcenal_sin_deducciones = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    complemento_salario_catorcenal = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    sueldo_diario = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    sdi_imss = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    sdi = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    apoyo_de_pasajes = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    imms_obrero_patronal = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    apoyo_vist_familiar = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    estancia = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    renta = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    apoyo_estudios = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    amv = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    gasolina = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    campamento = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    #Dependientes
+    total_deduccion = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    neto_pagar = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    sueldo_mensual_neto = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    complemento_salario_mensual = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    sueldo_mensual = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    sueldo_mensual_sdi = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    total_percepciones_mensual = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    impuesto_estatal = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    sar = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    cesantia = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    infonavit = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    isr = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    lim_inferior = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    excedente = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    tasa = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    impuesto_marginal = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    cuota_fija = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    impuesto = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    subsidio = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    total_apoyosbonos_empleadocomp = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    #Variables
+    total_prima_vacacional = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    bono_total = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    total_apoyosbonos_agregcomis = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    comision_complemeto_salario_bonos = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    total_costo_empresa = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    ingreso_mensual_neto_empleado = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    #Otros
+    created_at=models.DateField(auto_now_add=True)
+    updated_at=models.DateField(auto_now=True)
+    complete = models.BooleanField(default=False)
+    #history = HistoricalRecords(history_change_reason_field=models.TextField(null=True))
+    editado = models.CharField(max_length=50,blank=True)
+
 class Bonos(models.Model):
     costo = models.ForeignKey(Costo, on_delete = models.CASCADE, null=True)
     datosbancarios = models.ForeignKey(DatosBancarios, on_delete = models.CASCADE, null=True)
@@ -423,7 +480,7 @@ class Catorcenas(models.Model):
     complete = models.BooleanField(default=False)
 
     def __str__(self):
-        return f' bono: {self.catorcena}, inicia {self.fecha_inicial} finaliza: {self.fecha_final}'
+        return f' catorcena: {self.catorcena}, inicia {self.fecha_inicial} finaliza: {self.fecha_final}'
     class Meta:
         unique_together = ('catorcena', 'fecha_inicial',)
 
