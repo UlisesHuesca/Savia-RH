@@ -2,7 +2,7 @@ import django_filters
 from django.db.models import Q
 from django.db.models import CharField, Value
 from django.db.models.functions import Concat
-from .models import Perfil, Status, Bonos, Costo, DatosBancarios, Vacaciones, Uniformes, Economicos, Catorcenas, Distrito, Empresa
+from .models import Perfil, Status, Bonos, Costo, CostoAnterior, DatosBancarios, Vacaciones, Uniformes, Economicos, Catorcenas, Distrito, Empresa
 from .models import Solicitud_vacaciones, Solicitud_economicos
 from django_filters import DateFilter, CharFilter
 import datetime
@@ -63,6 +63,7 @@ class CostoFilter(django_filters.FilterSet):
 
     def nombres_apellidos_filter(self, queryset, name, value):
         return queryset.annotate(nombres_apellidos_combined=Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos', output_field=CharField())).filter(nombres_apellidos_combined__icontains=value)
+
 
 
 class BonosFilter(django_filters.FilterSet):
@@ -167,3 +168,22 @@ class SolicitudesEconomicosFilter(django_filters.FilterSet):
 
     def nombres_filter(self, queryset, name, value):
         return queryset.filter(Q(status__perfil__nombres__icontains = value) | Q(status__perfil__apellidos__icontains = value))
+
+#Costo calculo mensual
+class CostoAnteriorFilter(django_filters.FilterSet):
+    numero_de_trabajador = django_filters.NumberFilter(field_name='status__perfil__numero_de_trabajador')
+    nombres_apellidos = CharFilter(method='nombres_apellidos_filter', label="Search")
+    empresa = django_filters.ModelChoiceFilter(queryset=Empresa.objects.all(), field_name='status__perfil__empresa__empresa')
+    distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.all(), field_name='status__perfil__distrito__distrito')
+    #buscar por fecha mes
+    fecha = django_filters.DateFilter(field_name='created_at', lookup_expr='exact')
+    #proyecto = django_filters.CharFilter(field_name='status__perfil__proyecto', lookup_expr='icontains')
+    #subproyecto = django_filters.CharFilter(field_name='status__perfil__subproyecto', lookup_expr='icontains')
+    BAJA_CHOICES = ((False, 'Activo'),(True, 'Dado de baja'))
+    baja = django_filters.ChoiceFilter(field_name='status__perfil__baja',choices=BAJA_CHOICES,empty_label=None)
+    class Meta:
+        model = CostoAnterior
+        fields = ['numero_de_trabajador','nombres_apellidos','empresa','distrito','baja','fecha']
+
+    def nombres_apellidos_filter(self, queryset, name, value):
+        return queryset.annotate(nombres_apellidos_combined=Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos', output_field=CharField())).filter(nombres_apellidos_combined__icontains=value)

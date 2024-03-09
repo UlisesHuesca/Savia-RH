@@ -14,7 +14,7 @@ from .models import DatosISR, Costo, TablaVacaciones, Perfil, Status, Uniformes,
 from .models import Status_Batch, Empresa, Distrito, Nivel, Contrato, Sangre, Sexo, Civil, UserDatos, Catorcenas, Uniforme, Tallas, Ropa, SubProyecto, Proyecto,Costos_Batch, Bancarios_Batch, Tallas,Economicos_dia_tomado
 from .models import Seleccion, SalarioDatos, FactorIntegracion, TablaCesantia, Solicitud_economicos, Solicitud_vacaciones, Empleado_cv
 from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados, Vacaciones_anteriores_Batch, Dia_vacacion, Datos_baja
-from .models import Variables_carga_social, Variables_imss_patronal
+from .models import Variables_carga_social, Variables_imss_patronal, CostoAnterior
 import csv
 import json
 
@@ -30,7 +30,7 @@ from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, Vacaci
 from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, BajaEmpleadoForm
 from .forms import SolicitudEconomicosForm, SolicitudEconomicosUpdateForm, SolicitudVacacionesForm, SolicitudVacacionesUpdateForm, Vacaciones_anteriores_BatchForm, CvAgregar
 from .filters import BonosFilter, Costo_historicFilter, PerfilFilter, StatusFilter, BancariosFilter, CostoFilter, VacacionesFilter, EconomicosFilter
-from .filters import CatorcenasFilter, DistritoFilter, SolicitudesVacacionesFilter, SolicitudesEconomicosFilter
+from .filters import CatorcenasFilter, DistritoFilter, SolicitudesVacacionesFilter, SolicitudesEconomicosFilter, CostoAnteriorFilter
 from decimal import Decimal
 #Excel
 from openpyxl import Workbook
@@ -2218,6 +2218,89 @@ def convert_excel_costo(costos):
         Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','status__nivel__nivel','neto_catorcenal_sin_deducciones','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
         'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa',
         'ingreso_mensual_neto_empleado','bonototal')
+
+    for id_costo, row in enumerate(rows):
+        row_num += 1
+        for col_num in range(len(row)):
+            if col_num <= 5:
+                (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = body_style
+            if col_num > 7 and col_num < 27:
+                (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = money_style
+            else:
+                (ws.cell(row=row_num, column=col_num + 1, value=str(row[col_num]))).style = body_style
+
+    sheet = wb['Sheet']
+    wb.remove(sheet)
+    wb.save(response)
+
+    return response
+
+def convert_excel_costo_anterior(costos):
+    response = HttpResponse(content_type="application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today()) + '.xlsx'
+    wb = Workbook()
+    ws = wb.create_sheet(title='Reporte')
+    # Comenzar en la fila 1
+    row_num = 1
+
+    # Create heading style and add it to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name="head_style")
+    head_style.font = Font(name='Arial', color='00FFFFFF', bold=True, size=11)
+    head_style.fill = PatternFill("solid", fgColor='00003366')
+    wb.add_named_style(head_style)
+    # Create body style and add it to workbook
+    body_style = NamedStyle(name="body_style")
+    body_style.font = Font(name='Calibri', size=10)
+    wb.add_named_style(body_style)
+    # Create messages style and add it to workbook
+    messages_style = NamedStyle(name="mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size=11)
+    wb.add_named_style(messages_style)
+    # Create date style and add it to workbook
+    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
+    date_style.font = Font(name='Calibri', size=10)
+    wb.add_named_style(date_style)
+    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+    money_style.font = Font(name='Calibri', size=10)
+    wb.add_named_style(money_style)
+    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+    money_resumen_style.font = Font(name='Calibri', size=14, bold=True)
+    wb.add_named_style(money_resumen_style)
+
+    columns = ['Empresa', 'Distrito', 'Proyecto', 'Subproyecto', '#Empleado', 'Nombre', 'Puesto','Nivel','Neto Catorcenal',
+               'Complemento Salario Catorcenal', 'Apoyo de Pasajes', 'Total percepciones mensual',
+               'Impuesto Estatal', 'IMSS obrero patronal', 'SAR 2%', 'Cesantía', 'Infonavit', 'ISR',
+               'Apoyo Visita Familiar', 'Apoyo Estancia', 'Apoyo Renta', 'Apoyo de Estudios',
+               'Apoyo de Mantto Vehicular', 'Gasolina', 'Total apoyos', 'Total costo mensual para la empresa',
+               'Ingreso mensual neto del empleado', 'Bonos']
+
+    for col_num in range(len(columns)):
+        (ws.cell(row=row_num, column=col_num + 1, value=columns[col_num])).style = head_style
+        if col_num < 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+        if col_num == 5 or col_num == 6:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 35
+        else:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+
+    columna_max = len(columns) + 2
+
+    (ws.cell(column=columna_max, row=1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
+    (ws.cell(column=columna_max, row=2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    #(ws.cell(column=columna_max, row=3, value='Algún dato')).style = messages_style
+    #(ws.cell(column=columna_max + 1, row=3, value='alguna sumatoria')).style = money_resumen_style
+    ws.column_dimensions[get_column_letter(columna_max)].width = 20
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
+
+    # Se busca el bono actual
+    ahora = datetime.date.today()
+    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+
+    rows = costos.values_list(
+        'status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto__proyecto','status__perfil__subproyecto__subproyecto','status__perfil__numero_de_trabajador',
+        Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','status__nivel__nivel','neto_catorcenal_sin_deducciones','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
+        'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa',
+        'ingreso_mensual_neto_empleado','bono_total')
 
     for id_costo, row in enumerate(rows):
         row_num += 1
@@ -5851,4 +5934,165 @@ def costo_mensual(request):
         respuesta = HttpResponse("No calcula el costo mensual")
         return respuesta
         
+#Generar reportes costos anteriores
+@login_required(login_url='user-login')
+def costo_anterior(request):
+    año = datetime.date.today().year
+
+    user_filter = UserDatos.objects.get(user=request.user)
+
+    if user_filter.distrito.distrito == 'Matriz':
+        costos= CostoAnterior.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
+    else:
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+        costos = CostoAnterior.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
+
+    costo_filter = CostoAnteriorFilter(request.GET, queryset=costos)
+    costos = costo_filter.qs
+
+    comision=Decimal(0.09)
+
+    if request.method =='POST' and 'Excel' in request.POST:
+        return convert_excel_costo_anterior(costos)
+
+    for c in costos:
+        print(c.status.perfil)
+        print(c.id)
     
+                #Set up pagination
+    p = Paginator(costos, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
+    ahora = datetime.date.today()
+    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    for costo in salidas_list:
+        costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
+        costo.empresa=costo.status.perfil.empresa
+        costo.distrito=costo.status.perfil.distrito
+        costo.proyecto=costo.status.perfil.proyecto
+        costo.nombres=costo.status.perfil.nombres
+        costo.apellidos=costo.status.perfil.apellidos
+        costo.tipo_de_contrato=costo.status.tipo_de_contrato
+        costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
+        costo.fonacot=locale.currency(costo.fonacot, grouping=True)
+        costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
+        costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
+        costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
+        costo.sdi=locale.currency(costo.sdi, grouping=True)
+        costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
+        costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
+        costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
+        costo.estancia=locale.currency(costo.estancia, grouping=True)
+        costo.renta=locale.currency(costo.renta, grouping=True)
+        costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
+        costo.amv=locale.currency(costo.amv, grouping=True)
+        costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+        costo.campamento=locale.currency(costo.campamento, grouping=True)
+        costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
+        costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
+        costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
+        costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
+        costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
+        costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
+        costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
+        costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
+        costo.sar=locale.currency(costo.sar, grouping=True)
+        costo.cesantia=locale.currency(costo.cesantia, grouping=True)
+        costo.infonavit=locale.currency(costo.infonavit, grouping=True)
+        costo.isr=locale.currency(costo.isr, grouping=True)
+        costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
+        costo.excedente=locale.currency(costo.excedente, grouping=True)
+        costo.tasa=locale.currency(costo.tasa, grouping=True)
+        costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
+        costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
+        costo.impuesto=locale.currency(costo.impuesto, grouping=True)
+        costo.subsidio=locale.currency(costo.subsidio, grouping=True)
+        costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
+        costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
+        costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
+        costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
+        costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+
+    context = {'costos':costos,'costo_filter':costo_filter,'salidas_list':salidas_list, 'baja': request.GET.get('baja', False)}
+    return render(request, 'proyecto/costo_anterior.html',context)
+
+@login_required(login_url='user-login')
+def costo_revisar_anterior(request, pk):
+
+    costo = CostoAnterior.objects.get(id=pk)
+    ahora = datetime.date.today()
+    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    #bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
+    #sum_bonos = bonos_dato.aggregate(Sum('monto'))
+    #bonototal = sum_bonos['monto__sum']
+    #if bonototal == None:
+    #    bonototal = 0
+    comision=Decimal(0.09)
+
+    #vac_reforma_actual = Decimal((12/365)*365)*Decimal(costo.sueldo_diario)
+    #prima_vacacional = vac_reforma_actual*Decimal(0.25)
+    #aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
+    #total_vacaciones = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
+    #costo.total_apoyosbonos_agregcomis = costo.campamento + bonototal #Modificar falta suma
+    #costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento + bonototal)*comision #Falta suma dentro de la multiplicacion
+    #costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp
+    #costo.total_costo_empresa = costo.total_costo_empresa + total_vacaciones
+    #costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
+
+    costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
+    costo.empresa=costo.status.perfil.empresa
+    costo.distrito=costo.status.perfil.distrito
+    costo.proyecto=costo.status.perfil.proyecto
+    costo.nombres=costo.status.perfil.nombres
+    costo.apellidos=costo.status.perfil.apellidos
+    costo.tipo_de_contrato=costo.status.tipo_de_contrato
+
+    costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
+    costo.fonacot=locale.currency(costo.fonacot, grouping=True)
+    costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
+    costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
+    costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
+    costo.sdi=locale.currency(costo.sdi, grouping=True)
+    costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
+    costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
+    costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
+    costo.estancia=locale.currency(costo.estancia, grouping=True)
+    costo.renta=locale.currency(costo.renta, grouping=True)
+    costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
+    costo.amv=locale.currency(costo.amv, grouping=True)
+    costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+    costo.campamento=locale.currency(costo.campamento, grouping=True)
+    costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
+    costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
+    costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
+    costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
+    costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
+    costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
+    costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
+    costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
+    costo.sar=locale.currency(costo.sar, grouping=True)
+    costo.cesantia=locale.currency(costo.cesantia, grouping=True)
+    costo.infonavit=locale.currency(costo.infonavit, grouping=True)
+    costo.isr=locale.currency(costo.isr, grouping=True)
+    costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
+    costo.excedente=locale.currency(costo.excedente, grouping=True)
+    costo.tasa=locale.currency(costo.tasa, grouping=True)
+    costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
+    costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
+    costo.impuesto=locale.currency(costo.impuesto, grouping=True)
+    costo.subsidio=locale.currency(costo.subsidio, grouping=True)
+    costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
+    costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
+    costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
+    costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
+    costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+    #se agrego el bono
+    costo.bono_total=locale.currency(costo.bono_total, grouping=True)
+    print("bono: ",costo.bono_total)
+    if request.method =='POST' and 'Pdf' in request.POST:
+        return reporte_pdf_costo_detalles(costo)
+
+    context = {'costo':costo,}
+
+    return render(request, 'proyecto/costo_revisar_anterior.html',context)
