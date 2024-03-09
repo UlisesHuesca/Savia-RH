@@ -18,6 +18,7 @@ def contadores_processor(request):
         usuario = None
         usuario_fijo = None
         status_fijo = None
+        prenomina_estado = None
     else:
         usuario = UserDatos.objects.get(user=request.user.id)
         usuario_fijo = Perfil.objects.filter(numero_de_trabajador=usuario.numero_de_trabajador, distrito=usuario.distrito)
@@ -66,5 +67,5 @@ def contadores_processor(request):
     'status_fijo':status_fijo,
     'economicos_count':economicos_count,
     'vacaciones_count':vacaciones_count,
-    #'prenomina_estado':prenomina_estado,
+    'prenomina_estado':prenomina_estado,
     }
