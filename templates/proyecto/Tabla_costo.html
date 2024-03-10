@@ -121,10 +121,7 @@
             </div>
         </div>
         </form>
-        <form action="{% url 'costo_mensual' %}" method="post">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-outline-primary">Costo Mensual</button>
-        </form>
+        
     </div>
 <div class="card card-body">
             <h5>Filtro costos</h5>
@@ -200,9 +197,7 @@
                     <th class="th_check d-none" scope="col">Gasolina</th>
                     <th scope="col">Total costo mensual para la empresa</th>
                     <th scope="col">Total Bonos catorcena actual</th>
-                    {% if baja == 'False' %}
-                    <th scope="col">Registro</th>
-                    {% endif %} 
+                    
                     <th scope="col">Detalle</th>
                     {% if baja == 'False' %}
                     <th scope="col">Editar</th>
@@ -237,9 +232,7 @@
                     <td class="td_check d-none">{{costo.gasolina}}</td>
                     <td>{{costo.total_costo_empresa}}</td>
                     <td>{{costo.total_apoyosbonos_agregcomis}}</td>
-                    {% if baja == 'False' %}
-                    <td><a class="btn btn-outline-info" type="button" href="{% url 'render_report' costo.id %}"><i class="fa-solid fa-list"></i></a></td>
-                    {% endif %} 
+                    
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_revisar' costo.id %}"><i class="fas fa-sack-dollar"></i></a></td>
                     {% if baja == 'False' %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_update' costo.id %}"><i class="fa-solid fa-pen-to-square"></i></a></td>
