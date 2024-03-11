@@ -503,11 +503,8 @@ def generarReporteBonosVarillerosAprobados(request):
         bonosolicitado_filter = BonoSolicitadoFilter(request.GET, queryset=bonos) 
         bonos = bonosolicitado_filter.qs
         
-        if not bonos.exists():
-            messages.error(request, "No existen registros")
-            #return redirect('generarReporteBonosVarillerosAprobados')
-        
-        bono = bonos.first()
+        bono = bonos.last()
+     
         
         if bono is not None:
             catorcena = Catorcenas.objects.filter(fecha_inicial__lte=bono.solicitud.fecha_autorizacion, fecha_final__gte=bono.solicitud.fecha_autorizacion).first()

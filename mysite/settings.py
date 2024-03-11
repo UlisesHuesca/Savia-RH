@@ -119,8 +119,8 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        #'NAME': 'respaldo',
-        'NAME': 'calcular_costo',
+        'NAME': 'ejemplo',
+        #'NAME': 'calcular_costo',
         'USER': 'root',
         'PASSWORD': '12345678',
         'HOST': 'localhost',
