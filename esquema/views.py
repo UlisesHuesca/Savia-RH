@@ -522,7 +522,7 @@ def generarReporteBonosVarillerosAprobados(request):
         if request.method =='POST' and 'excel' in request.POST:
             return convert_excel_bonos_aprobados(bonos,catorcena,total_monto,cantidad_bonos_aprobados)
             
-        p = Paginator(bonos, 2)
+        p = Paginator(bonos, 50)
         page = request.GET.get('page')
         salidas_list = p.get_page(page)
         bonos = p.get_page(page)

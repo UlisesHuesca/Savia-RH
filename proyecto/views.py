@@ -1836,11 +1836,7 @@ def Tabla_Vacaciones(request): #Ya esta
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
     #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
     reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
-    reinicio = reinicio.filter(Q(fecha_planta_anterior__month__lte=fecha_actual.month) & Q(fecha_planta_anterior__day__lte=fecha_actual.day))
-    
-    for r in reinicio:
-        print(r)
-    
+    reinicio = reinicio.filter(Q(fecha_planta_anterior__month__lte=fecha_actual.month) & Q(fecha_planta_anterior__day__lte=fecha_actual.day))    
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
     reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año)
     reinicio2 = reinicio2.filter(Q(fecha_planta__month__lte=fecha_actual.month) & Q(fecha_planta__day__lte=fecha_actual.day))
@@ -2212,7 +2208,7 @@ def HistoryCosto(request, pk):
     return render(request, 'proyecto/Costo_history.html',context)
 
 
-def convert_excel_costo(costos):
+def convert_excel_costo(costos):    
     response = HttpResponse(content_type="application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today()) + '.xlsx'
     wb = Workbook()
@@ -2296,6 +2292,14 @@ def convert_excel_costo(costos):
     return response
 
 def convert_excel_costo_anterior(costos):
+    #Fecha del reporte mensual
+    from django.utils import formats
+    from django.utils.translation import activate
+    activate('es')
+    
+    c = costos.first()
+    fecha_reporte = formats.date_format(c.created_at, "F Y")
+    
     response = HttpResponse(content_type="application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today()) + '.xlsx'
     wb = Workbook()
@@ -2347,7 +2351,7 @@ def convert_excel_costo_anterior(costos):
 
     (ws.cell(column=columna_max, row=1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
     (ws.cell(column=columna_max, row=2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    #(ws.cell(column=columna_max, row=3, value='Algún dato')).style = messages_style
+    (ws.cell(column = columna_max, row = 3, value=f'Costos: {fecha_reporte}')).style = messages_style
     #(ws.cell(column=columna_max + 1, row=3, value='alguna sumatoria')).style = money_resumen_style
     ws.column_dimensions[get_column_letter(columna_max)].width = 20
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
@@ -3604,7 +3608,7 @@ def reporte_pdf_uniformes(uniformes, pk):
 
     return FileResponse(buf, as_attachment=True, filename='Uniforme_reporte.pdf')
 
-def reporte_pdf_costo_detalles(costo,bonototal):
+def reporte_pdf_costo_detalles(costo):
     now = datetime.date.today()
     fecha = str(now)
     buf = io.BytesIO()
@@ -6288,12 +6292,8 @@ def costo_anterior(request):
 
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_costo_anterior(costos)
-
-    for c in costos:
-        print(c.status.perfil)
-        print(c.id)
     
-                #Set up pagination
+    #Set up pagination
     p = Paginator(costos, 50)
     page = request.GET.get('page')
     salidas_list = p.get_page(page)
