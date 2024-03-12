@@ -42,7 +42,7 @@
     <div class="col-12">
         <div class="card card-body">
             <h3>Información general sistema RH </h3>
-             <div class="row mt-2 bg-white">
+            <div class="row mt-2 bg-white">
                 <hr>
                 <h6>Generar reporte del sistema </h6>
                 <ul class="nav nav-pills">
@@ -65,7 +65,29 @@
                             </select>
                         </div>
                     </li>
+                    
                 </ul>
+            </div>
+        </div>
+        <div class="card card-body">
+            <div class="row bg-white">
+                <div class="col-12 col-md-2">
+                    <h6>Sección reportes bonos </h6>
+                    <ul class="nav nav-pills">
+                        <li class="nav-item mx-2">
+                            <a href="{% url 'generarReporteBonosVarillerosAprobados' %}" class="btn btn-outline-success mx-5"><i class="fas fa-sack-dollar"></i></a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-12 col-md-2 mt-md-0 mt-3">
+                    <h6>Sección reportes costo </h6>
+                    <ul class="nav nav-pills">
+                        <li class="nav-item">
+                            <a href="{% url 'costo_anterior' %}" role="button" class="btn btn-outline-success mx-5" title="Este es un tooltip"><i class="fas fa-dollar-sign"></i></a>
+                        </li>
+                    </ul>
+                </div>
+                
             </div>
         </div>
     </div>

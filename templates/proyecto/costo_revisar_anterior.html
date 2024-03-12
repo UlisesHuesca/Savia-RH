@@ -1,0 +1,223 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+<hr>
+{% if status_fijo.id == costo.status.id %}
+    <div>
+{% elif usuario.tipo.admin == True and usuario.distrito == costo.status.perfil.distrito %}
+    <div>
+{% elif usuario.tipo.admin == True and usuario.distrito.distrito == 'Matriz' %}
+    <div>
+{% else %}
+    &nbsp;
+    <div style="text-align: center;">
+    <i class="fa-solid fa-circle-exclamation fa-4x"></i>
+    <h2 style="margin-top: 0.5em;">404</h2>
+    <h2 style="margin-top: 0.25em;">Page not found</h2>
+    <p>Si tiene los permisos para acceder a esta información <br> comuníquese con los Administradores del sistema.</p>
+    <a href="{% url 'index' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i>  Inicio</a>
+    <div class="d-none">
+{% endif %}
+<div class="container card card-body">
+    <div class="columns is-mobile">
+        <div class="column is-half is-offset-one-quarter">
+
+                <div class="card"></div>
+                    <div class="card-header text-black" style="background-color: #F5F5F5;">
+                        <strong>
+                            Información de Costo
+                        </strong>
+                    </div>
+                    <hr>
+                    <div class="card-body">
+                        <div class="row">
+                                <span class="h4">{{costo.status.perfil.nombres}} {{costo.status.perfil.apellidos}}</span>
+                        <form method=POST>
+                        {% csrf_token %}
+                        <li class="nav-item mx-2">
+                            <button type="submit" name="Pdf" class="btn btn-outline-danger" value='Reporte Pdf'>
+                                <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                            </button>
+                        </li>
+                        <hr>
+                        </form>
+                                <table class="table bg-white table-borderless">
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Puesto</th>
+                                            <td>{{costo.status.puesto}}</td>
+                                            <th scope="row">Sueldo mensual</th>
+                                            <td>{{costo.sueldo_mensual}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Amortización infonavit</th>
+                                            <td>{{costo.amortizacion_infonavit}}</td>
+                                            <th scope="row">Sueldo mensual SDI</th>
+                                            <td>{{costo.sueldo_mensual_sdi}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Fonacot</th>
+                                            <td>{{costo.fonacot}}</td>
+                                            <th scope="row">Total percepcion mensual</th>
+                                            <td><strong>{{costo.total_percepciones_mensual}}<strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Neto catorcenal sin deducciones</th>
+                                            <td>{{costo.neto_catorcenal_sin_deducciones}}</td>
+                                            <th scope="row">Impuesto estatal</th>
+                                            <td>{{costo.impuesto_estatal}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Complemento salario catorcenal</th>
+                                            <td>{{costo.complemento_salario_catorcenal}}</td>
+                                            <th scope="row">SAR</th>
+                                            <td>{{costo.sar}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Sueldo diario</th>
+                                            <td>{{costo.sueldo_diario}}</td>
+                                            <th scope="row">Cesantia</th>
+                                            <td>{{costo.cesantia}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">SDI</th>
+                                            <td>{{costo.sdi}}</td>
+                                            <th scope="row">Infonavit</th>
+                                            <td>{{costo.infonavit}}</td>
+                                        </tr>
+                                         <tr>
+                                            <th scope="row">Apoyo de pasajes</th>
+                                            <td>{{costo.apoyo_de_pasajes}}</td>
+                                            <th scope="row">ISR</th>
+                                            <td>{{costo.isr}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">IMSS obrero patronal</th>
+                                            <td>{{costo.imms_obrero_patronal}}</td>
+                                            <th scope="row">Limite inferior</th>
+                                            <td>{{costo.lim_inferior}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Apoyo visita familiar</th>
+                                            <td>{{costo.apoyo_vist_familiar}}</td>
+                                            <th scope="row">Excedente</th>
+                                            <td>{{costo.excedente}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Estancia</th>
+                                            <td>{{costo.estancia}}</td>
+                                            <th scope="row">Tasa</th>
+                                            <td>{{costo.tasa}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Renta</th>
+                                            <td>{{costo.renta}}</td>
+                                            <th scope="row">Impuesto marginal</th>
+                                            <td>{{costo.impuesto_marginal}}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Apoyo de estudios</th>
+                                            <td>{{costo.apoyo_estudios}}</td>
+                                            <th scope="row">Cuota fija</th>
+                                            <td>{{costo.cuota_fija}}</td>
+                                        </tr>
+                                         <tr>
+                                            <th scope="row">Apoyo mantenimiento vehicular</th>
+                                            <td>{{costo.amv}}</td>
+                                            <th scope="row">Impuesto</th>
+                                            <td>{{costo.impuesto}}</td>
+                                        </tr>
+                                         <tr>
+                                            <th scope="row">Gasolina</th>
+                                            <td>{{costo.gasolina}}</td>
+                                            <th scope="row">Subsidio</th>
+                                            <td>{{costo.subsidio}}</td>
+                                        </tr>
+                                         <tr>
+                                            <th scope="row">Campamento</th>
+                                            <td>{{costo.campamento}}</td>
+                                            <th scope="row">Total apoyos y bonos empleado comprueba</th>
+                                            <td>{{costo.total_apoyosbonos_empleadocomp}}</td>
+                                        </tr>
+                                         <tr>
+                                            <th scope="row">Total deducción</th>
+                                            <td>{{costo.total_deduccion}}</td>
+                                            <th scope="row">Comision complemento de salario bonos </th>
+                                            <td>{{costo.comision_complemeto_salario_bonos}}</td>
+                                        </tr>
+                                         <tr>
+                                            <th scope="row">Neto a pagar</th>
+                                            <td>{{costo.neto_pagar}}</td>
+                                            <th scope="row">Total costo para la empresa</th>
+                                            <td><strong>{{costo.total_costo_empresa}}</strong></td>
+                                        </tr>
+                                         <tr>
+                                            <th scope="row">Sueldo mensual neto</th>
+                                            <td>{{costo.sueldo_mensual_neto}}</td>
+                                            <th scope="row">Ingreso mensual neto del empleado </th>
+                                            <td><strong>{{costo.ingreso_mensual_neto_empleado}}</strong></td>
+                                        </tr>
+                                         <tr>
+                                            <th scope="row">Fecha ingreso</th>
+                                            <td>{{costo.status.fecha_ingreso}}</td>
+                                            <th scope="row">Bono total de esta catorcena</th>
+                                            {% comment %}<td><strong>{{bonototal}}</strong></td>{% endcomment %}
+                                            <td><strong>{{costo.bono_total}}</strong></td>
+                                          
+                                        </tr>
+                                         <tr>
+                                            <th scope="row"></th>
+                                            <td></td>
+                                            <th scope="row">Total prima Vacacional</th>
+                                            <td><strong>${{costo.total_prima_vacacional}}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                            <hr>
+                            {% if usuario.tipo.admin == False %}
+                                <div class="d-none">
+                            {% else %}
+                                <div>
+                            {% endif %}
+                                <a href="{% url 'Tabla_costo' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
+                            </div>
+                        </div>
+                    </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

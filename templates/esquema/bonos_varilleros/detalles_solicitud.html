@@ -1,0 +1,258 @@
+{% extends 'partials/base.html' %}
+
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}
+    Bonos Varilleros
+{% endblock title %}
+    
+
+{% block css %}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css">
+{% endblock css %}
+    
+    
+
+{% block content %}
+<div class="container-fluid margen-alto">
+    <div class="row">
+        {% comment %}Solicitud{% endcomment %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Detalles de la solicitud</th>                                
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="fw-bold"><i class="fas fa-bookmark"></i> Folio: </span> {{autorizaciones.solicitud.folio}}</td>
+                                <td><span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha emisión: </span> {{autorizaciones.solicitud.fecha|date:'d/m/Y H:i'}}</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td><span class="fw-bold"><i class="fas fa-user"></i> Supervisor: </span> {{autorizaciones.solicitud.solicitante}}</td>
+                                <td><span class="fw-bold"><i class="fas fa-location-dot"></i> Distrito: </span> {{autorizaciones.solicitud.solicitante.distrito}}</td>
+                                <td><span class="fw-bold"><i class="fas fa-sack-dollar"></i> Bono: </span> {{autorizaciones.solicitud.bono}}</td>                                
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+       
+        {% comment %}Tabla bonos{% endcomment %}
+        <div class="col-12 mt-3">
+            <table class="table table-striped table-hover bg-white" style="max-height: 300px; overflow-y: auto;" id="tabla">
+                <thead>
+                    <tr class="tabla-encabezado">
+                        <th>Empleado</th>
+                        <th>Puesto</th>
+                        <th>Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bono in bonos  %}
+                    <tr data-id="{{bono.id}}">
+                        <td>{{bono.trabajador}}</td>
+                        <td>{{bono.puesto}}</td>
+                        <td><b>${{bono.cantidad}}</b></td>
+                    </tr>
+                    {% endfor %}
+                    
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td class="fw-bold">Total: $<span id="total">{{autorizaciones.solicitud.total}}</span> </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% comment %}Archivos{% endcomment %}
+        <div class="col-12 col-md-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <ul class="list-group">
+                        <label for="" class="p-0 fw-bold">Requerimientos</label>
+                        {% if requerimientos|length != 0 %}
+                            {% for archivo in requerimientos  %}
+                                <li class="list-group-item border-0" title="Descargar">
+                                    <a href="{{archivo.url.url}}" class="link link-primary" download><i class="fas fa-download"></i> {{archivo.url}}</a>
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted mt-3">No se encontraron archivos</p>
+                        {% endif %}
+                            
+                      </ul>  
+                </div>
+            </div>
+        </div>
+        {% comment %}Formulario Autorizacion{% endcomment %}
+        <div class="col-12 mb-5">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                       {% comment %} Rol {% endcomment %} 
+                       {% if messages %}
+                            {% for message in messages %}
+                                {% if message.tags == "success" %}
+                                <div class="alert alerta-success alert-dismissible fade show" role="alert">
+                                    <strong><i class="fas fa-check"></i> {{ message }}</strong> 
+                                    <button type="button" class="btn-close white" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                {% else %}
+                                <div class="alert alerta-danger alert-dismissible fade show" role="alert">
+                                    <strong><i class="fas fa-exclamation-triangle"></i> {{ message }} </strong> 
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                       
+                        
+                    </div>
+                    {% comment %}Rol - Supervisor{% endcomment %}
+                    {% if usuario.tipo.id == 5%}
+                    <div class="row">
+                        <div class="col-8">
+                            <p><span class="fw-bold"><i class="fas fa-user"></i> {{autorizaciones.tipo_perfil.nombre}}: </span> {{autorizaciones.perfil}}</p>
+                            {% if autorizaciones.estado.id != 3 %}
+                                <p><span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha revisión: </span>{{autorizaciones.created_at|date:'d/m/Y H:i'}}</p>
+                            {% else %}
+                            <p><span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha revisión: </span> <span class="text-muted">pendiente</span></p>
+                            {% endif %}
+                          
+                            <p><span class="fw-bold"><i class="fas fa-comment"></i> Comentario: </span> 
+                                {% if autorizaciones.comentario is None %} 
+                                    <span class="text-muted">No hay comentarios</span> 
+                                {% else %}
+                                    {{autorizaciones.comentario}}
+                                {% endif %}
+                            </p>
+                            <p>
+                            <span class="fw-bold"><i class="fas fa-stamp"></i> Autorización: </span>
+                                {% if autorizaciones.estado.id == 3  %}
+                                    <span class="badge bg-warning text-capitalize" style="color:black">{{autorizaciones.estado}}</span>
+                                {% elif autorizaciones.estado.id == 1 %}
+                                    <span class="badge bg-success text-capitalize">{{autorizaciones.estado}}</span>
+                                {% elif autorizaciones.estado.id == 2 %}
+                                    <span class="badge bg-danger text-capitalize">{{autorizaciones.estado}}</span>
+                                {% elif autorizaciones.estado.id == 4 %}
+                                    <span class="badge text-white text-capitalize" style="background: #2A628F;">{{autorizaciones.estado}}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% comment %} Estado Verificar o Cambios {% endcomment %}
+                        {% if autorizaciones.estado.id == 4 %}
+                        <div class="col-4">
+                            <label for="" class="fw-bold"></label>
+                            <div class="input-group">                                        
+                                <a href="{% url 'verificarSolicitudBonosVarilleros' autorizaciones.solicitud.folio %}" title="Editar solicitud" class="btn btn-primary"><i class="fas fa-edit"></i> Editar la solicitud</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <form action="{% url 'autorizarSolicitudes' autorizaciones.solicitud.folio %}" method="post">
+                        <div class="row mb-3">
+                            {% csrf_token %}
+                            <p><span class="fw-bold"><i class="fas fa-user"></i> {{autorizaciones.tipo_perfil.nombre}}: </span> {{autorizaciones.perfil}}</p>
+                            
+                            {% if autorizaciones.estado.id != 3 %}
+                                <p><span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha revisión </span>{{autorizaciones.created_at|date:'d/m/Y H:i'}}</p>
+                            {% endif %}
+                    
+                            {% if usuario.tipo.id != 8 %}
+                                {% if autorizaciones.estado.id == 3 %}
+                                    <div class="col-12 col-md-4 mb-md-0">
+                                        <label for="" class="fw-bold">Comentario</label>
+                                        <div class="input-group">
+                                            {% render_field autorizarSolicitudesUpdateForm.comentario class="form-control" %}  
+                                        </div>   
+                                    </div>
+                                {% else %}
+                                    <p><span class="fw-bold"><i class="fas fa-comment"></i> Comentario:</span> 
+                                        {% if not autorizaciones.comentario %}
+                                            <span class="text-muted">No hay comentarios</span> 
+                                        {% else %}
+                                            {{ autorizaciones.comentario }}
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
+                            {% endif %}
+                    
+                            <div class="col-12 col-md-4 mb-md-0">
+                                <label for="" class="fw-bold"></label>
+                                <div class="input-group">                                        
+                                    {% if usuario.tipo.id == autorizaciones.tipo_perfil.id and autorizaciones.estado.id == 3 %}
+                                        <div class="col-12 d-flex justify-content-between">
+                                            <button class="btn btn-success" name="aprobar"><i class="fas fa-check"></i> Aprobar</button>
+                                            
+                                            {% if autorizaciones.tipo_perfil_id != 8 %}
+                                                <button class="btn text-white" name="cambios" style="background-color: #2A628F;"><i class="fas fa-edit"></i> Cambios</button>
+                                            {% endif %}
+                                            <button class="btn btn-danger" name="rechazar"><i class="fas fa-xmark"></i> Rechazar</button>
+                                        </div>
+                                    {% else %}
+                                        <p>
+                                            <span class="fw-bold"><i class="fas fa-stamp"></i> Autorización: </span>
+                                            {% if autorizaciones.estado.id == 3  %}
+                                                <span class="badge bg-warning text-capitalize" style="color:black">{{autorizaciones.estado}}</span>
+                                            {% elif autorizaciones.estado.id == 1 %}
+                                                <span class="badge bg-success text-capitalize">{{autorizaciones.estado}}</span>
+                                            {% elif autorizaciones.estado.id == 2 %}
+                                                <span class="badge bg-danger text-capitalize">{{autorizaciones.estado}}</span>
+                                            {% elif autorizaciones.estado.id == 4 %}
+                                                <span class="badge text-white text-capitalize" style="background: #2A628F;">{{autorizaciones.estado}}</span>
+                                            {% endif %}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>       
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        
+       
+
+
+        
+            
+        
+      
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block js %}
+    
+    {% comment %} select2 {% endcomment %}    
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {% comment %} select 2 lang es {% endcomment %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/i18n/es.js"></script>
+    <script>
+        $(document).ready(function() {           
+            $('.select2-bootstrap').select2({
+                theme: 'bootstrap4',
+                language: "es",
+            });
+        });
+    </script>
+    <script>
+
+    </script>   
+{% endblock js %}
+    
+    

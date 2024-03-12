@@ -1,0 +1,243 @@
+{% extends 'partials/base.html' %}
+
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}
+Verificar Solicitud - Bonos Varilleros
+{% endblock title %}
+
+
+{% block css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css">
+{% endblock css %}
+    
+
+
+{% block content %}
+<div class="container-fluid margen-alto">
+        {% comment %}Un mensaje de alerta{% endcomment %}
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "success" %}
+                <div class="alert alerta-success alert-dismissible fade show" role="alert">
+                    <strong><i class="fas fa-check"></i> {{ message }}</strong> 
+                    <button type="button" class="btn-close white" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% else %}
+                <div class="alert alerta-danger alert-dismissible fade show" role="alert">
+                    <strong><i class="fas fa-exclamation-triangle"></i> {{ message }} </strong> 
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        <div class="row mb-3">
+                {% comment %} Supervisor crea la solicitud {% endcomment %}
+                <div class="col-12 col-md-4">
+                        <div class="card mb-3 shadow">
+                            <div class="card-header d-flex justify-content-between">
+                                <h5>Subir Archivos</h5>
+                              
+                                {% if lista_archivos|length != 0 %}
+                                <div class="btn-group mt-1">
+                                    <button id="subirArchivos" class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-file"></i> Archivos
+                                    </button>
+                                    <ul class="dropdown-menu" id="archivos">   
+                                        {% for archivo in lista_archivos  %}
+                                            <li><a data-archivo="{{archivo.id}}" class="dropdown-item small" title="quitar" href="#">{{ archivo.url }} <span class="text-danger fw-bolder">&#x2715</span></a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <form id="archivosForm" class="" action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <div class="btn-group" role="group" aria-label="Basic example">
+                                    {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png, .jpg, .jpeg, .pdf" %}
+                                    <input type="hidden" name="valor" value="{{folio}}">
+                                    <button id="subirArchivos" name="btn_archivos" type="submit" class="btn btn-primary btn-sm w-25" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> <span class="">Subir</span></button>
+                                </div><br>
+                                <small class="text-danger" id="url-error">{{ requerimientoForm.url.errors }}</small> 
+                                </form>
+                            </div>
+                        </div>
+
+                    <form action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST">
+                    {% csrf_token %}
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5><a href="#"></a> Solicitud</h5>
+                        </div>
+                        <div class="card-body">
+                            {% comment %} Folio {% endcomment %}
+                            <label for="folio" class="text-muted mb-1">Folio</label>
+                            <div class="input-group mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-bookmark"></i></span>
+                                    <input type="text" name="folio" value="{{solicitud}}"
+                                        class="form-control bg-white" placeholder="Nombre" aria-label="nombre"
+                                        aria-describedby="basic-addon1" readonly>
+                                </div>
+                            </div>
+                            <small class="text-danger">{{ solicitudForm.folio.errors }}</small>
+                            <label for="" class="text-muted mb-1">Supervisor</label>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" value="{{solicitante.solicitante.nombres}} {{solicitante.solicitante.apellidos}} "
+                                    class="form-control bg-white" placeholder="Nombre" aria-label="nombre"
+                                    aria-describedby="basic-addon1" readonly>
+                            </div>
+                            <label for="" class="text-muted mb-1">Distrito</label>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text"><i class="fas fa-location-dot"></i></span>
+                                <input type="text" value="{{solicitante.solicitante.distrito.distrito}}" class="form-control bg-white"
+                                    placeholder="Nombre" aria-label="nombre" aria-describedby="basic-addon1" readonly>
+                            </div>
+                            <label for="" class="text-muted mb-1">Bono</label>
+                            {% comment %} Bono {% endcomment %}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-sack-dollar"></i></span>
+                                {% comment %}{% render_field solicitudForm.bono class="form-control text-capitalize" id="bono"%}{% endcomment %}
+                                <input type="text" class="form-control bg-white" value="{{solicitante.bono}}" readonly>
+                                <input type="hidden" class="form-control bg-white" name="bono" value="{{solicitante.bono.id}}" id="bono" >
+                            </div>
+                            <small class="text-danger">{{ solicitudForm.bono.errors }}</small>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+            
+                {% comment %} Asignar los bonos a la solicitud {% endcomment %}
+                <div class="col-12 col-md-8 my-3 my-sm-0" style="margin-bottom: 400px;">
+                    <div class="card shadow">
+                        <div class="card-header d-flex justify-content-between">
+                            <h5>Agregar Bonos</h5>
+                            <a href="{% url 'listarBonosVarilleros' %}" class="btn btn-light btn-lg volver" title="volver"><i class="fas fa-arrow-left"></i></a>
+                        
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <label for="empleado" class="form-label fw-bold">Empleado</label>
+                                    {% comment %} Empleado {% endcomment %}
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                        {% render_field bonoSolicitadoForm.trabajador class="form-control select2-bootstrap" id="empleado" %}
+                                    </div>
+                                    <small class="text-danger">{{ bonoSolicitadoForm.trabajador.errors }}</small>
+                                </div>
+                                {% comment %} Empleado {% endcomment %}
+                                <div class="col-md-3">
+                                    <label for="puesto" class="form-label fw-bold">Puesto</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i
+                                                class="fas fa-helmet-safety"></i></span>
+                                        {% render_field bonoSolicitadoForm.puesto class="form-control" id="puesto" %}
+                                    </div>
+                                    <small class="text-danger">{{ bonoSolicitadoForm.puesto.errors }}</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="cantidad" class="form-label fw-bold">Cantidad </label></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i
+                                                class="fa fa-dollar-sign"></i></span>
+                                        {% render_field bonoSolicitadoForm.cantidad class="form-control bg-white" id="cantidad"%}
+                                    </div>
+                                    <small class="text-danger">{{ bonoSolicitadoForm.cantidad.errors }}</small>
+                                </div>
+                                <div class="col-md-1" style="margin-top: 30px;">
+                                    <button id="btnAgregar" name="btn_agregar" type="submit" class="btn btn-success" title="Agregar Bono"><i class="fas fa-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        </form>
+                    </div>
+
+                    {% if datos_bonos_solicitud|length != 0 %}
+                    <div class="col-12 mt-3 mb-0 overflow-auto">
+                        <table class="table table-striped table-hover bg-white shadow" style="max-height: 300px; overflow-y: auto;" id="tabla">
+                            <thead>
+                                <tr class="tabla-encabezado">
+                                    <th>Empleado</th>
+                                    <th>Puesto</th>
+                                    <th>Cantidad</th>
+                                    <th style="width: 10%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bono in datos_bonos_solicitud  %}
+                                <tr data-id="{{bono.id}}">
+                                    <td>{{bono.trabajador}}</td>
+                                    <td>{{bono.puesto}}</td>
+                                    <td>${{bono.cantidad}}</td>
+                                    <td><button type="button" class="btn btn-danger btn-sm" title="Quitar un bono de la solicitud"><i class="fas fa-minus"></i></button></td>
+                                </tr>
+                                {% endfor %}
+                                
+                            </tbody>
+
+                            <tfoot>
+                                <tr>
+                                    <td>
+                                        <form action="{% url 'verificarSolicitudBonosVarilleros' solicitud %}" method="POST">
+                                            {% csrf_token %}
+                                            <button type="submit" name="btn_actualizar" class="btn btn-primary btn-sm" id="actualizar_solicitud"><i class="fas fa-rotate"></i> Actualizar Solicitud</button>
+                                        </form>
+                                    </td>   
+                                    <td></td>
+                                    <td colspan="" class="fw-bold">Total: $<span id="total">{{total}}</span> </td>
+                                </tr>
+                               
+                            </tfoot>
+                           
+                        </table>
+
+                       
+                    </div>                    
+                    {% endif %}
+
+                    <div class="card">
+                    
+                      <div class="card-body">
+                        <div class="row">
+                            <div class="col-auto">
+                              <label for="inputPassword6" class="col-form-label fw-bold">Comentario: {{estado.comentario}}</label>
+                            </div>
+                            <div class="col-8">
+                             
+                             
+                            </div>
+                          </div>
+                      </div>
+                    </div>
+
+
+                </div>
+        </div>
+</div>
+{% endblock content %}
+
+{% block js %}
+    <script src="{% static 'js/esquema/bono_varillero/crear_solicitud.js' %}"></script>
+    <script src="{% static 'js/esquema/bono_varillero/mostrar_boton.js' %}"></script>
+    {% comment %} select2 {% endcomment %}    
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {% comment %} select 2 lang es {% endcomment %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/i18n/es.js"></script>
+    <script>
+        $(document).ready(function() {           
+            $('.select2-bootstrap').select2({
+                theme: 'bootstrap4',
+                language: "es",
+            });
+        });
+    </script>
+{% endblock js %}
+    

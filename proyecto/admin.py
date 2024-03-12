@@ -40,6 +40,9 @@ from .models import Trabajos_encomendados
 from .models import Temas_comentario_solicitud_vacaciones
 from .models import Solicitud_vacaciones
 from .models import Vacaciones
+from .models import Vacaciones_dias_tomados
+from .models import Economicos_dia_tomado
+
 
 from .models import Solicitud_economicos
 from .models import Economicos

@@ -1,0 +1,329 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+{% load tt_extras %}
+
+<html>
+<head>
+{% block title %}Costo Personal{% endblock %}
+</head>
+<body>
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+<hr>
+<hr>
+    <!-- Aqui es el encabezado -->
+    <div class = "row mt-2 bg-white">
+        <form method=POST>
+        {% csrf_token %}
+        <div class="col-12">
+            <div class="card card-body">
+                <h5>Costo Personal - Sección de Reportes </h5>
+                <small class="text-muted">Puede generar reportes por mes</small>
+                 <div class = "row mt-2 bg-white">
+                    <hr>
+                    <ul class="nav nav-pills">
+                        <li class="nav-item mx-2">
+                            <button type="submit" name="Excel" class="btn btn-outline-success" value='Reporte Excel'>
+                                <i class="fa-solid fa-file-excel fa-2xl"></i>
+                            </button>
+                        </li>
+                    <!--    <li class="nav-item mx-2">
+                            <button type="button" class="btn btn-outline-danger">
+                               <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                            </button>
+                        </li> -->
+                       
+                       
+                        
+                    </ul>
+                </div>
+                <hr>
+                <div class="row my-2">
+                    <div class="form-check form-switch col-auto mx-4" id="complemento">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchComplemento">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>Complemento salario</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="Pasajes">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchPasajes">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>Pasajes</strong></strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="IMSS">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchIMSS">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>IMSS</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="SAR">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchSAR">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>SAR</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="ISR">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchISR">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>ISR</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="Visita">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchVisita">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>Visita</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="Estancia">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchEstancia">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>Estancia</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="Renta">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchRenta">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>Renta</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="Estudios">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchEstudios">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>Estudios</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="Vehicular">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchVehicular">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>Vehicular</strong></label>
+                    </div>
+                    <div class="form-check form-switch col-auto mx-4" id="gasolina">
+                        <input class="form-check-input" type="checkbox" role="switch" id="SwitchGasolina">
+                        <label class="form-check-label" for="flexSwitchCheckDefault"><strong>Gasolina</strong></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </form>
+        
+    </div>
+<div class="card card-body">
+            <h5>Filtro costos</h5>
+            <hr>
+            <form method="GET" class="row g-3" id="filtro-form">
+                {% csrf_token %}
+                <label for="costo_filter.form.perfil__numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
+                <div class="col-sm-1">
+                       {% render_field costo_filter.form.numero_de_trabajador class="form-control" %}
+                </div>
+                <label for="costo_filter.form.nombres_apellidos" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                <div class="col-auto">
+                       {% render_field costo_filter.form.nombres_apellidos class="form-control" %}
+                </div>
+                <label for="costo_filter.form.empresa" class="col-sm-auto col-form-label text-right"><strong>Empresa:</strong></label>
+                <div class="col-auto">
+                       {% render_field costo_filter.form.empresa class="form-control" %}
+                </div>
+                <label for="costo_filter.form.empresa" class="col-sm-auto col-form-label text-right"><strong>Fecha:</strong></label>
+                <div class="col-auto">
+                       {% render_field costo_filter.form.fecha type="date" class="form-control" %}
+                </div>
+                {% if usuario.distrito.distrito == "Matriz" %}
+                <label for="costo_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
+                <div class="col-auto">
+                       {% render_field costo_filter.form.distrito class="form-control" %}
+                </div>
+                {% else %}
+                {% endif %}
+                <label for="costo_filter.form.baja" class="col-sm-auto col-form-label text-right">
+                    <strong>Baja:</strong></label>
+                <div class="col-auto">
+                    {% render_field costo_filter.form.baja class="form-control" %}
+                </div>
+            <!--    <label for="costo_filter.form.proyecto" class="col-sm-auto col-form-label text-right"><strong>Proyecto:</strong></label>
+                <div class="col-auto">
+                       {% render_field costo_filter.form.proyecto class="form-control" %}
+                </div>
+                <label for="costo_filter.form.subproyecto" class="col-sm-auto col-form-label text-right"><strong>Subproyecto:</strong></label>
+                <div class="col-auto">
+                       {% render_field costo_filter.form.subproyecto class="form-control" %}
+                </div> -->
+                <div class="col-auto">
+                <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            </form>
+</div>
+
+<!-- Aquí empieza la generación de la tabla -->
+<div class = "row mt-2">
+    <div class="col-md-12">
+        <table id="tblCostos" class="table table-striped table-hover bg-white">
+            <thead class="text-black" style="background-color: #F5F5F5;">
+                <tr style="background-color:#2A628F;color:#ffffff;">
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Empleado #</th>
+                    <th scope="col">Empresa</th>
+                    <th scope="col">Distrito</th>
+                    <th scope="col">Proyecto</th>
+                    <th scope="col">SubProyecto</th>
+                    <th scope="col">Puesto</th>
+                    <th scope="col">Ingreso mensual neto del empleado</th>
+                    <th scope="col" class="th_check d-none" >Complemento salario catorcenal</th>
+                    <th scope="col" class="th_check d-none" >Apoyo de pasajes</th>
+                    <th scope="col">Total percepciones mensual</th>
+                    <th scope="col">Impuesto estatal</th>
+                    <th scope="col"  class="th_check d-none">IMSS Obrero patronal</th>
+                    <th scope="col" class="th_check d-none">SAR 2%</th>
+                    <th scope="col">Cesantía </th>
+                    <th scope="col">Infonavit</th>
+                    <th class="th_check d-none" scope="col">ISR</th>
+                    <th class="th_check d-none" scope="col">Apoyo visita familiar</th>
+                    <th class="th_check d-none" scope="col">Apoyo estancia</th>
+                    <th class="th_check d-none" scope="col">Apoyo renta</th>
+                    <th class="th_check d-none" scope="col">Apoyo de estudios</th>
+                    <th class="th_check d-none" scope="col">AMV</th>
+                    <th class="th_check d-none" scope="col">Gasolina</th>
+                    <th scope="col">Total costo mensual para la empresa</th>
+                    <th scope="col">Total Bonos catorcena actual</th>
+                    <th scope="col">Detalle</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+                {% for costo in salidas_list %}
+                <tr>
+                    <td>{{costo.status.perfil.nombres}} {{costo.status.perfil.apellidos}}</td>
+                    <td>{{costo.status.perfil.numero_de_trabajador}}</td>
+                    <td>{{costo.status.perfil.empresa}}</td>
+                    <td>{{costo.status.perfil.distrito}}</td>
+                    <td>{{costo.status.perfil.proyecto}}</td>
+                    <td>{{costo.status.perfil.subproyecto}}</td>
+                    <td>{{costo.status.puesto}}</td>
+                    <td>{{costo.ingreso_mensual_neto_empleado}}</td>
+                    <td class="td_check d-none">{{costo.complemento_salario_catorcenal}}</td>
+                    <td class="td_check d-none">{{costo.apoyo_de_pasajes}}</td>
+                    <td>{{costo.total_percepciones_mensual}}</td>
+                    <td>{{costo.impuesto_estatal}}</td>
+                    <td class="td_check d-none">{{costo.imms_obrero_patronal}}</td>
+                    <td class="td_check d-none">{{costo.sar}}</td>
+                    <td>{{costo.cesantia}}</td>
+                    <td>{{costo.infonavit}}</td>
+                    <td class="td_check d-none">{{costo.isr}}</td>
+                    <td class="td_check d-none">{{costo.apoyo_vist_familiar}}</td>
+                    <td class="td_check d-none">{{costo.estancia}}</td>
+                    <td class="td_check d-none">{{costo.renta}}</td>
+                    <td class="td_check d-none">{{costo.apoyo_estudios}}</td>
+                    <td class="td_check d-none">{{costo.amv}}</td>
+                    <td class="td_check d-none">{{costo.gasolina}}</td>
+                    <td>{{costo.total_costo_empresa}}</td>
+                    <td>{{costo.total_apoyosbonos_agregcomis}}</td>
+                    {% if baja == 'False' %}
+                    <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'costo_revisar_anterior' costo.id %}"><i class="fas fa-sack-dollar"></i></a></td>
+                    {% endif %} 
+                  
+                    
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        {% if salidas_list.has_previous %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url 1 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-left"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.previous_page_number  'page' request.GET.urlencode %}"><i class="fa-solid fa-angle-left"></i></a></li>
+        {% endif %}
+
+        {% for item in salidas_list.paginator.page_range %}
+            {% if salidas_list.number == item %}
+                <li class="page-item active"><a href="#" class="page-link bg-dark">{{item}}</a></li>
+            {% elif item > salidas_list.number|add:'-2' and item < salidas_list.number|add:'2' %}
+                <li class="page-item "><a class="page-link" style="color:#3E92CC" href="{% my_url item 'page' request.GET.urlencode %}" class="page-link">{{item}}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if salidas_list.paginator.num_pages > salidas_list.number|add:'2' %}
+        <li><a class="page-link" style="color:#3E92CC" href="?page={{salidas_list.number|add:'2'}}">&hellip;</a></li>
+        <li><a style="color:#3E92CC" href="?page={{ item }}">{{item}}</a></li>
+        <li><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}">{{salidas_list.paginator.num_pages}}</a></li>
+        {% endif %}
+
+        {% if salidas_list.has_next %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.next_page_number 'page' request.GET.urlencode %}"><i class="fa-solid fa-chevron-right"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-right"></i></a></a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+
+<!--Este es el modal-->
+<div class="modal fade" id ="dialog" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" id="document" role="document">
+
+    </div>
+</div>
+<script>
+    if (performance.navigation.type == 1) {
+        document.getElementById('filtro-form').submit();
+    }
+
+;(function(){
+    const modal = new bootstrap.Modal(document.getElementById('dialog'))
+
+    htmx.on('htmx:beforeSwap',(e)=>{
+        if (e.detail.target.id === "document" && !e.detail.xhr.response)
+        modal.hide()
+    })
+})()
+
+var switches = document.querySelectorAll('.form-check-input');
+var td_check = document.querySelectorAll('.td_check');
+var th_check = document.querySelectorAll('.th_check');
+var table = document.getElementById("tblCostos");
+var totalRowCount = table.rows.length;
+var num_switches = switches.length;
+
+
+for (let i=0; i< num_switches; i++){
+switches[i].addEventListener("change", function(element){
+        if (switches[i].checked){
+
+            for (let j=0; j<table.rows.length - 1; j++){
+             td_check[i+(j*num_switches)].removeAttribute('class');
+             td_check[i+(j*num_switches)].setAttribute('class', 'td_check');
+             console.log(i+(j*num_switches))
+            }
+            th_check[i].removeAttribute('class');
+            th_check[i].setAttribute('class', 'th_check');
+        } else {
+            for (let j=0; j < totalRowCount - 1; j++){
+             td_check[i+(j*num_switches)].removeAttribute('class');
+             td_check[i+(j*num_switches)].setAttribute('class', 'td_check d-none');
+            }
+            th_check[i].removeAttribute('class');
+            th_check[i].setAttribute('class', 'th_check d-none');
+        }
+})
+};
+
+var myModal = document.getElementById('dialog')
+
+myModal.addEventListener('hidden.bs.modal', function (event) {
+//    location.reload();
+})
+
+
+</script>
+{% endblock %}
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+[
+    {
+        "model": "proyecto.tipoperfil",
+        "pk": 4,
+        "fields": {
+            "nombre": "RH",
+            "autorizacion":0,
+            "empleados":0,
+            "info_general":0,
+            "solicitudes":0,
+            "tablas_empleados":0,
+            "usuario":1,
+            "esquema_bono":1
+        }
+    },
+    {
+        "model": "proyecto.tipoperfil",
+        "pk": 5,
+        "fields": {
+            "nombre": "Supervisor",
+            "autorizacion":0,
+            "empleados":0,
+            "info_general":0,
+            "solicitudes":0,
+            "tablas_empleados":0,
+            "usuario":1,
+            "esquema_bono":1
+        }
+    },
+    {
+        "model": "proyecto.tipoperfil",
+        "pk": 6,
+        "fields": {
+            "nombre": "Superintendente",
+            "autorizacion":0,
+            "empleados":0,
+            "info_general":0,
+            "solicitudes":0,
+            "tablas_empleados":0,
+            "usuario":1,
+            "esquema_bono":1
+        }
+    },
+    {
+        "model": "proyecto.tipoperfil",
+        "pk": 7,
+        "fields": {
+            "nombre": "Control Tecnico",
+            "autorizacion":0,
+            "empleados":0,
+            "info_general":0,
+            "solicitudes":0,
+            "tablas_empleados":0,
+            "usuario":1,
+            "esquema_bono":1
+        }
+    },
+    {
+        "model": "proyecto.tipoperfil",
+        "pk": 8,
+        "fields": {
+            "nombre": "Gerencia",
+            "autorizacion":0,
+            "empleados":0,
+            "info_general":0,
+            "solicitudes":0,
+            "tablas_empleados":0,
+            "usuario":1,
+            "esquema_bono":1
+        }
+    }
+]

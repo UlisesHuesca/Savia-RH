@@ -93,7 +93,8 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
         cantidad5 = economico.count()
         bancario = DatosBancarios.objects.filter(complete = True, status__perfil__baja=False)
         cantidad6 = bancario.count()
-        vacaciones = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
+        #vacaciones = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
+        vacaciones = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).values("total_pendiente").aggregate(vacaciones=Sum('total_pendiente'))['vacaciones']
         economicos = Economicos.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
         uniformes = Uniforme.objects.filter(orden__status__perfil__numero_de_trabajador=usuario.numero_de_trabajador)
         cantidad_uniformes=0
@@ -124,7 +125,8 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
         cantidad5 = economico.count()
         bancario = DatosBancarios.objects.filter(status__perfil__distrito=usuario.distrito,complete = True, status__perfil__baja=False)
         cantidad6 = bancario.count()
-        vacaciones = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
+        #vacaciones = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
+        vacaciones = Vacaciones.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).values("total_pendiente").aggregate(vacaciones=Sum('total_pendiente'))['vacaciones']
         economicos = Economicos.objects.filter(status__perfil__numero_de_trabajador=usuario.numero_de_trabajador).last()
         uniformes = Uniforme.objects.filter(orden__status__perfil__numero_de_trabajador=usuario.numero_de_trabajador)
         cantidad_uniformes=0

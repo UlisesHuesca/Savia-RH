@@ -1,0 +1,30 @@
+[
+    {
+        "model": "revisar.estado",
+        "pk": 1,
+        "fields": {
+            "tipo": "aprobado"
+        }
+    },
+    {
+        "model": "revisar.estado",
+        "pk": 2,
+        "fields": {
+            "tipo": "rechazado"
+        }
+    },
+    {
+        "model": "revisar.estado",
+        "pk": 3,
+        "fields": {
+            "tipo": "pendiente"
+        }
+    },
+    {
+        "model": "revisar.estado",
+        "pk": 4,
+        "fields": {
+            "tipo": "verificar"
+        }
+    }
+]

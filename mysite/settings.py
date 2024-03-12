@@ -47,6 +47,9 @@ INSTALLED_APPS = [
     'django_filters',
     "django_htmx",
     'crispy_forms',
+    'esquema',
+    'revisar',
+    'prenomina',
 ]
 
 
@@ -59,7 +62,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
-    "django_htmx.middleware.HtmxMiddleware",
+    'django_htmx.middleware.HtmxMiddleware',
+
+    
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -98,29 +103,30 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #        'NAME': 'newdatabase',
 #    }
 #}
-DATABASES = {
-   'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vicjosh$default',
-        'USER': 'vicjosh',
-        'PASSWORD': 'mimi2000',
-        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
-        'PORT': '',  # Deja este campo vacío
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
-    }
-}
 #DATABASES = {
-#    'default': {
+#   'default': {
 #        'ENGINE': 'django.db.backends.mysql',
-#        'NAME': 'original',
-#        'USER': 'root',
-#        'PASSWORD': 'Root',
-#        'HOST': 'localhost',
-#        'PORT': '',
+#        'NAME': 'vicjosh$default',
+#        'USER': 'vicjosh',
+#        'PASSWORD': 'mimi2000',
+#        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
+#        'PORT': '',  # Deja este campo vacío
+#        'OPTIONS': {
+#            'charset': 'utf8mb4',
+#        },
 #    }
 #}
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ejemplo',
+        #'NAME': 'calcular_costo',
+        'USER': 'root',
+        'PASSWORD': '12345678',
+        'HOST': 'localhost',
+        'PORT': '',
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 

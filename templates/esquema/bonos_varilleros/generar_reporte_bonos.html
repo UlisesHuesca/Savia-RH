@@ -1,0 +1,213 @@
+{% extends 'partials/base.html' %}
+
+{% load static %}
+{% load widget_tweaks %}
+{% load tt_extras %}
+
+{% block title %}
+    Bonos Varilleros
+{% endblock title %}
+    
+
+{% block css %}
+
+{% endblock css %}
+    
+
+{% block content %}
+<div class="container-fluid margen-alto">
+    {% csrf_token %}
+    <div class="row">
+        {% comment %}Mesajes de confirmación{% endcomment %}
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header d-flex justify-content-between">
+                    <div class="card-title">
+                        <h5>Bonos Varilleros - Sección de reportes </h5>
+                        <small class="text-muted">Puede generar reportes por catorcena</small>
+                    </div>
+                </div>
+                
+                
+                {% comment %} Generar el reporte excel {% endcomment %}                    
+                <div class="card-body mb-0 pb-0">
+                   <div class="row">
+                        {% if messages %}
+                            {% for message in messages %}
+                                {% if message.tags == "success" %}
+                                <div class="alert alerta-success alert-dismissible fade show" role="alert">
+                                    <strong><i class="fas fa-check"></i> {{ message }}</strong> 
+                                    <button type="button" class="btn-close white" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                {% else %}
+                                <div class="alert alerta-danger alert-dismissible fade show" role="alert">
+                                    <strong><i class="fas fa-exclamation-triangle"></i> {{ message }} </strong> 
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        <div class="col-12">
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="row d-flex justify-content-between">
+                                    <div class="col-4">
+                                        <button type="submit" name="excel" class="btn btn-outline-success" title="Descargar reporte en excel" value='Reporte Excel'>
+                                            <i class="fa-solid fa-file-excel fa-2xl"></i>
+                                        </button>
+                                    </div>
+                                    <div class="col-8">
+                                        <div class="row">
+                                            {% if request.GET.fecha_inicial_catorcena != '' and request.GET.fecha_final_catorcena != '' %}
+                                            <div class="col-auto">
+                                                <p class="fw-bold">Catorcena {{catorcena.catorcena}}: {{catorcena.fecha_inicial|date:"d/m/Y"}} - {{catorcena.fecha_final|date:"d/m/Y"}}</p> 
+                                            </div>
+                                            <div class="col-auto">
+                                                <p class="fw-bold">Total bonos aprobados: {{cantidad_bonos_aprobados}}</p> 
+                                            </div>
+                                            <div class="col-auto">
+                                                
+                                                {% if total_monto is None %}
+                                                    <p class="fw-bold">Total $: 0.00</p>
+                                                {% else %}
+                                                    <p class="fw-bold">Total $: {{total_monto}}</p>
+                                                {% endif %}
+                                                    
+                                                
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                            </form>
+                        </div>
+                   </div>
+                </div>
+
+                <div class="card-body">
+                    {% comment %} Realizar Busquedas {% endcomment %}
+                    <form method="get">
+                        {% csrf_token %}
+                        <div class="row g-3 align-items-center">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Distrito</label>
+                                    {% render_field  bonosolicitado_filter.form.distrito class="form-control text-capitalize"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Catorcena - Fecha inicial</label>
+                                    {% render_field  bonosolicitado_filter.form.fecha_inicial_catorcena type="date" class="form-control"%}
+                                </div>
+                                <div class="col-auto">
+                                    <label for="" class="fw-bold">Catorcena - Fecha final</label>
+                                    {% render_field  bonosolicitado_filter.form.fecha_final_catorcena type="date" class="form-control"%}
+                                </div>
+                                <div class="col-auto">
+                                    <br>
+                                    <button type="search" class="btn btn-outline-success" title="ver las catorcenas en pestaña nueva"><i class="fas fa-search"></i></button>
+                                </div>
+                                <div class="col-auto">
+                                    <br>
+                                    <a href="{% url 'Tabla_catorcenas' %}" target="_blank" class="btn btn-outline-success mx-5"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                                </div>
+                                                                
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+              </div>
+        </div>
+    </div>
+   
+    {% comment %} Listar Solicitudes {% endcomment %}
+    {% if bonos|length != 0 %}
+    <div class="row">
+        <div class="col-12 my-3 table-responsive">
+            <table class="table bg-white table-hover table-striped shadow" id="tabla">
+                <thead>
+                    <tr class="tabla-encabezado">
+                        <th>Folio</th>
+                        <th>Fecha emisión</th>
+                        <th>Fecha aprobación</th>
+                        <th>Nombre</th>
+                        <th>No. Cuenta</th>
+                        <th>No. Tarjeta</th>
+                        <th>Banco</th>
+                        <th>Distrito</th>
+                        <th>Bono</th>
+                        <th>Puesto</th>
+                        <th>Cantidad</th>
+                     
+                        <th style="width: 5%;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bono in bonos %}
+                    <tr class="text-capitalize"> 
+                        <td>{{bono.solicitud.folio}}</td>
+                        <td>{{bono.solicitud.fecha|date:"d/m/Y H:i"}}</td>
+                        <td>{{bono.solicitud.fecha_autorizacion|date:"d/m/Y H:i"}}</td>
+                        <td>{{bono.trabajador}}</td>
+                        <td>{{bono.trabajador.status.datosbancarios.no_de_cuenta}}</td>
+                        <td>{{bono.trabajador.status.datosbancarios.numero_de_tarjeta}}</td>
+                        <td>{{bono.trabajador.status.datosbancarios.banco}}</td>
+                        <td>{{bono.distrito}}</td>
+                        <td>{{bono.solicitud.bono}}</td>
+                        <td>{{bono.puesto}}</td>
+                        
+
+                        <td><span class="badge " style="background: #2A628F;">${{bono.cantidad}}</span></td>
+                        <td><a href="{% url 'verDetalleSolicitud' bono.solicitud.id %}" title="La soliciutd está pendiente" class="btn btn-sm btn-success"><i class="fas fa-list"></i></a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card mt-3">
+        <div class="card-body">
+            <p class="text-muted">No se entraron resultados</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        {% if salidas_list.has_previous %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url 1 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-left"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.previous_page_number  'page' request.GET.urlencode %}"><i class="fa-solid fa-angle-left"></i></a></li>
+        {% endif %}
+
+        {% for item in salidas_list.paginator.page_range %}
+            {% if salidas_list.number == item %}
+                <li class="page-item active"><a href="#" class="page-link bg-dark">{{item}}</a></li>
+            {% elif item > salidas_list.number|add:'-2' and item < salidas_list.number|add:'2' %}
+                <li class="page-item "><a class="page-link" style="color:#3E92CC" href="{% my_url item 'page' request.GET.urlencode %}" class="page-link">{{item}}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if salidas_list.paginator.num_pages > salidas_list.number|add:'2' %}
+            <li><a class="page-link" style="color:#3E92CC" href="?page={{salidas_list.number|add:'2'}}">&hellip;</a></li>
+            <li><a style="color:#3E92CC" href="?page={{ item }}">{{item}}</a></li>
+            <li><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}">{{salidas_list.paginator.num_pages}}</a></li>
+        {% endif %}
+
+        {% if salidas_list.has_next %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.next_page_number 'page' request.GET.urlencode %}"><i class="fa-solid fa-chevron-right"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-right"></i></a></a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+{% endblock content %}
+ 
+
+{% block js %}
+
+{% endblock js %}
