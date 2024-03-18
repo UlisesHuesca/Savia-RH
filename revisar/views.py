@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from esquema.forms import AutorizarSolicitudesUpdateForm
 from .models import AutorizarSolicitudes
 from esquema.models import BonoSolicitado
-from proyecto.models import UserDatos,Perfil,Status,Costo,Catorcenas,SalarioDatos
+from proyecto.models import UserDatos,Perfil,Status,Costo,Catorcenas,SalarioDatos,Empresa
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.shortcuts import redirect
@@ -234,7 +234,11 @@ def Tabla_solicitudes_prenomina(request):
     if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
         ahora = datetime.date.today()
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        if user_filter.distrito.distrito == 'Matriz':
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        if revisar_perfil.empresa == empresa_faxton:
+            costo = Costo.objects.filter(complete=True, status__perfil__baja=False,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+        elif user_filter.distrito.distrito == 'Matriz':
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")

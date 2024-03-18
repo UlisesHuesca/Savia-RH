@@ -30,7 +30,7 @@ class BonoSolicitadoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         #se filtra el puesto para el bono varillero
-        self.fields['puesto'].queryset = Puesto.objects.filter(pk__in=[176,177,178,138])
+        self.fields['puesto'].queryset = Puesto.objects.all()
         #para que la cantidad no sea editable
         self.fields['cantidad'].widget.attrs['readonly'] = 'readonly'
         #self.fields['cantidad'].widget.attrs['required'] = 'required'

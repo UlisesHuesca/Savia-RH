@@ -140,7 +140,8 @@ def crearSolicitudBonosVarilleros(request):
         bonoSolicitadoForm = BonoSolicitadoForm()
         requerimientoForm = RequerimientoForm()
         #se hace una consulta con los empleados del distrito que pertenecen
-        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
+        #empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
+        empleados = Perfil.objects.filter(empresa_id = 5).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
         #se carga el formulario en automatico definiendo filtros
         bonoSolicitadoForm.fields["trabajador"].queryset = empleados 
         #crea el contexto
@@ -237,35 +238,25 @@ def crearSolicitudBonosVarilleros(request):
                     solicitud.complete_bono = True
                     solicitud.save()
                     
-                    verificar_puesto = BonoSolicitado.objects.filter(solicitud_id = solicitud.id, puesto_id=puesto).values("puesto_id").first()
-                    
-                    #no seleccionar el mismo puesto 2 veces
-                    if verificar_puesto is None:
-                                                
-                            BonoSolicitado.objects.create(
-                                solicitud_id = solicitud.id,
-                                trabajador_id = trabajador.id,
-                                puesto_id = puesto.id,
-                                distrito_id = usuario.distrito.id,
-                                cantidad = cantidad,
-                            )
+                    BonoSolicitado.objects.create(
+                        solicitud_id = solicitud.id,
+                        trabajador_id = trabajador.id,
+                        puesto_id = puesto.id,
+                        distrito_id = usuario.distrito.id,
+                        cantidad = cantidad,
+                    )
                             
-                            #Actuliza la cantidad del total de la solicitud 
-                            total = BonoSolicitado.objects.filter(solicitud_id = solicitud.id).values("cantidad").aggregate(total=Sum('cantidad'))['total']                 
-                            Solicitud.objects.filter(pk=solicitud.id).values("total").update(total=total)
+                    #Actuliza la cantidad del total de la solicitud 
+                    total = BonoSolicitado.objects.filter(solicitud_id = solicitud.id).values("cantidad").aggregate(total=Sum('cantidad'))['total']                 
+                    Solicitud.objects.filter(pk=solicitud.id).values("total").update(total=total)
                         
-                            messages.success(request, "El bono se ha agregado a la solicitud correctamente")
+                    messages.success(request, "El bono se ha agregado a la solicitud correctamente")
                             
-                            #se llama el formulario vacio para que pueda agregar mas bonos
-                            bonoSolicitadoForm = BonoSolicitadoForm()
+                    #se llama el formulario vacio para que pueda agregar mas bonos
+                    bonoSolicitadoForm = BonoSolicitadoForm()
                             
-                            contexto['bonoSolicitadoForm'] = bonoSolicitadoForm
-                            contexto['total'] = total
-                            
-                    else:
-                            messages.error(request, "No se puede agregar el mismo puesto")
-                            bonoSolicitadoForm = BonoSolicitadoForm()
-                            contexto['bonoSolicitadoForm'] = bonoSolicitadoForm
+                    contexto['bonoSolicitadoForm'] = bonoSolicitadoForm
+                    contexto['total'] = total
                                             
                     contexto["bonoSolicitadoForm"].fields["trabajador"].queryset = empleados
                         
@@ -290,7 +281,8 @@ def crearSolicitudBonosVarilleros(request):
             return render(request,'esquema/bonos_varilleros/crear_solicitud.html',contexto)
     else:
         return render(request, 'revisar/403.html')
-    
+
+@login_required(login_url='user-login')  
 def verificarSolicitudBonosVarilleros(request,solicitud):
     
     usuario = get_object_or_404(UserDatos, user_id=request.user.id)
@@ -306,7 +298,8 @@ def verificarSolicitudBonosVarilleros(request,solicitud):
     solicitudForm = SolicitudForm(initial={'bono': autorizacion.solicitud.bono.id})
     bonoSolicitadoForm = BonoSolicitadoForm()
     datos_bonos_solicitud = BonoSolicitado.objects.filter(solicitud_id=solicitud)
-    empleados = Perfil.objects.filter(distrito_id=usuario.distrito.id).exclude(numero_de_trabajador=usuario.numero_de_trabajador).exclude(baja=1).order_by('nombres')
+    #empleados = Perfil.objects.filter(distrito_id=usuario.distrito.id).exclude(numero_de_trabajador=usuario.numero_de_trabajador).exclude(baja=1).order_by('nombres')
+    empleados = Perfil.objects.filter(empresa_id = 5).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
     bonoSolicitadoForm.fields["trabajador"].queryset = empleados
     lista_archivos = Requerimiento.objects.filter(solicitud_id=solicitud).values("id", "url")
 
@@ -337,23 +330,20 @@ def verificarSolicitudBonosVarilleros(request,solicitud):
                 cantidad = bonoSolicitadoForm.cleaned_data['cantidad']
 
                 Solicitud.objects.filter(pk=solicitud).update(bono=bono)
-                verificar_puesto = BonoSolicitado.objects.filter(solicitud_id=solicitud, puesto_id=puesto).values("puesto_id").first()
-
-                if verificar_puesto is None:
-                    BonoSolicitado.objects.create(
+                
+                BonoSolicitado.objects.create(
                         solicitud_id=solicitud,
                         trabajador_id=trabajador.id,
                         puesto_id=puesto.id,
                         distrito_id=usuario.distrito.id,
                         cantidad=cantidad,
                     )
-                    total = BonoSolicitado.objects.filter(solicitud_id=solicitud).values("cantidad").aggregate(total=Sum('cantidad'))['total']
-                    Solicitud.objects.filter(pk=solicitud).values("total").update(total=total)
-                    messages.success(request, "El bono se ha agregado a la solicitud correctamente")
-                    bonoSolicitadoForm = BonoSolicitadoForm()
-                    bonoSolicitadoForm.fields["trabajador"].queryset = empleados
-                else:
-                    messages.error(request, "No se puede agregar el mismo puesto")
+                total = BonoSolicitado.objects.filter(solicitud_id=solicitud).values("cantidad").aggregate(total=Sum('cantidad'))['total']
+                Solicitud.objects.filter(pk=solicitud).values("total").update(total=total)
+                messages.success(request, "El bono se ha agregado a la solicitud correctamente")
+                bonoSolicitadoForm = BonoSolicitadoForm()
+                bonoSolicitadoForm.fields["trabajador"].queryset = empleados
+                
 
         elif 'btn_actualizar' in request.POST:
             autorizar = AutorizarSolicitudes.objects.get(solicitud_id=solicitud, tipo_perfil_id=6)
