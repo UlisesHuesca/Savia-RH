@@ -202,20 +202,17 @@ def Tabla_dias_vacaciones(request):
 @login_required(login_url='user-login')
 def Perfil_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    #veracruz_vacaciones = Vacaciones.objects.filter(status__perfil__distrito__distrito="Veracruz")
-    #veracruz_economicos = Economicos.objects.filter(status__perfil__distrito__distrito="Veracruz", periodo = "2024")
-    #for usuario in veracruz_vacaciones:
-    #    usuario.status.complete_vacaciones =  False
-    #    usuario.status.complete_economicos = False
-    #veracruz_vacaciones.delete()
-    #veracruz_economicos.delete()
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        perfiles= Perfil.objects.filter(complete=True, baja=False, empresa = empresa_faxton).order_by("numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
     perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
     perfiles = perfil_filter.qs
+
 
     if request.method =='POST' and 'Excel' in request.POST:
         return convert_excel_perfil(perfiles)
@@ -235,10 +232,13 @@ def Perfil_vista(request):
 @login_required(login_url='user-login')
 def Perfil_vista_baja(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
-        #perfiles= Perfil.objects.filter(complete=True, baja=True).order_by("numero_de_trabajador")
-        #perfiles= Datos_baja.objects.filter(perfil__in=perfiles, complete=True).order_by("fecha")
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete=True,perfil__baja=True, perfil__empresa = empresa_faxton).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
+        perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
+                                             fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
+    elif user_filter.distrito.distrito == 'Matriz':
         perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
         perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
                                              fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
@@ -369,8 +369,11 @@ def Perfil_revisar(request, pk):
 @login_required(login_url='user-login')
 def Status_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        status= Status.objects.filter(complete=True,perfil__empresa=empresa_faxton).order_by("perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
     else:
         status = Status.objects.filter(perfil__distrito = user_filter.distrito, complete=True).order_by("perfil__numero_de_trabajador")
@@ -398,8 +401,11 @@ def Status_vista(request):
 @login_required(login_url='user-login')
 def FormularioStatus(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        empleados = Perfil.objects.filter(complete=True, complete_status=False, baja=False, empresa=empresa_faxton)
+    elif user_filter.distrito.distrito == 'Matriz':
         empleados = Perfil.objects.filter(complete=True, complete_status=False, baja=False)
     else:
         empleados = Perfil.objects.filter(distrito=user_filter.distrito,complete=True, complete_status=False, baja=False)
@@ -660,8 +666,11 @@ def BonosUpdate(request, pk):
 @login_required(login_url='user-login')
 def Tabla_uniformes(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        status= Status.objects.filter(complete=True, perfil__empresa=empresa_faxton).order_by("perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito)
@@ -797,8 +806,11 @@ def Uniformes_revisar_ordenes(request, pk):
 @login_required(login_url='user-login')
 def FormularioDatosBancarios(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        empleados= Status.objects.filter(complete = True, complete_bancarios=False, perfil__baja=False, perfil__empresa=empresa_faxton)
+    elif user_filter.distrito.distrito == 'Matriz':
         empleados= Status.objects.filter(complete = True, complete_bancarios=False, perfil__baja=False)
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
@@ -855,7 +867,11 @@ def BancariosUpdate(request, pk):
 @login_required(login_url='user-login')
 def FormularioCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False, perfil__baja=False, perfil__empresa=empresa_faxton)
+    elif user_filter.distrito.distrito == 'Matriz':
         empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False, perfil__baja=False)
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
@@ -1509,11 +1525,12 @@ def Empleado_Costo(request, pk):
 
 @login_required(login_url='user-login')
 def TablaCosto(request):
-    año = datetime.date.today().year
-
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        costos= Costo.objects.filter(complete=True,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         costos= Costo.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
@@ -1606,8 +1623,11 @@ def TablaCosto(request):
 def TablaBonos(request):
     año = datetime.date.today().year
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        bonos= Bonos.objects.filter(complete=True,mes_bono__year=año,costo__status__perfil__empresa=empresa_faxton).order_by("costo__status__perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         bonos= Bonos.objects.filter(complete=True,mes_bono__year=año).order_by("costo__status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
@@ -1826,6 +1846,8 @@ def VacacionesRevisar(request, pk):
 @login_required(login_url='user-login')
 def Tabla_Vacaciones(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
 
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
     fecha_actual = date.today()
@@ -1875,8 +1897,26 @@ def Tabla_Vacaciones(request): #Ya esta
                 editado="Sistema")
             empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
             empleado.save()
+    if revisar_perfil.empresa == empresa_faxton:
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True,empresa=empresa_faxton)
+        #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        periodo = Vacaciones.objects.filter(
+            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+            status__perfil__id__in=perfil.all(),
+            complete=True
+        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
 
-    if user_filter.distrito.distrito == 'Matriz':
+        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
+        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+
+        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
+        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
+
+        descansos = periodo1 | periodo3
+        #descansos = descansos.exclude(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True)
+
+        print('proyecto: ',descansos.count())
+    elif user_filter.distrito.distrito == 'Matriz':
         perfil = Perfil.objects.all();
 
         #descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
@@ -1943,7 +1983,9 @@ def Tabla_Vacaciones(request): #Ya esta
 @login_required(login_url='user-login')
 def FormularioEconomicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    
     año_actual = str(date.today().year) #Quitar el complete_economicos a todos aquellos que ya cumplan el año de planta
     mes_actual = datetime.date.today().month
     dia_actual = datetime.date.today().day
@@ -1955,8 +1997,9 @@ def FormularioEconomicos(request):
     for empleado in reinicio:
         empleado.complete_economicos = False
         empleado.save()
-
-    if user_filter.distrito.distrito == 'Matriz':
+    if revisar_perfil.empresa == empresa_faxton:
+        empleados= Status.objects.filter(complete= True, complete_economicos = False, perfil__baja=False,perfil__empresa=empresa_faxton)
+    elif user_filter.distrito.distrito == 'Matriz':
         empleados= Status.objects.filter(complete= True, complete_economicos = False, perfil__baja=False)
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
@@ -2072,6 +2115,9 @@ def EconomicosUpdate(request, pk):
 @login_required(login_url='user-login')
 def Tabla_Economicos(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    
 
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
     fecha_actual = date.today()
@@ -2091,8 +2137,11 @@ def Tabla_Economicos(request): #Ya esta
                                                 comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
             empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
             empleado.save()
-
-    if user_filter.distrito.distrito == 'Matriz':
+    if revisar_perfil.empresa == empresa_faxton:
+        economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+        #economicost= economicos.last()
+        economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
         #economicost= economicos.last()
         economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
@@ -2147,8 +2196,11 @@ def EconomicosRevisar(request, pk):
 @login_required(login_url='user-login')
 def Tabla_Datosbancarios(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        bancarios= DatosBancarios.objects.filter(complete=True,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         bancarios= DatosBancarios.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
@@ -5613,8 +5665,11 @@ def reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,cost
 
 def Tabla_solicitud_vacaciones(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        perfiles= Perfil.objects.filter(complete=True, baja=False, empresa=empresa_faxton).order_by("numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True, baja=False).order_by("numero_de_trabajador")
@@ -5638,8 +5693,11 @@ def Tabla_solicitud_vacaciones(request):
 
 def Tabla_solicitud_economicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        perfiles= Perfil.objects.filter(complete=True,baja=False,empresa=empresa_faxton).order_by("numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         perfiles= Perfil.objects.filter(complete=True,baja=False).order_by("numero_de_trabajador")
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
@@ -6275,11 +6333,12 @@ def costo_mensual(request):
 #Generar reportes costos anteriores
 @login_required(login_url='user-login')
 def costo_anterior(request):
-    año = datetime.date.today().year
-
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        costos= CostoAnterior.objects.filter(complete=True,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
         costos= CostoAnterior.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)

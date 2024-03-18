@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from proyecto.models import UserDatos, Perfil, Catorcenas, Costo, TablaFestivos, Vacaciones, Economicos, Economicos_dia_tomado, Vacaciones_dias_tomados
+from proyecto.models import UserDatos, Perfil, Catorcenas, Costo, TablaFestivos, Vacaciones, Economicos, Economicos_dia_tomado, Vacaciones_dias_tomados, Empresa
 from django.db import models
 from django.db.models import Subquery, OuterRef, Q
 from revisar.models import AutorizarPrenomina, Estado
@@ -38,10 +38,14 @@ from django.http import HttpResponseRedirect
 @login_required(login_url='user-login')
 def Tabla_prenomina(request):
     user_filter = UserDatos.objects.get(user=request.user)
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
     if user_filter.tipo.nombre == "RH":
         ahora = datetime.date.today()
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        if user_filter.distrito.distrito == 'Matriz':
+        if revisar_perfil.empresa == empresa_faxton:
+            costo = Costo.objects.filter(complete=True, status__perfil__baja=False,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+        elif user_filter.distrito.distrito == 'Matriz':
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
