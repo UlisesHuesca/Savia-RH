@@ -1440,7 +1440,7 @@ def Costo_revisar(request, pk):
     costo.bono_total=locale.currency(costo.bono_total, grouping=True)
     bonototal = locale.currency(bonototal, grouping=True)
     if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(costo,bonototal)
+        return reporte_pdf_costo_detalles(costo)
     
     if request.method =='POST' and 'Pdf2' in request.POST:
         return reporte_pdf_costo_incidencias(costo,bonototal)
@@ -6248,8 +6248,6 @@ def costo_mensual(request):
         #Me atre todos los costos actualmente
         costos = Costo.objects.all()
         porcentaje = SalarioDatos.objects.get(pk = 1)
-        
-        
         
         #Pasa los datos del modelo Costo a CostoAnterior para llevar el registro
         volcar_datos = [CostoAnterior(
