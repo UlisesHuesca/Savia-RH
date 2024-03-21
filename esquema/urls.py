@@ -16,5 +16,6 @@ urlpatterns = [
     path('remover_bonos/editar/<int:solicitud_id>/',views.removerBonosEditar),
     path('remover_archivo/<int:archivo_id>/',views.removerArchivo),
     path('enviar_solicitud/',views.EnviarSolicitudEsquemaBono),
+    path('solicitar_soporte_bono/',views.solicitarSoporteBono),
     
 ]

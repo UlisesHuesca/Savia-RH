@@ -624,7 +624,16 @@ def solicitarEsquemaBono(request):
         #datos = {'mensaje': 'comunicacion con el back'}
         #return JsonResponse(datos)
 
-
+@login_required(login_url='user-login')
+def solicitarSoporteBono(request):
+     if request.method == "POST":
+        #se obtienen los datos enviados del servidor            
+        data = json.loads(request.body)
+        subcategoria = Subcategoria.objects.get(pk=data['bono'])
+        return JsonResponse({'soporte':subcategoria.soporte},status=200,safe=False)
+         
+         
+         
 #GENERACION DE REPORTES EN EXCEL
 def convert_excel_bonos_aprobados(bonos,catorcena,total_monto,cantidad_bonos_aprobados):
     response= HttpResponse(content_type = "application/ms-excel")

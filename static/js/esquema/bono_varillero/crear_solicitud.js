@@ -1,4 +1,46 @@
 document.addEventListener("DOMContentLoaded", (e) => {
+     /**Buscar el soporte para el bono seleccionado */
+     async function solicitarSoporteBono(bono){
+        try {
+            var response = await fetch('/esquema/solicitar_soporte_bono/',{
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+                body:JSON.stringify({
+                    'bono':bono,
+                }),
+            });
+
+            const datos = await response.json();
+            console.log(datos)
+            console.log(datos.soporte)
+
+            document.getElementById("soporte").textContent = datos.soporte
+            //cantidad = datos[0].fields.importe
+            //cantidad === null ? mensajeBonoNa() : document.getElementById('cantidad').setAttribute('value',cantidad) 
+
+        } catch (error) {
+            console.log(error)
+            Swal.fire({
+                title: "Error",
+                text: "No se pudo procesar la solicitud",
+                icon: "warning",
+            })
+
+        }
+    }
+
+    
+    /**Para verificar si existe un valor en el select de bono al iniciar el DOM en js*/
+    var miSelect = document.getElementById("bono");
+    if (miSelect.selectedIndex > 0) {
+        console.log("seleccionado")
+        valor = document.getElementById("bono").value
+        solicitarSoporteBono(valor)
+    }
+
     /**Mensajes de alerta*/
     function mensajeBonoNa(){
         document.getElementById('cantidad').setAttribute('value','') 
@@ -33,12 +75,25 @@ document.addEventListener("DOMContentLoaded", (e) => {
             document.getElementById('cantidad').setAttribute('value','') 
             Swal.fire({
                 title: "Error",
-                text: "No se pudo procesar la solicitud",
+                text: "Este puesto no pertenece al bono seleccionado",
                 icon: "warning",
             })
 
         }
     }
+
+   
+
+
+    //para cargar el soporte del bono
+    var bonoSoporteSelect = document.getElementById("bono")
+
+    bonoSoporteSelect.addEventListener("change",function(e){
+        console.log('solicitar soporte - requerimientos')
+        const bono = document.getElementById("bono").value;
+        console.log("bono id: ",bono)
+        solicitarSoporteBono(bono)
+    });
 
     //para cargar la cantidad del bono cuando se seleccione alguno puesto o bono
     var puestoSelect = document.getElementById("puesto");
@@ -50,9 +105,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
 
         if(bono.length != 0 && puesto.length != 0){
             solicitarEsquemaBono(bono,puesto)
-
         }
-
     });
 
     bonoSelect.addEventListener("change",function (e) {
@@ -104,6 +157,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
             }
 
         } catch (error) {
+            //Manejo de errores
             console.log(error)
             Swal.fire({
                 title: "Error",

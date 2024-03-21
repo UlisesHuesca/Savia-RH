@@ -23,7 +23,8 @@ class Categoria(models.Model):
 class Subcategoria(models.Model):
     esquema_categoria = models.ForeignKey(Categoria,on_delete=models.CASCADE,null=False)
     nombre = models.CharField(max_length=100,null=False)
-    
+    soporte = models.CharField(max_length=250,null=True)
+        
     def __str__(self):
         return self.nombre
     
@@ -69,7 +70,7 @@ def validar_size(value):
         raise ValidationError('El tamaño del archivo no puede ser mayor a 2.5 MB.')    
     
     
-#Se pueden subir imagenes o pdf al esquema bono solicitado
+#Se pueden subir imagenes o pdf al esquema bono solicitado - Es el soporte del bono es decir los archivos PDF e Imagenes
 class Requerimiento(models.Model):
     solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,null=False)
     fecha = models.DateTimeField(null=False,auto_now_add=True)

@@ -164,7 +164,7 @@ class SolicitudEconomicosUpdateForm(forms.ModelForm):
     ) #selecciona 'Yes', se convierte en True, y cuando selecciona 'No', se convierte en False.
     class Meta:
         model = Solicitud_economicos
-        fields = ['fecha','comentario','autorizar',]
+        fields = ['fecha','comentario']
 
 class EconomicosUpdateForm(forms.ModelForm):
     class Meta:

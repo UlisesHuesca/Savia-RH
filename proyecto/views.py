@@ -4874,19 +4874,21 @@ def SolicitudEconomicos(request):
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
-    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
-    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
-    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
-    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    #reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    #reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    reinicio = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta__isnull = False)
+        
     if reinicio:
         for empleado in reinicio:
             economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None,
-                                                comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+                                                comentario="Generado autom. al cumplir la fecha de planta", editado="Sistema")
             empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
             empleado.save()
 
@@ -4942,17 +4944,22 @@ def solicitud_economico_verificar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     solicitud = Solicitud_economicos.objects.get(id=pk)
 
-    if request.method == 'POST' and 'btnSend' in request.POST:
+    if request.method == 'POST':
         form = SolicitudEconomicosUpdateForm(request.POST, instance=solicitud)
-        solicitud = form.save(commit=False)
+        #solicitud = form.save(commit=False)
 
         if form.is_valid():
-            solicitud = form.save(commit=False)
-            solicitud.comentario = request.POST.get('observaciones')
-            solicitud.save()
+            #solicitud = form.save(commit=False)
+            #solicitud.comentario = request.POST.get('observaciones')
+            #solicitud.save()
 
-            if solicitud.autorizar == True:
+            #if solicitud.autorizar == True:
+            if 'btnSolicitudAprobar' in request.POST:
+                solicitud = form.save(commit=False)
+                solicitud.comentario = request.POST.get('observaciones')
                 observaciones = request.POST.get('observaciones')
+                solicitud.autorizar = 1
+                solicitud.save()
                 # Buscamos o creamos una instancia de Economicos
                 economico, created = Economicos.objects.get_or_create(complete=True,status=solicitud.status,periodo=solicitud.periodo)
 
@@ -4981,7 +4988,11 @@ def solicitud_economico_verificar(request, pk):
                 prenomina_dia_tomado = Economicos_dia_tomado.objects.create(prenomina=economico,fecha=economico.fecha,
                                                                             comentario=economico.comentario,editado=economico.editado)
                 messages.success(request, 'Solicitud autorizada y días economicos agregados')
-            else:
+            elif 'btnSolicitudRechazar' in request.POST:
+                solicitud = form.save(commit=False)
+                solicitud.comentario = request.POST.get('observaciones')
+                solicitud.autorizar = 0
+                solicitud.save()
                 messages.success(request, 'Solicitud guardada como no autorizado')
             return redirect('Solicitudes_economicos')
     else:
