@@ -85,7 +85,7 @@ urlpatterns = [
 
     path('Solicitar/Vacaciones', views.SolicitudVacaciones, name='Solicitar_vacacion'),
     path('Formato/Vacaciones', views.FormatoVacaciones, name='Formato_vacaciones'), #Borrar
-    #path('Formulario/Formato/Vacaciones', views.FormFormatoVacaciones, name='Formularioformato_vacaciones'),
+    #path('Formulario/Formato/Vacaciones', views.FormFormatoVacaciones, name='Formularioformato_vacaciutorizarones'),
     path('Formato/Economicos', views.FormatoEconomicos, name='Formato_economicos'), #Borrar
     path('Solicitar/Economico', views.SolicitudEconomicos, name='Solicitar_economico'),
 
