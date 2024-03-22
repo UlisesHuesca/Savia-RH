@@ -107,7 +107,14 @@ Verificar Solicitud - Bonos Varilleros
                                 <input type="hidden" class="form-control bg-white" name="bono" value="{{solicitante.bono.id}}" id="bono" >
                             </div>
                             <small class="text-danger">{{ solicitudForm.bono.errors }}</small>
-                            
+                             {% comment %} se activa en el bono viaje - PEP {% endcomment %}
+                             <div id="km" class="input-group my-3 d-none">
+                                <label for="" class="text-muted mb-1">kilómetros</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-road"></i></span>
+                                    <input id="cantidad-km" type="number" name="km" value="" min="0" class="form-control bg-white" placeholder="Ingrese los kilómetros" aria-label="nombre" aria-describedby="basic-addon1">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -203,19 +210,33 @@ Verificar Solicitud - Bonos Varilleros
                     </div>                    
                     {% endif %}
 
-                    <div class="card">
                     
-                      <div class="card-body">
-                        <div class="row">
-                            <div class="col-auto">
-                              <label for="inputPassword6" class="col-form-label fw-bold">Comentario: {{estado.comentario}}</label>
+
+                    
+
+
+                    <div class="col-12 mt-1 overflow-auto">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Soporte</h5>
                             </div>
-                            <div class="col-8">
-                             
-                             
+                            <div class="card-body">
+                                <p id="soporte"><span class="text-muted">selecciona un bono</span></p>
                             </div>
-                          </div>
-                      </div>
+                        </div>
+
+                    </div>
+
+                    <div class="col-12 mt-3 overflow-auto">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Comentario</h5>
+                            </div>
+                            <div class="card-body">
+                                <label for="inputPassword6" class="col-form-label fw-bold">{{estado.comentario}}</label>
+                            </div>
+                        </div>
+
                     </div>
 
 
@@ -225,7 +246,7 @@ Verificar Solicitud - Bonos Varilleros
 {% endblock content %}
 
 {% block js %}
-    <script src="{% static 'js/esquema/bono_varillero/crear_solicitud.js' %}"></script>
+    <script src="{% static 'js/esquema/bono_varillero/verificar_solicitud.js' %}"></script>
     <script src="{% static 'js/esquema/bono_varillero/mostrar_boton.js' %}"></script>
     {% comment %} select2 {% endcomment %}    
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

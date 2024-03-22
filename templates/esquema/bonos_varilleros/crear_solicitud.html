@@ -101,9 +101,19 @@ Crear Solicitud - Bonos Varilleros
                             {% comment %} Bono {% endcomment %}
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-sack-dollar"></i></span>
-                                {% render_field solicitudForm.bono class="form-control text-capitalize " id="bono" %}
+                                {% render_field solicitudForm.bono class="form-control text-capitalize" id="bono"%}
                             </div>
                             <small class="text-danger">{{ solicitudForm.bono.errors }}</small>
+                            
+                            {% comment %} se activa en el bono viaje - PEP {% endcomment %}
+                            <div id="km" class="input-group my-3 d-none">
+                                <label for="" class="text-muted mb-1">kilómetros</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-road"></i></span>
+                                    <input id="cantidad-km" type="number" name="km" value="" min="0" class="form-control bg-white" placeholder="Ingrese los kilómetros" aria-label="nombre" aria-describedby="basic-addon1">
+                                </div>
+                            </div>
+                                
                             
                         </div>
                     </div>
@@ -145,10 +155,15 @@ Crear Solicitud - Bonos Varilleros
                                     <div class="input-group">
                                         <span class="input-group-text"><i
                                                 class="fa fa-dollar-sign"></i></span>
-                                        {% render_field bonoSolicitadoForm.cantidad class="form-control bg-white" id="cantidad"%}
+                                        {% render_field bonoSolicitadoForm.cantidad class="form-control bg-white" value="" id="cantidad"%}
                                     </div>
                                     <small class="text-danger">{{ bonoSolicitadoForm.cantidad.errors }}</small>
                                 </div>
+                                
+                               
+                                    
+
+                                
                                 <div class="col-md-1" style="margin-top: 30px;">
                                     <button id="btnAgregar" name="btn_agregar" type="submit" class="btn btn-success" title="Agregar Bono"><i class="fas fa-plus"></i></button>
                                 </div>
