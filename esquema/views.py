@@ -47,6 +47,10 @@ from datetime import datetime
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
+#pillow
+from PIL import Image
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -121,6 +125,42 @@ def listarBonosVarilleros(request):
     }
     
     return render(request,'esquema/bonos_varilleros/listar.html',contexto)
+
+def comprimir_imagen(imagen):
+    """
+    Comprime una imagen y devuelve un objeto InMemoryUploadedFile.
+    
+    Args:
+    imagen (InMemoryUploadedFile): Objeto de imagen subida.
+    
+    Returns:
+    InMemoryUploadedFile: Objeto de imagen comprimida.
+    """
+    # Abre la imagen usando Pillow
+    img = Image.open(imagen)
+    
+    # Crea un flujo de bytes para almacenar la imagen comprimida
+    img_temp_output = BytesIO()
+    
+    ancho_original, alto_original = img.size
+
+    # Hace que el height y width se reduzca a la mitad
+    nuevo_ancho = ancho_original // 2
+    nuevo_alto = alto_original // 2
+
+    # Redimensionar la imagen
+    img = img.resize((nuevo_ancho, nuevo_alto))
+    
+    # Comprime la imagen y la guarda en el flujo de bytes
+    img.save(img_temp_output, format='JPEG', quality=25, optimize=True)  # Puedes ajustar la calidad según tus necesidades
+    
+    # Restablece el puntero del flujo de bytes al principio
+    img_temp_output.seek(0)
+    
+    # Crea un objeto InMemoryUploadedFile para la imagen comprimida
+    img_comprimida = InMemoryUploadedFile(img_temp_output, None, imagen.name.split('.')[0] + 'b.jpg', 'image/jpeg', img_temp_output.getbuffer().nbytes, None)
+    
+    return img_comprimida
 
 #para crear solicitudes de bonos
 @login_required(login_url='user-login')
@@ -199,10 +239,20 @@ def crearSolicitudBonosVarilleros(request):
                 if requerimientoForm.is_valid():
                     #Se recorren los archivos para ser almacenados
                     for archivo in archivos:
+                        #Comprime imagenes
+                        if archivo.content_type != 'application/pdf':
+                            documento = comprimir_imagen(archivo)
+                        #cuando es un PDF
+                        else:
+                            documento = archivo
+                        
+                        #Guarda imagen o PDF
                         Requerimiento.objects.create(
                             solicitud_id = folio,
-                            url = archivo,
+                             url = documento,
                         )
+                        
+                        
                     solicitud.complete_requerimiento = True
                     solicitud.save()
                     messages.success(request, "Los archivos se subieron correctamente")
@@ -310,9 +360,17 @@ def verificarSolicitudBonosVarilleros(request,solicitud):
 
             if requerimientoForm.is_valid():
                 for archivo in archivos:
+                    
+                    #Comprime imagenes
+                    if archivo.content_type != 'application/pdf':
+                        documento = comprimir_imagen(archivo)
+                    #cuando es un PDF
+                    else:
+                        documento = archivo
+                    
                     Requerimiento.objects.create(
                         solicitud_id=solicitud,
-                        url=archivo,
+                        url=documento,
                     )
                 messages.success(request, "Los archivos se han subido correctamente")
             
@@ -372,6 +430,11 @@ def verificarSolicitudBonosVarilleros(request,solicitud):
 @login_required(login_url='user-login')
 def verDetallesSolicitud(request,solicitud_id):    
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
+    
+    obtener_bono = Solicitud.objects.filter(pk=solicitud_id).values('bono_id').first()
+    soporte_detalles = Subcategoria.objects.filter(pk=obtener_bono['bono_id']).values('soporte').first()
+    soporte = soporte_detalles['soporte']
+    
     #los bonos solicitados
     bonos = BonoSolicitado.objects.filter(solicitud_id = solicitud_id)
     #los archivos
@@ -388,8 +451,6 @@ def verDetallesSolicitud(request,solicitud_id):
         solicitud__folio=solicitud_id
     ).first()
     
-    
-    
     #se carga el formulario con datos iniciales
     autorizarSolicitudesUpdateForm = AutorizarSolicitudesUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
     autorizarSolicitudesGerenteUpdateForm = AutorizarSolicitudesGerenteUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
@@ -400,7 +461,8 @@ def verDetallesSolicitud(request,solicitud_id):
         "bonos":bonos,
         "requerimientos": requerimientos,
         "autorizarSolicitudesUpdateForm":autorizarSolicitudesUpdateForm,
-        "autorizarSolicitudesGerenteUpdateForm":autorizarSolicitudesGerenteUpdateForm
+        "autorizarSolicitudesGerenteUpdateForm":autorizarSolicitudesGerenteUpdateForm,
+        "soporte":soporte
     }
     
     return render(request,'esquema/bonos_varilleros/detalles_solicitud.html',contexto)
