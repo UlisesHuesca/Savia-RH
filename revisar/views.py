@@ -117,15 +117,7 @@ def autorizarSolicitud(request,solicitud):
             usuario = request.user  
             rol = UserDatos.objects.get(user_id = usuario.id)
             
-            #VERIFICAR CATORCENA
-            fecha_actual = datetime.now()
-            catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
-            fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
-            print("fecha inicial con H:i ", fecha_inicial)
-            fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
-            print("fecha final con H:i ", fecha_final)
-            
-            autorizar = AutorizarSolicitudes.objects.get(solicitud_id = solicitud, tipo_perfil_id = rol.tipo_id, updated_at__range=(fecha_inicial,fecha_final))
+            autorizar = AutorizarSolicitudes.objects.get(solicitud_id = solicitud, tipo_perfil_id = rol.tipo_id)
             
             print("BONOS: ",autorizar)
             

@@ -72,14 +72,6 @@ def listarBonosVarilleros(request):
     #se obtiene el perfil del usuario logueado
     solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
     
-    #Se muestran por catorcenas
-    fecha_actual = datetime.now()
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
-    fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
-    print("fecha inicial con H:i ", fecha_inicial)
-    fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
-    print("fecha final con H:i ", fecha_final)
-    
     subconsulta_ultima_fecha = AutorizarSolicitudes.objects.values('solicitud_id').annotate(
             ultima_fecha=Max('created_at')
         ).filter(solicitud_id=OuterRef('solicitud_id')).values('ultima_fecha')[:1]
@@ -90,14 +82,14 @@ def listarBonosVarilleros(request):
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__complete = 1,updated_at__range=(fecha_inicial,fecha_final)
+            solicitud__complete = 1
         ).order_by("-created_at")
     elif usuario.tipo.id ==  5: #supervisor
         #obtiene todas las ultimas autorizaciones de su distrito y roles
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,updated_at__range=(fecha_inicial,fecha_final)
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1
             #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     else:
@@ -105,7 +97,7 @@ def listarBonosVarilleros(request):
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,tipo_perfil_id=usuario.tipo.id ,updated_at__range=(fecha_inicial,fecha_final)
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,tipo_perfil_id=usuario.tipo.id
             #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     
