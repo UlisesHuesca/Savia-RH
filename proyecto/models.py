@@ -638,6 +638,8 @@ class Vacaciones_dias_tomados(models.Model):
 
 class Solicitud_economicos(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
+    #jefe inmediato
+    perfil = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True)
     periodo = models.CharField(max_length=50,null=True)
     fecha = models.DateField(null=True)
     comentario = models.TextField(null=True)

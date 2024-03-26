@@ -48,6 +48,13 @@
                         <label for="form.nombre" class="col-auto col-form-label"><strong>Empleado: {{solicitud.status.perfil.nombres}} {{solicitud.status.perfil.apellidos}}</strong></label>
                         <br>
                         <div class="row my-2">
+                            <label for="form.fecha" class="col-auto col-form-label my-1"><strong>Jefe inmediato:</strong></label>
+                            <div class="col-4">
+                                <span class="form-control w-100" style="background-color: #f1f1f1;" w>{{ solicitud.perfil }}</span>
+                               
+                            </div>
+                        </div>
+                        <div class="row my-2">
                             <label for="form.fecha" class="col-auto col-form-label my-1"><strong>Fecha solicitada por el empleado:</strong></label>
                             <div class="col-2">
                                 <span class="form-control" style="background-color: #f1f1f1;">{{ form.fecha.value }}</span>
