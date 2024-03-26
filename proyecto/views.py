@@ -17,6 +17,7 @@ from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados
 from .models import Variables_carga_social, Variables_imss_patronal, CostoAnterior
 from revisar.models import AutorizarPrenomina
 from prenomina.models import Prenomina
+from prenomina.filters import PrenominaFilter
 import csv
 import json
 
@@ -1113,6 +1114,7 @@ def FormularioCosto(request):
                                                                                 messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
                                                                                 costo = form.save(commit=False)
                                                                                 costo.complete = True
+                                                                                costo.status.complete_costo = True
                                                                                 costo.save()
                                                                                 return redirect('Tabla_costo')
 
@@ -3887,6 +3889,7 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
     costo.complemento_salario_mensual = (costo.complemento_salario_catorcenal/dato.dias_quincena)*dato.dias_mes
     costo.sueldo_mensual = costo.sueldo_diario*dato.dias_mes
     costo.sueldo_mensual_sdi = costo.sdi*dato.dias_mes #sdi
+    costo.apoyo_de_pasajes = costo.apoyo_de_pasajes*Decimal(((14-faltas)/14))
     costo.total_percepciones_mensual = costo.apoyo_de_pasajes + costo.sueldo_mensual
     for tabla in tablas:
         if costo.total_percepciones_mensual >= tabla.liminf:
@@ -4527,11 +4530,14 @@ def PdfFormatoVacaciones(request, pk):
                     cuenta -= 1
     diferencia = str(cuenta)
     #Para ubicar el dia de regreso en un dia habil (Puede caer en día festivo)
-    fin = fin + timedelta(days=1)
-    if fin.isoweekday() == inhabil:
-        fin = fin + timedelta(days=1)
+    #fin = fin + timedelta(days=1)
+    #if fin.isoweekday() == inhabil:
+    #    fin = fin + timedelta(days=1)
     now = date.today()
-    año1 = str(inicio.year)
+    #año1 = str(inicio.year)
+    #año2= str(fin.year)
+    año1 = fin - relativedelta(years=1)
+    año1 = str(año1.year)
     año2= str(fin.year)
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=letter)
@@ -4543,7 +4549,8 @@ def PdfFormatoVacaciones(request, pk):
     c.setFillColor(azul)
     c.setLineWidth(.2)
     c.setFont('Helvetica-Bold',16)
-    c.drawCentredString(305,765,'GRUPO VORCAB SA DE CV')
+    c.drawCentredString(305,765,'GRUPO VORDCAB SA DE CV')
+    c.setFont('Helvetica-Bold',11)
     c.drawCentredString(305,750,'SOLICITUD DE VACACIONES')
     c.drawInlineImage('static/images/vordcab.png',50,720, 4 * cm, 2 * cm) #Imagen Savia
     if solicitud.autorizar == False:
@@ -4618,12 +4625,12 @@ def PdfFormatoVacaciones(request, pk):
     c.drawCentredString(450,540-altura,diferencia)
     c.rect(35,538-altura, 175, 12)
     c.rect(360,538-altura, 190, 12)
-    c.drawString(40,520-altura,'CON GOCE DE SUELDO:')
-    c.rect(35,518-altura, 140, 12)
-    c.drawString(380,520-altura,'SI')
-    c.rect(360,518-altura, 50, 12)
-    c.drawString(425,520-altura,'NO')
-    c.rect(410,518-altura, 50, 12)
+    #c.drawString(40,520-altura,'CON GOCE DE SUELDO:')
+    #c.rect(35,518-altura, 140, 12)
+    #c.drawString(380,520-altura,'SI')
+    #c.rect(360,518-altura, 50, 12)
+    #c.drawString(425,520-altura,'NO')
+    #c.rect(410,518-altura, 50, 12)
     c.drawString(40,500-altura,'FECHA QUE DESEA SALIR DE VACACIONES:')
     c.drawCentredString(450,500-altura,str(inicio))
     c.rect(35,498-altura, 250, 12)
@@ -5034,12 +5041,13 @@ def PdfFormatoEconomicos(request, pk):
     azul = Color(0.16015625,0.5,0.72265625)
     rojo = Color(0.59375, 0.05859375, 0.05859375)
 
-    c.setFillColor(black)
+    c.setFillColor(azul)
     c.setLineWidth(.2)
     c.setFont('Helvetica-Bold',16)
     c.drawCentredString(305,765,'GRUPO VORCAB SA DE CV')
     c.setFont('Helvetica-Bold',11)
     c.drawCentredString(305,750,'SOLICITUD DE DIA ECONOMICO')
+    c.drawInlineImage('static/images/vordcab.png',50,720, 4 * cm, 2 * cm) #Imagen Savia
     if solicitud.autorizar == False:
         c.setFillColor(rojo)
         c.setFont('Helvetica-Bold',16)
@@ -5106,12 +5114,12 @@ def PdfFormatoEconomicos(request, pk):
     elif economico == 3:
         c.rect(460,498, 50, 12, stroke = 1, fill = 1)
     c.setFillColor(black)
-    c.drawString(40,480,'CON GOCE DE SUELDO:')
-    c.rect(35,478, 140, 12)
-    c.drawString(380,480,'SI')
-    c.rect(360,478, 50, 12)
-    c.drawString(425,480,'NO')
-    c.rect(410,478, 50, 12)
+    #c.drawString(40,480,'CON GOCE DE SUELDO:')
+    #c.rect(35,478, 140, 12)
+    #c.drawString(380,480,'SI')
+    #c.rect(360,478, 50, 12)
+    #c.drawString(425,480,'NO')
+    #c.rect(410,478, 50, 12)
     c.drawString(40,460,'FECHA QUE DESEA SALIR DEL PERMISO:')
     c.drawCentredString(450,460,str(fecha))
     c.rect(35,458, 250, 12)
@@ -6498,3 +6506,199 @@ def costo_revisar_anterior(request, pk):
     context = {'costo':costo,}
 
     return render(request, 'proyecto/costo_revisar_anterior.html',context)
+
+@login_required(login_url='user-login')
+def TablaPrenominas(request):
+    user_filter = UserDatos.objects.get(user=request.user)
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        prenominas= Prenomina.objects.filter(empleado__status__perfil__empresa=empresa_faxton).order_by("empleado__status__perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
+        prenominas= Prenomina.objects.all().order_by("empleado__status__perfil__numero_de_trabajador")
+    else:
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+        prenominas= Prenomina.objects.filter(empleado__status__perfil__id__in=perfil.all()).order_by("empleado__status__perfil__numero_de_trabajador")
+
+    prenomina_filter = PrenominaFilter(request.GET, queryset=prenominas)
+    prenominas = prenomina_filter.qs
+
+    for prenomina in prenominas:
+        ultima_autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina).order_by('-updated_at').first() #Ultimo modificado
+
+        if ultima_autorizacion is not None:
+            prenomina.valor = ultima_autorizacion.estado.tipo #Esta bien como agarra el dato de RH arriba que es el primero
+        prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
+
+    if request.method =='POST' and 'Excel' in request.POST:
+        return Excel_estado_prenomina(prenominas, user_filter)
+    
+                #Set up pagination
+    p = Paginator(prenominas, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
+    context= {
+        'prenominas':prenominas,
+        'prenomina_filter':prenomina_filter,
+        'salidas_list':salidas_list,
+        }
+
+    return render(request, 'proyecto/PrenominaTabla.html',context)
+
+def Excel_estado_prenomina(prenominas, user_filter):
+    response= HttpResponse(content_type = "application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Reporte_prenominas_' + str(datetime.date.today())+'.xlsx'
+    wb = Workbook()
+    ws = wb.create_sheet(title='Reporte')
+    #Comenzar en la fila 1
+    row_num = 1
+
+    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name = "head_style")
+    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
+    head_style.fill = PatternFill("solid", fgColor = '00003366')
+    wb.add_named_style(head_style)
+    #Create body style and adding to workbook
+    body_style = NamedStyle(name = "body_style")
+    body_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(body_style)
+    #Create messages style and adding to workbook
+    messages_style = NamedStyle(name = "mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size = 11)
+    wb.add_named_style(messages_style)
+    #Create date style and adding to workbook
+    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
+    date_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(date_style)
+    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+    money_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(money_style)
+    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
+    wb.add_named_style(money_resumen_style)
+
+    columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce sueldo',
+               'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo']
+
+    for col_num in range(len(columns)):
+        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
+        if col_num < 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
+        if col_num == 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        else:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+
+
+    columna_max = len(columns)+2
+
+    (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. JH}')).style = messages_style
+    (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    (ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
+    (ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
+    ws.column_dimensions[get_column_letter(columna_max)].width = 20
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
+    ahora = datetime.date.today()
+    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    rows = []
+
+    for prenomina in prenominas:
+        RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
+        CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
+        G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
+
+        if G is not None and G.estado.tipo == 'aprobado':
+            estado = 'aprobado'
+        elif G is not None and G.estado == 'rechazado':
+            estado = 'rechazado'
+        else:
+            estado = 'pendiente'
+
+        if RH is None:
+            RH ="Ninguno"   
+        else:
+            RH = str(RH.perfil.nombres)+(" ")+str(RH.perfil.apellidos)
+        if CT is None:
+            CT ="Ninguno"
+        else:
+            CT = str(CT.perfil.nombres)+(" ")+str(CT.perfil.apellidos)
+        if G is None:
+            G ="Ninguno"
+        else:
+            G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
+        retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        catorcena_num = catorcena_actual.catorcena
+
+        # Agregar los valores a la lista rows para cada prenomina
+        row = (
+            prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
+            prenomina.empleado.status.perfil.numero_de_trabajador,
+            prenomina.empleado.status.perfil.distrito.distrito,
+            catorcena_num,
+            prenomina.fecha,
+            prenomina.estado_general,
+            str(RH),
+            str(CT),
+            str(G),
+            estado,
+            retardos,
+            castigos,
+            permiso_goce,
+            permiso_sin,
+            descanso,
+            incapacidades,
+            faltas,
+            comision,
+            domingo
+        )
+        rows.append(row)
+
+    # Ahora puedes usar la lista rows como lo estás haciendo actualmente en tu código
+    for row_num, row in enumerate(rows, start=2):
+        for col_num, value in enumerate(row, start=1):
+            if col_num < 4:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+            elif col_num == 5:
+                ws.cell(row=row_num, column=col_num, value=value).style = date_style
+            else:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+
+
+    sheet = wb['Sheet']
+    wb.remove(sheet)
+    wb.save(response)
+
+    return(response)
+
+def determinar_estado_general(ultima_autorizacion):
+    if ultima_autorizacion is None:
+        return "Sin autorizaciones"
+
+    tipo_perfil = ultima_autorizacion.tipo_perfil.nombre.lower()
+    estado_tipo = ultima_autorizacion.estado.tipo.lower()
+
+    if tipo_perfil == 'rh' and estado_tipo == 'aprobado': #Ultimo upd rh y fue aprobado
+        return 'Controles técnicos pendiente'              #Solo puede editarlo ct
+
+    if tipo_perfil == 'control tecnico' and estado_tipo == 'aprobado': #Ultimo upd ct y fue aprobado
+        return 'Gerente pendiente'                         
+    
+    if tipo_perfil == 'gerencia' and estado_tipo == 'aprobado': #Ultimo upd gerencia y fue aprobado
+        return 'Gerente aprobado (Prenomina aprobada)'
+
+    if tipo_perfil == 'control tecnico' and estado_tipo == 'rechazado': #Ultimo upd ct y fue rechazado
+        return 'RH pendiente (rechazado por Controles técnicos)'
+    
+    if tipo_perfil == 'gerencia' and estado_tipo == 'rechazado': #Ultimo upd gerencia y fue rechazado
+        return 'RH pendiente (rechazado por Gerencia)'
+
+    return 'Estado no reconocido'
