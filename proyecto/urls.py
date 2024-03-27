@@ -102,5 +102,4 @@ urlpatterns = [
     path('costo-anterior',views.costo_anterior,name="costo_anterior"),
     path('costo/revisar-anterior/<int:pk>/', views.costo_revisar_anterior, name='costo_revisar_anterior'),
     
-    
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

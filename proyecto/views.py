@@ -7,6 +7,7 @@ from django.db.models import Sum, F
 from django.contrib import messages
 import locale
 import math
+from django.core.exceptions import ObjectDoesNotExist
 
 locale.setlocale( locale.LC_ALL, '' )
 
@@ -4286,40 +4287,46 @@ def SolicitudVacaciones(request):
 
     now = date.today()
     periodo = str(now.year)
-    datos= Vacaciones.objects.get(complete=True,status=status,periodo=periodo) #Para sacar el dato actual
-
+    
+    try:
+        datos= Vacaciones.objects.get(complete=True,status=status,periodo=periodo) #Para sacar el dato actual
+    except ObjectDoesNotExist:
+        print("Aun no puedes solicitar vacaciones, no tienes la antiguedad")
+        return render(request, 'error_pages/solicitud_vacaciones.html')
 
     if request.method == 'POST' and 'btnSend' in request.POST:
         form = SolicitudVacacionesForm(request.POST, instance=solicitud)
-        form.save(commit=False)
+        #form.save(commit=False)
 
         #Se quita a la cantidad de días de vacaciones el día inhabil y los días festivos para sacar la cuenta de días que tomara
-        tabla_festivos = TablaFestivos.objects.all()
-        delta = timedelta(days=1)
-        day_count = (solicitud.fecha_fin - solicitud.fecha_inicio + delta ).days
-        cuenta = day_count
-        inhabil = solicitud.dia_inhabil.numero
-        for fecha in (solicitud.fecha_inicio + timedelta(n) for n in range(day_count)):
-            if fecha.isoweekday() == inhabil:
-                cuenta -= 1
-            else:
-                for dia in tabla_festivos:
-                    if fecha == dia.dia_festivo:
-                        cuenta -= 1  #Días que va a tomar con esta solicitud
-
-        if cuenta <= pendiente:
-            if solicitud.fecha_fin > solicitud.fecha_inicio:
-                verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
-                if verificar is None:
-                    valido = True
-                elif verificar.autorizar is not None:
-                    valido = True
+        if form.is_valid():
+            tabla_festivos = TablaFestivos.objects.all()
+            delta = timedelta(days=1)
+            day_count = (solicitud.fecha_fin - solicitud.fecha_inicio + delta ).days
+            cuenta = day_count
+            #inhabil = solicitud.dia_inhabil.numero
+            inhabil = form.cleaned_data['dia_inhabil']
+            for fecha in (solicitud.fecha_inicio + timedelta(n) for n in range(day_count)):
+                if fecha.isoweekday() == inhabil:
+                    cuenta -= 1
                 else:
-                    messages.error(request, 'Tiene una solicitud generada sin revisar')
+                    for dia in tabla_festivos:
+                        if fecha == dia.dia_festivo:
+                            cuenta -= 1  #Días que va a tomar con esta solicitud
+
+            if cuenta <= pendiente:
+                if solicitud.fecha_fin >= solicitud.fecha_inicio:
+                    verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
+                    if verificar is None:
+                        valido = True
+                    elif verificar.autorizar is not None:
+                        valido = True
+                    else:
+                        messages.error(request, 'Tiene una solicitud generada sin revisar')
+                else:
+                    messages.error(request,'La fecha de inicio no puede ser posterior a la final')
             else:
-                messages.error(request,'La fecha de inicio no puede ser posterior a la final')
-        else:
-            messages.error(request,f'Tiene {pendiente} días pendientes, y esta solicitando {cuenta} días de vacaciones')
+                messages.error(request,f'Tiene {pendiente} días pendientes, y esta solicitando {cuenta} días de vacaciones')
         if valido and form.is_valid():
             num_campos = int(request.POST.get('num_campos', 0))
 
@@ -4362,7 +4369,7 @@ def SolicitudVacaciones(request):
             #trabajos_encomendados.save()
             temas.complete=True
             temas.save()
-            messages.success(request, 'Solicitud enviada a RH')
+            messages.success(request, 'Solicitud enviada al Jefe Inmediato')
             now = date.today()
             solicitud.periodo = str(now.year)
             solicitud.status = status
@@ -4404,65 +4411,74 @@ def solicitud_vacacion_verificar(request, pk):
     delta = timedelta(days=1)
     valido = True
 
-    if request.method == 'POST' and 'btnSend' in request.POST:
+    if request.method == 'POST':
         form =SolicitudVacacionesUpdateForm(request.POST, instance=solicitud)
-        solicitud = form.save(commit=False)
+        #solicitud = form.save(commit=False)
             #Para las condicionales
-        if solicitud.fecha_fin < solicitud.fecha_inicio:
-            messages.error(request,'La fecha de inicio no puede ser posterior a la final')
-            valido=False
-
-        #Se quita a la cantidad de días de vacaciones el día inhabil y los días festivos para sacar la cuenta de días que tomara
-        tabla_festivos = TablaFestivos.objects.all()
-        delta = timedelta(days=1)
-        day_count = (solicitud.fecha_fin - solicitud.fecha_inicio + delta ).days
-        cuenta = day_count
-        inhabil = solicitud.dia_inhabil.numero
-        for fecha in (solicitud.fecha_inicio + timedelta(n) for n in range(day_count)):
-            if fecha.isoweekday() == inhabil:
-                cuenta -= 1
-            else:
-                for dia in tabla_festivos:
-                    if fecha == dia.dia_festivo:
-                        cuenta -= 1  #Días que va a tomar con esta solicitud
-        dias_vacacion = cuenta
-        if cuenta < 0:
-            messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
-            valido=False
-
-        #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
-        ultima_vacacion = Vacaciones.objects.filter(status=solicitud.status.id).last()
-        if ultima_vacacion is not None and ultima_vacacion.total_pendiente > 0:
-            datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
-            suma_total = datos.aggregate(total_suma=Sum('total_pendiente'))['total_suma']
-            if suma_total < cuenta:
-                messages.error(request, f'Esta pidiendo {cuenta} días cuando solo tiene {suma_total}')
+        if form.is_valid():
+            if solicitud.fecha_fin < solicitud.fecha_inicio:
+                messages.error(request,'La fecha de inicio no puede ser posterior a la final')
                 valido=False
-            if datos.exclude(id=datos.last().id) != None:
-                datos = datos.exclude(id=datos.last().id) #Hasta aqui bien
-                for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
-                    if cuenta <= dato.total_pendiente and cuenta > 0:
-                        if dato.dias_disfrutados == None:
-                            dato.dias_disfrutados = 0
-                        dato.total_pendiente -= cuenta
-                        dato.dias_disfrutados += cuenta
-                        cuenta = 0
-                        break
-                    elif cuenta > dato.total_pendiente and cuenta > 0:
-                        if dato.dias_disfrutados == None:
-                            dato.dias_disfrutados = 0
-                        dato.dias_disfrutados += dato.total_pendiente
-                        cuenta -=dato.total_pendiente
-                        dato.total_pendiente = 0
-        #else:
-        #    datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
-        ############################
+
+            #Se quita a la cantidad de días de vacaciones el día inhabil y los días festivos para sacar la cuenta de días que tomara
+            tabla_festivos = TablaFestivos.objects.all()
+            delta = timedelta(days=1)
+            day_count = (solicitud.fecha_fin - solicitud.fecha_inicio + delta ).days
+            cuenta = day_count
+            inhabil = solicitud.dia_inhabil.numero
+            for fecha in (solicitud.fecha_inicio + timedelta(n) for n in range(day_count)):
+                if fecha.isoweekday() == inhabil:
+                    cuenta -= 1
+                else:
+                    for dia in tabla_festivos:
+                        if fecha == dia.dia_festivo:
+                            cuenta -= 1  #Días que va a tomar con esta solicitud
+            dias_vacacion = cuenta
+            if cuenta < 0:
+                messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
+                valido=False
+
+            #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
+            ultima_vacacion = Vacaciones.objects.filter(status=solicitud.status.id).last()
+            if ultima_vacacion is not None and ultima_vacacion.total_pendiente > 0:
+                datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
+                suma_total = datos.aggregate(total_suma=Sum('total_pendiente'))['total_suma']
+                if suma_total < cuenta:
+                    messages.error(request, f'Esta pidiendo {cuenta} días cuando solo tiene {suma_total}')
+                    valido=False
+                if datos.exclude(id=datos.last().id) != None:
+                    datos = datos.exclude(id=datos.last().id) #Hasta aqui bien
+                    for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
+                        if cuenta <= dato.total_pendiente and cuenta > 0:
+                            if dato.dias_disfrutados == None:
+                                dato.dias_disfrutados = 0
+                            dato.total_pendiente -= cuenta
+                            dato.dias_disfrutados += cuenta
+                            cuenta = 0
+                            break
+                        elif cuenta > dato.total_pendiente and cuenta > 0:
+                            if dato.dias_disfrutados == None:
+                                dato.dias_disfrutados = 0
+                            dato.dias_disfrutados += dato.total_pendiente
+                            cuenta -=dato.total_pendiente
+                            dato.total_pendiente = 0
+            #else:
+            #    datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
+            ############################
         if valido and form.is_valid():
-            solicitud = form.save(commit=False)
-            solicitud.comentario_rh= request.POST.get('comentario')
-            solicitud.save()
-            coment = request.POST.get('comentario')
-            if solicitud.autorizar == True:
+            #solicitud = form.save(commit=False)
+            #solicitud.comentario_rh= request.POST.get('comentario')
+            #solicitud.save()
+            #coment = request.POST.get('comentario')
+           
+            #if solicitud.autorizar == True:
+            if 'btnAutorizar' in request.POST:
+                solicitud = form.save(commit=False)
+                solicitud.comentario_rh= request.POST.get('comentario')
+                solicitud.autorizar = 1
+                solicitud.save()
+                coment = request.POST.get('comentario')
+                
                 vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
                 vacacion.dias_disfrutados += cuenta
                 vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
@@ -4495,7 +4511,12 @@ def solicitud_vacacion_verificar(request, pk):
                 prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=vacacion,fecha_inicio=vacacion.fecha_inicio,fecha_fin=vacacion.fecha_fin,
                                         dia_inhabil=vacacion.dia_inhabil,comentario=vacacion.comentario,editado=vacacion.editado)
                 messages.success(request, 'Solicitud autorizada y días de vacaciones agregados')
-            else:
+            elif 'btnRechazar' in request.POST:
+                print("aqui pulso que no autoriza")
+                solicitud = form.save(commit=False)
+                solicitud.comentario_rh= request.POST.get('comentario')
+                solicitud.autorizar = 0
+                solicitud.save()
                 messages.success(request, 'Solicitud guardada como no autorizado')
 
             return redirect('Solicitudes_vacaciones')
@@ -5039,7 +5060,7 @@ def PdfFormatoEconomicos(request, pk):
     c.setFillColor(black)
     c.setLineWidth(.2)
     c.setFont('Helvetica-Bold',16)
-    c.drawCentredString(305,765,'GRUPO VORCAB SA DE CV')
+    c.drawCentredString(305,765,'GRUPO VORDCAB SA DE CV')
     c.setFont('Helvetica-Bold',11)
     c.drawCentredString(305,750,'SOLICITUD DE DIA ECONOMICO')
     if solicitud.autorizar == False:
@@ -5680,6 +5701,7 @@ def Tabla_solicitud_vacaciones(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    
     if revisar_perfil.empresa == empresa_faxton:
         perfiles= Perfil.objects.filter(complete=True, baja=False, empresa=empresa_faxton).order_by("numero_de_trabajador")
     elif user_filter.distrito.distrito == 'Matriz':
@@ -5687,15 +5709,28 @@ def Tabla_solicitud_vacaciones(request):
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True, baja=False).order_by("numero_de_trabajador")
 
-    solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
-    solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    #solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
+    #solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
 
+    #RH solo puede ver solicitudes | Supervisor - Jefe inmediato puede autorizar solicitudes y ver solicitudes 
+    if user_filter.tipo_id == 4:
+         #solicitudes pendientes
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    else:
+        #solicitudes pendientes
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = revisar_perfil.id)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = revisar_perfil.id).exclude(Q(autorizar=None)).order_by("-id")
+    
     solicitud_filter = SolicitudesVacacionesFilter(request.GET, queryset=solicitudes)
     solicitudes = solicitud_filter.qs
     solicitud2_filter = SolicitudesVacacionesFilter(request.GET, queryset=solicitudes_revisadas)
     solicitudes_revisadas = solicitud2_filter.qs
 
     context= {
+        'user_filter': user_filter,
         'perfiles':perfiles,
         'solicitud_filter':solicitud_filter,
         'solicitudes':solicitudes,

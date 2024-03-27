@@ -111,23 +111,19 @@ class VacacionesFormato(forms.ModelForm): ###
 class SolicitudVacacionesForm(forms.ModelForm):
     class Meta:
         model = Solicitud_vacaciones
-        fields = ['fecha_inicio','fecha_fin', 'dia_inhabil',]
-
-class SolicitudVacacionesUpdateForm(forms.ModelForm):
-    AUTORIZACION_CHOICES = (
-        ('Yes', 'Si'),
-        ('No', 'No'),
-    )
-
-    autorizar = forms.TypedChoiceField( #definir como TypedChoiceField en vez de ChoiceField, 
-        choices=AUTORIZACION_CHOICES, #lo que permite agregar un argumento adicional llamado coerce 
-        coerce=lambda x: x == 'Yes', #para realizar la conversión deseada del valor del campo.
-        widget=forms.Select(attrs={'class': 'form-control'})
-    ) #selecciona 'Yes', se convierte en True, y cuando selecciona 'No', se convierte en False.
+        fields = ['fecha_inicio','fecha_fin','dia_inhabil','perfil']
     
+    def __init__(self, *args, **kwargs):
+        super(SolicitudVacacionesForm, self).__init__(*args, **kwargs)
+        # Filtrar las opciones del campo 'perfil'
+        usuarios = UserDatos.objects.filter(tipo_id = 5)
+        nt_usuarios = [usuario.numero_de_trabajador for usuario in usuarios]
+        self.fields['perfil'].queryset = Perfil.objects.filter(numero_de_trabajador__in=nt_usuarios)
+
+class SolicitudVacacionesUpdateForm(forms.ModelForm):    
     class Meta:
         model = Solicitud_vacaciones
-        fields = ['fecha_inicio','fecha_fin', 'dia_inhabil','autorizar',]
+        fields = ['fecha_inicio','fecha_fin','dia_inhabil']
 
 class VacacionesUpdateForm(forms.ModelForm):
     class Meta:

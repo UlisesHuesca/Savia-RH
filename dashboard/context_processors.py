@@ -62,13 +62,17 @@ def contadores_processor(request):
     if usuario_fijo:
         solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar=None, perfil_id = usuario_fijo.id)
         economicos_count = solicitudes_economicos.count()
+        
+        solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(complete=True, autorizar=None, perfil_id = usuario_fijo.id)
+        vacaciones_count = solicitudes_vacaciones.count()
     else:
         economicos_count = None
+        vacaciones_count = None
               
     #solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar=None)
     #economicos_count = solicitudes_economicos.count()
-    solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(complete=True, autorizar=None)
-    vacaciones_count = solicitudes_vacaciones.count()
+    #solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(complete=True, autorizar=None)
+    #vacaciones_count = solicitudes_vacaciones.count()
     return {
         'usuario':usuario,
         'usuario_fijo':usuario_fijo,

@@ -88,6 +88,9 @@
 </div>
 <!-- Aquí empieza la generación de la tabla -->
 <div class="row">
+
+    
+    {% if user_filter.tipo_id == 5 %}
 	<div class="col-md">
 		<div class="card card-body">
 			<h5>Solicitudes pendientes de autorizar:</h5>
@@ -117,6 +120,7 @@
             </table>
 		</div>
 	</div>
+    {% endif %}
 
 	<div class="col-md">
 		<div class="card card-body">
