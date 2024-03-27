@@ -9,7 +9,8 @@ import datetime
 #from user.models import Profile
 #Variables globales de usuario
 def contadores_processor(request):
-    usuario = UserDatos.objects.filter(user=request.user.id)
+    #usuario = UserDatos.objects.get(user=request.user.id)
+    #print("ES EL USUARIO LOGUEADO: ",usuario.distrito,usuario.numero_de_trabajador)
     
     #Filtro para evitar problemas al acceder los administradores sin perfil y status
     #Hace una busqueda en la database y si no lo encuentra lo guarda como ninguno y si lo encuentra lo
@@ -56,16 +57,23 @@ def contadores_processor(request):
                 prenomina_estado = 0 #Ninguna de las anteriores
         else:
             prenomina_estado = None
-            
-    solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar=None)
-    economicos_count = solicitudes_economicos.count()
+        
+    #Solicitudes economicos - Jefe inmediato
+    if usuario_fijo:
+        solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar=None, perfil_id = usuario_fijo.id)
+        economicos_count = solicitudes_economicos.count()
+    else:
+        economicos_count = None
+              
+    #solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar=None)
+    #economicos_count = solicitudes_economicos.count()
     solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(complete=True, autorizar=None)
     vacaciones_count = solicitudes_vacaciones.count()
     return {
-    'usuario':usuario,
-    'usuario_fijo':usuario_fijo,
-    'status_fijo':status_fijo,
-    'economicos_count':economicos_count,
-    'vacaciones_count':vacaciones_count,
-    'prenomina_estado':prenomina_estado,
+        'usuario':usuario,
+        'usuario_fijo':usuario_fijo,
+        'status_fijo':status_fijo,
+        'economicos_count':economicos_count,
+        'vacaciones_count':vacaciones_count,
+        'prenomina_estado':prenomina_estado,
     }

@@ -89,7 +89,7 @@ urlpatterns = [
     path('Formato/Economicos', views.FormatoEconomicos, name='Formato_economicos'), #Borrar
     path('Solicitar/Economico', views.SolicitudEconomicos, name='Solicitar_economico'),
 
-    path('Economicos/update/<int:pk>/', views.EconomicosUpdate, name='Economicos_update'),
+    #path('Economicos/update/<int:pk>/', views.EconomicosUpdate, name='Economicos_update'),
     path('Economicos/revisar/<int:pk>/', views.EconomicosRevisar, name='Economicos_revisar'),
     path('Solicitudes_economicos', views.Tabla_solicitud_economicos, name='Solicitudes_economicos'),
     path('Solicitudes_economicos_formato/<int:pk>/', views.PdfFormatoEconomicos, name='Solicitudes_economicos_formato'), #genera el pdf

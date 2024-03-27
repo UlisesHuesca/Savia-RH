@@ -2127,12 +2127,12 @@ def Tabla_Economicos(request): #Ya esta
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
-    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
-    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__isnull = False)
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
-    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    reinicio = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta__isnull = False,)
+    #reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
     if reinicio:
         for empleado in reinicio:
             economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None,
@@ -2176,8 +2176,7 @@ def Tabla_Economicos(request): #Ya esta
         'salidas_list':salidas_list,
         'salidas_listt':salidas_listt,
         'baja': request.GET.get('baja', False)
-        }
-
+    }
     return render(request, 'proyecto/Tabla_economicos.html',context)
 
 @login_required(login_url='user-login')
@@ -4877,20 +4876,19 @@ def FormatoEconomicos(request):
 def SolicitudEconomicos(request):
     usuario = UserDatos.objects.get(user__id=request.user.id)
     status = Status.objects.get(perfil__numero_de_trabajador=usuario.numero_de_trabajador, perfil__distrito=usuario.distrito)
-
+    
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
-    #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
     #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
-    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__isnull = False)
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    #reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
+    reinicio = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta__isnull = False,)
     #reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
-    reinicio = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta__isnull = False)
         
     if reinicio:
         for empleado in reinicio:
@@ -4900,16 +4898,17 @@ def SolicitudEconomicos(request):
             empleado.save()
 
 
-    solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
+    #solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
     form = SolicitudEconomicosForm()
     now = date.today()
     periodo = str(now.year)
-    valido = True
+    
     datos= Economicos.objects.get(complete=True,status=status,periodo=periodo)
     if request.method == 'POST' and 'btnSend' in request.POST:
-
-        form = SolicitudEconomicosForm(request.POST, instance=solicitud)
-        form.save(commit=False)
+        valido = True
+        
+        form = SolicitudEconomicosForm(request.POST)
+        #form.save(commit=False)
 
 
         if datos.dias_disfrutados < 3:
@@ -4929,8 +4928,9 @@ def SolicitudEconomicos(request):
             messages.error(request,'Los días económicos no pueden ser seguidos')
             valido = False
         if valido and form.is_valid():
-            messages.success(request, 'Solicitud enviada a RH')
+            messages.success(request, 'Solicitud enviada al Jefe Inmediato')
             now = date.today()
+            solicitud = form.save(commit=False)
             solicitud.periodo = str(now.year)
             solicitud.status = status
             solicitud.complete=True
@@ -5003,7 +5003,9 @@ def solicitud_economico_verificar(request, pk):
                 messages.success(request, 'Solicitud guardada como no autorizado')
             return redirect('Solicitudes_economicos')
     else:
+        print("estoy aqui: ",solicitud)
         form = SolicitudEconomicosUpdateForm(instance=solicitud)
+        
 
     context = {'form':form,'solicitud':solicitud}
 
@@ -5714,6 +5716,7 @@ def Tabla_solicitud_economicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    
     if revisar_perfil.empresa == empresa_faxton:
         perfiles= Perfil.objects.filter(complete=True,baja=False,empresa=empresa_faxton).order_by("numero_de_trabajador")
     elif user_filter.distrito.distrito == 'Matriz':
@@ -5721,8 +5724,17 @@ def Tabla_solicitud_economicos(request):
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
 
-    solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
-    solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    #RH solo puede ver solicitudes | Supervisor - Jefe inmediato puede autorizar solicitudes y ver solicitudes 
+    if user_filter.tipo_id == 4:
+         #solicitudes pendientes
+        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    else:
+        #solicitudes pendientes
+        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = revisar_perfil.id)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = revisar_perfil.id).exclude(Q(autorizar=None)).order_by("-id")
 
     solicitud_filter = SolicitudesEconomicosFilter(request.GET, queryset=solicitudes)
     solicitudes = solicitud_filter.qs
@@ -5730,6 +5742,7 @@ def Tabla_solicitud_economicos(request):
     solicitudes_revisadas = solicitud2_filter.qs
 
     context= {
+        'user_filter': user_filter,
         'perfiles':perfiles,
         'solicitud_filter':solicitud_filter,
         'solicitudes':solicitudes,
