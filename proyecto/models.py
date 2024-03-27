@@ -655,6 +655,7 @@ class Solicitud_economicos(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
+    
 
     def __str__(self):
         return f'Status: {self.status} Fecha solicitud: {self.created_at} Día: {self.fecha}'

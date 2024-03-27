@@ -1,0 +1,287 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+{% load tt_extras %}
+
+
+<html>
+<head>
+{% block title %}Prenomina{% endblock %}
+</head>
+<body>
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+<hr>
+ <!-- Aqui es el encabezado -->
+    <div class = "row mt-1 bg-white">
+        <div class="col-12">
+            <div class="card card-body">
+            <br>
+                <h5>Prenomina Empleados</h5>
+                <div class="card card-body">
+                    <h5>Filtro de empleados</h5>
+                    <form method="GET" class="row g-3">
+                        {% csrf_token %}
+                        <label for="prenomina_filter.form.id" class="col-sm-auto col-form-label text-right"><strong>ID Prenomina:</strong></label>
+                        <div class="col-auto">
+                                {% render_field prenomina_filter.form.id class="form-control" %}
+                        </div>
+                        <label for="prenomina_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
+                        <div class="col-auto">
+                                {% render_field prenomina_filter.form.numero_de_trabajador class="form-control" %}
+                        </div>
+                        <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                        <div class="col-auto">
+                                {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
+                        </div>
+                    <label for="prenomina_filter.form.start_date" class="col-sm-auto col-form-label text-right"><strong>Fecha inicial desde:</strong></label>
+                    <div class="col-auto">
+                        {% render_field prenomina_filter.form.start_date type="date" class="form-control" %}
+                    </div>
+                    <label for="prenomina_filter.form.end_date" class="col-sm-auto col-form-label text-right"><strong>Hasta fecha inicial:</strong></label>
+                    <div class="col-auto">
+                        {% render_field prenomina_filter.form.end_date type="date" class="form-control" %}
+                    </div>
+                        <div class="col-auto">
+                        <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </div>
+                    </form>
+                    <form method=POST>
+                    {% csrf_token %}
+                    <ul class="nav nav-pills">
+                        <li class="nav-item mx-2">
+                            <button type="submit" name="Excel" class="btn btn-outline-success" value='Reporte Excel'>
+                                <i class="fa-solid fa-file-excel fa-2xl"></i>
+                            </button>
+                        </li>
+                    </ul>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- Aquí empieza la generación de la tabla -->
+<div class="row mt-2">
+    <div class="col-md-12">
+        <table class="table table-striped table-hover bg-white">
+            <thead class="text-black" style="background-color: #F5F5F5;">
+                <tr style="background-color:#2A628F;color:#ffffff;">
+                    <th scope="col">ID prenomina</th>
+                    <th scope="col">No. de trabajador</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Puesto</th>
+                    <th scope="col">Proyecto</th>
+                    <th scope="col">Subproyecto</th>
+                    <th>Vista previa</th>
+                    <th scope="col">Estado general</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for costo in salidas_list %}
+                    <tr>
+                        <td>{{costo.id}}</td>
+                        <td>{{costo.empleado.status.perfil.numero_de_trabajador}}</td>
+                        <td>{{costo.empleado.status.perfil.nombres}} {{costo.empleado.status.perfil.apellidos}}</td>
+                        <td>{{costo.empleado.status.puesto}}</td>
+                        <td>{{costo.empleado.status.perfil.proyecto}}</td>
+                        <td>{{costo.empleado.status.perfil.subproyecto}}</td>
+                        <td class="text-center">
+                            <button class="btn btn-outline-info" onclick="mostrarVistaPrevia(event, '{{ costo.empleado.id }}')">Vista previa</button>
+                        </td>
+                        <td>{{costo.estado_general}}</td> 
+                    </tr>
+
+                <tr class="hidden-info-row" style="display: none;">
+                    <td colspan="12">
+                        <!-- aquí se mostrará la información adicional con formato de tabla -->
+                        <table class="table table-striped table-hover bg-white">
+                            <thead class="text-black" style="background-color: #F5F5F5;">
+                                <tr style="background-color:#3E92CC;color:#ffffff;">
+                                    <th scope="col">Fecha</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col">Comentario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!--datos se generarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+        {% if salidas_list.has_previous %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url 1 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-left"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.previous_page_number  'page' request.GET.urlencode %}"><i class="fa-solid fa-angle-left"></i></a></li>
+        {% endif %}
+
+        {% for item in salidas_list.paginator.page_range %}
+            {% if salidas_list.number == item %}
+                <li class="page-item active"><a href="#" class="page-link bg-dark">{{item}}</a></li>
+            {% elif item > salidas_list.number|add:'-2' and item < salidas_list.number|add:'2' %}
+                <li class="page-item "><a class="page-link" style="color:#3E92CC" href="{% my_url item 'page' request.GET.urlencode %}" class="page-link">{{item}}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if salidas_list.paginator.num_pages > salidas_list.number|add:'2' %}
+        <li><a class="page-link" style="color:#3E92CC" href="?page={{salidas_list.number|add:'2'}}">&hellip;</a></li>
+        <li><a style="color:#3E92CC" href="?page={{ item }}">{{item}}</a></li>
+        <li><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}">{{salidas_list.paginator.num_pages}}</a></li>
+        {% endif %}
+
+        {% if salidas_list.has_next %}
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.next_page_number 'page' request.GET.urlencode %}"><i class="fa-solid fa-chevron-right"></i></a></li>
+            <li class="page-item"><a class="page-link" style="color:#3E92CC" href="{% my_url salidas_list.paginator.num_pages 'page' request.GET.urlencode %}"><i class="fa-solid fa-angles-right"></i></a></a></li>
+        {% endif %}
+    </ul>
+</nav>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+function mostrarVistaPrevia(event, costoId) {
+    const botonClic = event.target; //boton
+
+    const filaActual = botonClic.closest('tr'); //obtener la fila actual
+
+    //crear la fila oculta relacionada con la fila actual
+    let filaOculta = filaActual.nextElementSibling;
+    if (!filaOculta || !filaOculta.classList.contains('hidden-info-row')) {
+        filaOculta = document.createElement('tr');
+        filaOculta.className = 'hidden-info-row';
+
+        // añadir fila oculta después de la fila actual
+        filaActual.insertAdjacentElement('afterend', filaOculta);
+    }
+
+    // checar el estado de visibilidad de la fila oculta
+    const isVisible = filaOculta.style.display !== 'none';
+
+    // ocultar todas las filas ocultas antes de mostrar la actual
+    document.querySelectorAll('.hidden-info-row').forEach(row => {
+        row.style.display = 'none';
+    });
+
+    // mostrar u ocultar la fila oculta actual
+    if (!isVisible) {
+        // solicitud ajax con el objeto fetch para obtener información 
+        fetch(`/prenomina/revisar_ajax/${costoId}`)
+            .then(response => response.json())
+            .then(data => {
+                // verifica si data.fechas_con_etiquetas existe y tiene la estructura esperada
+                if (data.fechas_con_etiquetas && Array.isArray(data.fechas_con_etiquetas)) {
+                    // limpia cualquier contenido existente
+                    const tbody = filaOculta.querySelector('tbody'); //Para encontrar donde añadir los datos
+                    tbody.innerHTML = '';
+
+                    // pasar por todos los factores y agregarlos a la fila oculta
+                    data.fechas_con_etiquetas.forEach(item => {
+                        const [fecha, etiqueta, comentario] = item;
+
+                        // crea una nueva fila para cada dato
+                        const nuevaFila = document.createElement('tr');
+                        nuevaFila.classList.add('mi-clase-de-fila'); //Para el estilo
+                        nuevaFila.style.backgroundColor = '#EBF5FB'; //Para el color
+                        
+                        // elementos de celda y valores
+                        const celdaFecha = document.createElement('td');
+                        celdaFecha.textContent = fecha;
+                        celdaFecha.classList.add('fecha-column'); 
+
+                        const celdaEstado = document.createElement('td');
+                        celdaEstado.textContent = etiqueta;
+                        celdaEstado.classList.add('estado-column');
+
+                        const celdaComentario = document.createElement('td');
+                        celdaComentario.textContent = comentario; 
+                        celdaComentario.classList.add('comentario-column'); 
+
+                        // agregar celdas a la nueva fila
+                        nuevaFila.appendChild(celdaFecha);
+                        nuevaFila.appendChild(celdaEstado);
+                        nuevaFila.appendChild(celdaComentario); // Agrega la celda del comentario
+
+                        // agregar la nueva fila al tbody de la tabla oculta
+                        tbody.appendChild(nuevaFila); //ahora lo agrega en tbody
+                    });
+                    // Agregar autorizacion1
+                    agregarAutorizacion(tbody, data.autorizacion);
+
+                    // Agregar autorizacion1
+                    agregarAutorizacion(tbody, data.autorizacion1);
+
+                    // Agregar autorizacion2
+                    agregarAutorizacion(tbody, data.autorizacion2);
+
+                    filaOculta.style.display = 'table-row'; // mostrar la fila oculta
+                } else {
+                    // en caso de que no hay información o no tiene la estructura esperada
+                    alert(`No hay información disponible para el costo ${costoId}.`);
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener la información', error);
+            });
+    }
+}
+function agregarAutorizacion(tbody, autorizacion) {
+    if (autorizacion) {
+        const nuevaFilaAutorizacion = document.createElement('tr');
+        nuevaFilaAutorizacion.classList.add('mi-clase-de-fila'); // Para el estilo
+        nuevaFilaAutorizacion.style.backgroundColor = '#EBF5FB'; // Para el color
+
+        // Crear celdas para la autorización
+        const nombreCompleto = autorizacion.nombre && autorizacion.apellido ? `${autorizacion.tipo_perfil}: ${autorizacion.nombre} ${autorizacion.apellido}` : '';
+        const celdaNombreApellido = document.createElement('td');
+        celdaNombreApellido.textContent = nombreCompleto;
+
+        const estadoComentario = autorizacion.estado && autorizacion.comentario ? `Estado: ${autorizacion.estado} - Comentario: ${autorizacion.comentario}` : '';
+        const celdaEstadoComentario = document.createElement('td');
+        celdaEstadoComentario.textContent = estadoComentario;
+
+        const celdaFechaAutorizacion = document.createElement('td');
+        celdaFechaAutorizacion.textContent = autorizacion.fecha || '';
+
+        // Agregar celdas de autorización a la nueva fila
+        nuevaFilaAutorizacion.appendChild(celdaNombreApellido);
+        nuevaFilaAutorizacion.appendChild(celdaEstadoComentario);
+        nuevaFilaAutorizacion.appendChild(celdaFechaAutorizacion);
+
+        // Agregar la nueva fila de autorización al tbody de la tabla oculta
+        tbody.appendChild(nuevaFilaAutorizacion);
+    }
+}
+</script>
+{% endblock %}
+
+</body>
+</html>

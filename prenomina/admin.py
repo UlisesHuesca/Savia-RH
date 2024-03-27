@@ -11,7 +11,7 @@ from .models import Incapacidades
 from .models import Faltas
 from .models import Comision
 from .models import Domingo
-
+from .models import Dia_extra
 
 admin.site.register(Prenomina)
 admin.site.register(Retardos)
@@ -23,3 +23,4 @@ admin.site.register(Incapacidades)
 admin.site.register(Faltas)
 admin.site.register(Comision)
 admin.site.register(Domingo)
+admin.site.register(Dia_extra)

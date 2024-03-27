@@ -53,7 +53,7 @@
                 <span class="h6">Comentario: {{autorizacion1.comentario}}--Fecha:{{autorizacion1.updated_at}}--Estado:{{autorizacion1.estado.tipo}}</span>
                 <span class="h6">Gerencia: {{autorizacion2.perfil.nombres}} {{autorizacion2.perfil.apellidos}}</span>
                 <span class="h6">Comentario: {{autorizacion2.comentario}}--Fecha:{{autorizacion2.updated_at}}--Estado:{{autorizacion2.estado.tipo}}</span>
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <table class="table table-striped table-hover bg-white">
                     <thead class="text-black" style="background-color: #F5F5F5;">
@@ -62,33 +62,40 @@
                             <th>Estado actual</th>
                             <th>Comentario</th>
                             <th>Cambiar Estado</th>
+                            <th>Subir Archivo</th> <!-- Nueva columna -->
                         </tr>
                     </thead>
-                <tbody>
-                    {% for fecha, etiqueta, comentario in fechas_con_etiquetas %}
-                        <tr>
-                            <td>{{ fecha|date:'Y-m-d' }}</td>
-                            <td>{{ etiqueta }}</td>
-                            <td>
-                                {% if etiqueta == "festivo" %}
-                                    Festivo
-                                {% elif etiqueta == "economico" %}
-                                    Economico
-                                {% elif etiqueta == "vacaciones" %}
-                                    Vacaciones
-                                {% else %}
-                                    <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}">
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if etiqueta == "festivo" %}
-                                    Festivo
-                                {% elif etiqueta == "economico" %}
-                                    Economico
-                                {% elif etiqueta == "vacaciones" %}
-                                    Vacaciones      
-                                {% else %}
-                                    <select name="estado_{{ fecha|date:'Y-m-d' }}">
+                    <tbody>
+                        {% for fecha, etiqueta, comentario, archivo in fechas_con_etiquetas %}
+                            <tr>
+                                <td>{{ fecha|date:'Y-m-d' }}</td>
+                                <td>{{ etiqueta }}</td>
+                                <td>
+                                    {% if etiqueta == "festivo" %}
+                                        Festivo
+                                    {% elif etiqueta == "economico" %}
+                                        Economico
+                                    {% elif etiqueta == "vacaciones" %}
+                                        Vacaciones
+                                    {% else %}
+                                        <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if etiqueta == "festivo" %}
+                                        Festivo
+                                    {% elif etiqueta == "economico" %}
+                                        Economico
+                                        <button type="submit" name="economico_pdf" class="btn btn-outline-danger" value="{{ fecha }}">
+                                            <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                                        </button>
+                                    {% elif etiqueta == "vacaciones" %}
+                                        Vacaciones
+                                        <button type="submit" name="vacaciones_pdf" class="btn btn-outline-danger" value="{{ fecha }}">
+                                            <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                                        </button>
+                                    {% else %}
+                                    <select name="estado_{{ fecha|date:'Y-m-d' }}" onchange="showInput(this)">
                                         <option value="asistencia" {% if etiqueta == "asistencia" %}selected{% endif %}>Asistencia</option>
                                         <option value="retardo" {% if etiqueta == "retardo" %}selected{% endif %}>Retardo</option>
                                         <option value="castigo" {% if etiqueta == "castigo" %}selected{% endif %}>Castigo</option>
@@ -99,13 +106,23 @@
                                         <option value="faltas" {% if etiqueta == "faltas" %}selected{% endif %}>Faltas</option>
                                         <option value="comision" {% if etiqueta == "comision" %}selected{% endif %}>Comisión</option>
                                         <option value="domingo" {% if etiqueta == "domingo" %}selected{% endif %}>Domingo</option>
+                                        <option value="extra" {% if etiqueta == "extra" %}selected{% endif %}>Día extra</option>
                                         <!-- Agrega más opciones según tus factores -->
                                     </select>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
+                                    {% endif %}
+                                </td>
+                                <td> <!-- Nueva columna para subir archivos -->
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="archivo_{{ fecha|date:'Y-m-d' }}" name="archivo_{{ fecha|date:'Y-m-d' }}">
+                                        <label class="custom-file-label" for="archivo_{{ fecha|date:'Y-m-d' }}">{{ archivo.name|default:'Seleccionar archivo' }}</label>
+                                    </div>
+                                    {% if archivo %}
+                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank">{{ archivo }}</a></p>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
                 <button type="submit" name="guardar_cambios" class="btn btn-primary">Guardar Cambios</button>
                 <br></br>
@@ -123,17 +140,43 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    // JavaScript para mostrar u ocultar el histórico al hacer clic en el botón
-    function toggleHistorico(id) {
-        var historico = document.getElementById("historico" + id);
-        if (historico.style.display === "none") {
-            historico.style.display = "table-row";  // Mostrar fila del histórico
-        } else {
-            historico.style.display = "none";  // Ocultar fila del histórico
+
+    $(document).ready(function() {
+        function updateFileInputs() {
+            // Recorrer cada fila de la tabla
+            $('table tbody tr').each(function() {
+                var selectedOption = $(this).find('select[name^="estado_"]').val();
+                var fileInput = $(this).find('.custom-file-input');
+
+                // Valores que habilitarán el input de archivo
+                var enabledValues = ["permiso_goce", "permiso_sin", "incapacidades", "comision", "extra"];
+
+                // Valores adicionales que deshabilitarán el input de archivo
+                var disabledValues = ["vacaciones", "economico"];
+
+                // Verificar si el valor seleccionado está en la lista de valores habilitados
+                if (enabledValues.includes(selectedOption) || disabledValues.includes(selectedOption)) {
+                    fileInput.prop('disabled', false); // Habilitar el input de archivo
+                } else {
+                    fileInput.prop('disabled', true); // Deshabilitar el input de archivo
+                    fileInput.val(''); // Limpiar cualquier valor seleccionado previamente
+                    fileInput.closest('.custom-file').find('.custom-file-label').text(''); // Limpiar el nombre del archivo mostrado
+                }
+            });
         }
-    }
+
+        // Llamar a la función para actualizar los inputs de archivo al cargar la página
+        updateFileInputs();
+
+        // Adjuntar un manejador de eventos change a los selectores para actualizar los inputs de archivo cuando se cambie el estado
+        $('select[name^="estado_"]').change(function() {
+            updateFileInputs();
+        });
+    });
 </script>
+
 {% endblock %}
 </body>
 </html>
