@@ -2327,7 +2327,7 @@ def convert_excel_costo(costos):
         'status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto__proyecto','status__perfil__subproyecto__subproyecto','status__perfil__numero_de_trabajador',
         Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','status__nivel__nivel','neto_catorcenal_sin_deducciones','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
         'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa',
-        'ingreso_mensual_neto_empleado','bonototal')
+        'ingreso_mensual_neto_empleado','bono_total')
 
     for id_costo, row in enumerate(rows):
         row_num += 1
