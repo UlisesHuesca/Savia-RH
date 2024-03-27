@@ -4311,7 +4311,7 @@ def SolicitudVacaciones(request):
                         cuenta -= 1  #Días que va a tomar con esta solicitud
 
         if cuenta <= pendiente:
-            if solicitud.fecha_fin > solicitud.fecha_inicio:
+            if solicitud.fecha_fin >= solicitud.fecha_inicio:
                 verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
                 if verificar is None:
                     valido = True
