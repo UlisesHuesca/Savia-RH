@@ -50,7 +50,7 @@
                         {% else %}
                         <div>
                         <hr>
-                        <h6 class="dropdown-header">Información del usuario</h6>
+                        <h6 class="dropdown-header">{{ usuario.tipo }} - Información del usuario</h6>
                         <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Perfil_revisar' usuario_fijo.id %}">Perfil</a>
                             {% if usuario_fijo.complete_status == True %}
