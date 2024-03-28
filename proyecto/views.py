@@ -6315,7 +6315,7 @@ def costo_mensual(request):
         #Me atre todos los costos actualmente
         costos = Costo.objects.all()
         porcentaje = SalarioDatos.objects.get(pk = 1)
-        
+                
         #Pasa los datos del modelo Costo a CostoAnterior para llevar el registro
         volcar_datos = [CostoAnterior(
             amortizacion_infonavit = costo.amortizacion_infonavit,
@@ -6371,6 +6371,7 @@ def costo_mensual(request):
         #se llama el metodo para pasar todos los datos
         CostoAnterior.objects.bulk_create(volcar_datos)
         
+        
         #resetear el costo del bono a 0 y tener el calculo previamente sin el bono
         costos = costos.filter(bono_total__gt=0)
         
@@ -6386,7 +6387,7 @@ def costo_mensual(request):
             costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
             costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
             costo.save()
-                        
+                       
         respuesta = HttpResponse("calcular el costo mensual")
         return respuesta
     
