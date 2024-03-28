@@ -122,10 +122,14 @@
             </div>
         </div>
         </form>
+        
+        {% comment %}      
+        el emular el disparo
         <form action="{% url 'costo_mensual' %}" method="post">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-success">Mensual</button>
         </form>
+        {% endcomment %}
         
     </div>
 <div class="card card-body">

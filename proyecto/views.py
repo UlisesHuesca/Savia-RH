@@ -6288,6 +6288,7 @@ def tabla_variables_costo(request):
 #Boton generar costo mensual
 @login_required(login_url='user-login')
 def costo_mensual(request):
+    exit()
     from .models import CostoAnterior,SalarioDatos
     from esquema.models import Solicitud,BonoSolicitado
     from django.utils import timezone
