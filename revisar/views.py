@@ -297,7 +297,7 @@ def Tabla_solicitudes_prenomina(request):
                 prenominas_filtradas = [prenom for prenom in prenominas if prenom.estado_general == 'Controles técnicos pendiente']
                 if prenominas_filtradas:
                     # Llamar a la función Autorizar_gerencia con las prenominas filtradas
-                    return Autorizar_gerencia(prenominas_filtradas, user_filter,request)
+                    return Autorizar_general(prenominas_filtradas, user_filter,request)
                 else:
                     # Si no hay prenominas que cumplan la condición, manejar según sea necesario
                     messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
@@ -305,7 +305,7 @@ def Tabla_solicitudes_prenomina(request):
                 prenominas_filtradas = [prenom for prenom in prenominas if prenom.estado_general == 'Gerente pendiente']
                 if prenominas_filtradas:
                     # Llamar a la función Autorizar_gerencia con las prenominas filtradas
-                    return Autorizar_gerencia(prenominas_filtradas, user_filter,request)
+                    return Autorizar_general(prenominas_filtradas, user_filter,request)
                 else:
                     # Si no hay prenominas que cumplan la condición, manejar según sea necesario
                     messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
@@ -555,7 +555,7 @@ def determinar_estado_general(ultima_autorizacion):
 
     return 'Estado no reconocido'
 
-def Autorizar_gerencia(prenominas, user_filter,request):
+def Autorizar_general(prenominas, user_filter,request):
     nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
     aprobado = Estado.objects.get(tipo="aprobado")
     for prenomina in prenominas:

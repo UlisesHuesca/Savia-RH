@@ -89,6 +89,15 @@ def Tabla_prenomina(request):
                 prenomina.valor = ultima_autorizacion.estado.tipo #Esta bien como agarra el dato de RH arriba que es el primero
             prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
 
+        if request.method =='POST' and 'Autorizar' in request.POST:
+            if user_filter.tipo.nombre ==  "RH":
+                prenominas_filtradas = [prenom for prenom in prenominas if prenom.estado_general == 'RH pendiente (rechazado por Controles técnicos)' or prenom.estado_general == 'RH pendiente (rechazado por Gerencia)' or prenom.estado_general == 'Sin autorizaciones']
+                if prenominas_filtradas:
+                    # Llamar a la función Autorizar_gerencia con las prenominas filtradas
+                    return Autorizar_general(prenominas_filtradas, user_filter,request)
+                else:
+                    # Si no hay prenominas que cumplan la condición, manejar según sea necesario
+                    messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
         if request.method =='POST' and 'Excel' in request.POST:
             return Excel_estado_prenomina(prenominas, user_filter)
         
@@ -106,7 +115,21 @@ def Tabla_prenomina(request):
         return render(request, 'prenomina/Tabla_prenomina.html', context)
     else:
             return render(request, 'revisar/403.html')
-        
+
+def Autorizar_general(prenominas, user_filter,request):
+    nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
+    aprobado = Estado.objects.get(tipo="aprobado")
+    for prenomina in prenominas:
+        revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo) #Checa si existe autorización de su perfil y si no lo crea 
+        revisado.estado = Estado.objects.get(tipo="aprobado")
+        nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
+        revisado.perfil = nombre
+        revisado.comentario = 'Aprobación general'
+        revisado.save()
+        messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
+    return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
+
+
 def prenomina_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     ahora = datetime.date.today()
