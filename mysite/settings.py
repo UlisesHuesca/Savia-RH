@@ -117,11 +117,11 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #    }
 #}
 DATABASES = {
-    'default': {
+   'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'faxton',
+        'NAME':'final',
         'USER': 'root',
-        'PASSWORD': 'Root',
+        'PASSWORD': '12345678',
         'HOST': 'localhost',
         'PORT': '',
     }
