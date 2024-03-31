@@ -48,21 +48,39 @@
                 <div class="form-group">
                     <label class="col-auto col-form-label"><strong>Información económicos del empleado:</strong></label>
                     <br>
-                    <label for="form.nombre" class="col-auto col-form-label">Días disfrutados: {{datos.dias_disfrutados}}</label>
+                    <label for="form.nombre" class="col-auto col-form-label">Días disfrutados: <span class="badge bg-success">{{datos.dias_disfrutados}}</span> </label>
                     <br>
-                    <label for="form.nombre" class="col-auto col-form-label">Días pendientes: {{datos.dias_pendientes}}</label>
+                    <label for="form.nombre" class="col-auto col-form-label">Días pendientes: <span class="badge bg-success">{{datos.dias_pendientes}}</span></label>
                     <br>
-                    <label for="form.nombre" class="col-auto col-form-label">Ultima fecha que se tomo: {{datos.fecha}}</label>            
+                    <label for="form.nombre" class="col-auto col-form-label">Ultima fecha que se tomo: 
+                        {% if datos.fecha is None %}
+                           <p class="text-muted">No asignada aún</p>
+                        {% else %}
+                         {{datos.fecha}}
+                        {% endif %} 
+                    </label>            
                 </div>
                 {% endif %} 
 
                 <h4 class="title is-size-3">Formulario</h4>
                 <label for="form.nombre" class="col-auto col-form-label"><strong>Empleado: {{status.perfil.nombres}} {{status.perfil.apellidos}}</strong></label>
+                
+                
+                {% if datos.dias_pendientes > 0 %}
                 <form method="POST">
                     {% csrf_token %}
                             <div class="row my-2">
+                                <label for="form.fecha" class="col-auto col-form-label my-1"><strong>Jefe inmediato:</strong></label>
+                                <div class="col-3">
+                                    <div class="input-group mb-3">
+                                    <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                                    {% render_field form.perfil class="form-control" %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row my-2">
                                 <label for="form.fecha" class="col-auto col-form-label my-1"><strong>Día a disfrutar:</strong></label>
-                                <div class="col-2">
+                                <div class="col-3">
                                     <div class="input-group mb-3">
                                     <span class="input-group-text"><i class="fa-solid fa-calendar-plus"></i></span>
                                     {% render_field form.fecha type="date" class="form-control" %}
@@ -72,7 +90,7 @@
                             <div class="row my-2">
                                 <label for="form.comentario" class="col-auto col-form-label my-1"><strong>Comentario:</strong></label>
                                 <div class="col-6">
-                                    {{form.comentario|add_class:"form-control"|append_attr:"placeholder=Observaciones"}}
+                                    {{form.comentario|add_class:"form-control"|append_attr:"placeholder=Observaciones"|attr:"cols:30"}}
                                 </div>
                             </div>
                             <hr>
@@ -81,6 +99,15 @@
                             </button>
                             <a href="{% url 'index' %}" class="btn btn">Cancelar</a>
                 </form>
+                {% else %}
+                    <div class="row">
+                        <div class="col-12 mt-3">
+                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                               <i class="fas fa-warning"></i><p>Lo sentimos usted ya no puede solicitar dias economicos.</p>
+                            </div>  
+                        </div>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>

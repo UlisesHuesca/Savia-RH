@@ -59,6 +59,14 @@
                         <div class="col-auto">
                                 {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
                         </div>
+                    <label for="prenomina_filter.form.start_date" class="col-sm-auto col-form-label text-right"><strong>Fecha inicial desde:</strong></label>
+                    <div class="col-auto">
+                        {% render_field prenomina_filter.form.start_date type="date" class="form-control" %}
+                    </div>
+                    <label for="prenomina_filter.form.end_date" class="col-sm-auto col-form-label text-right"><strong>Hasta fecha inicial:</strong></label>
+                    <div class="col-auto">
+                        {% render_field prenomina_filter.form.end_date type="date" class="form-control" %}
+                    </div>
                         <div class="col-auto">
                         <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
                     </div>
@@ -69,15 +77,6 @@
                         <li class="nav-item mx-2">
                             <button type="submit" name="Excel" class="btn btn-outline-success" value='Reporte Excel'>
                                 <i class="fa-solid fa-file-excel fa-2xl"></i>
-                            </button>
-                        </li>
-                    </ul>
-                    <ul class="nav d-flex justify-content-end"><h6>Autorización rapida</h6>
-                        <!-- Utiliza la clase 'ml-auto' en el elemento li para alinear a la derecha -->
-                        <li class="nav-item mx-4 ml-auto">
-                            <!-- Cambia la clase 'btn-outline-success' a 'btn-primary' para tener el color azul -->
-                            <button type="submit" name="Autorizar" class="btn btn-primary">
-                                <i class="fa-solid fa-file-circle-check"></i>
                             </button>
                         </li>
                     </ul>
@@ -100,8 +99,6 @@
                     <th scope="col">Subproyecto</th>
                     <th>Vista previa</th>
                     <th scope="col">Estado general</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col">Actualizar</th>
                 </tr>
             </thead>
             <tbody>
@@ -117,21 +114,6 @@
                             <button class="btn btn-outline-info" onclick="mostrarVistaPrevia(event, '{{ costo.empleado.id }}')">Vista previa</button>
                         </td>
                         <td>{{costo.estado_general}}</td> 
-                        {% if costo.estado_general == "RH pendiente (rechazado por Controles técnicos)" or costo.estado_general == "RH pendiente (rechazado por Gerencia)" or costo.estado_general == "Sin autorizaciones"%}
-                            <td><span class="badge bg-warning text-dark fs-6">Pendiente</span></td>
-                            <td class="text-center">
-                                <a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Prenomina_revisar' costo.empleado.id %}">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </a>
-                            </td>
-                        {% else %}
-                            <td><span class="badge bg-success fs-6">Revisado</span></td>
-                            <td class="text-center">
-                                <button class="btn btn-outline-info btn-secondary" id="btnActualizar" type="button" onclick="window.location.href='{% url 'Prenomina_revisar' costo.empleado.id %}'" disabled>
-                                    <i class="fa-solid fa-pen-to-square text-muted"></i>
-                                </button>
-                            </td>
-                        {% endif %}
                     </tr>
 
                 <tr class="hidden-info-row" style="display: none;">

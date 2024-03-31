@@ -4,6 +4,24 @@ document.addEventListener("DOMContentLoaded", (e) => {
     const bonoViajePrivado = 16 
     const bonoCurso = 14
 
+    //se obtiene el bono que esta actualmente
+    tipoBono = document.getElementById('bono').value
+
+    //se verifica el tipo de bono 
+    if (parseInt(tipoBono) == bonoCurso){
+        console.log('es el curso bono')
+        document.getElementById('cantidad').removeAttribute("readonly")
+    }else{
+        if(parseInt(tipoBono) == bonoViajePEP || parseInt(tipoBono) == bonoViajePrivado){
+            console.log('es el curso viaje')
+            console.log(document.getElementById('km'))
+            document.getElementById('km').classList.remove("d-none")   
+        }
+    }
+
+    //se carga el soporte para ese bono por default
+    solicitarSoporteBono(tipoBono)
+
      /**Buscar el soporte para el bono seleccionado */
      async function solicitarSoporteBono(bono){
         try {
@@ -19,12 +37,8 @@ document.addEventListener("DOMContentLoaded", (e) => {
             });
 
             const datos = await response.json();
-            //console.log(datos)
-            //console.log(datos.soporte)
 
             document.getElementById("soporte").textContent = datos.soporte
-            //cantidad = datos[0].fields.importe
-            //cantidad === null ? mensajeBonoNa() : document.getElementById('cantidad').setAttribute('value',cantidad) 
 
         } catch (error) {
             console.log(error)
@@ -35,28 +49,6 @@ document.addEventListener("DOMContentLoaded", (e) => {
             })
 
         }
-    }
-
-    /**Para verificar si existe un valor en el select de bono - bono de viaje al iniciar el DOM en js despues de agregar un bono - es para bono viaje */
-    var viajeSelect = document.getElementById("bono");
-    if (viajeSelect.selectedIndex > 0) {
-        
-        selectBonoCurso = parseInt(document.getElementById('bono').value)
-        
-        if (selectBonoCurso == bonoViajePEP || selectBonoCurso == bonoViajePrivado) {
-            document.getElementById('km').classList.remove("d-none")
-        }else{
-            document.getElementById('km').classList.add("d-none")
-        }
-        
-    }
-
-    /**Para verificar si existe un valor en el select de bono al iniciar el DOM en js - despues de agregar un bono - es para el soporte*/
-    var soporteSelect = document.getElementById("bono");
-    if (soporteSelect.selectedIndex > 0) {
-        //console.log("seleccionado")
-        valor = document.getElementById("bono").value
-        solicitarSoporteBono(valor)
     }
 
     /**Mensajes de alerta*/
@@ -87,11 +79,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
             var datos = await response.json();
             cantidad = datos[0].fields.importe
 
-            /**Aqui debes de reemplazar/cambiar el id del bono ahorro */
-           
-            selectBonoCurso = parseInt(document.getElementById('bono').value)
-            
-            if(selectBonoCurso == bonoCurso){
+            if(tipoBono == bonoCurso){
                 if(cantidad == 0.00){
                     document.getElementById('cantidad').removeAttribute("readonly")
                 }else{
@@ -100,13 +88,9 @@ document.addEventListener("DOMContentLoaded", (e) => {
                 }
             }
 
-            //document.getElementById('cantidad').setAttribute("readonly", "readonly");
-            //cantidad === null ? mensajeBonoNa() : document.getElementById('cantidad').setAttribute('value',cantidad)
             cantidad === null ? mensajeBonoNa() : document.getElementById('cantidad').value = cantidad
 
         } catch (error) {
-            //console.log(error)
-            //document.getElementById('cantidad').setAttribute('value','') 
             document.getElementById('cantidad').value = '' 
             document.getElementById('cantidad').setAttribute("readonly", "readonly");
             Swal.fire({
@@ -117,33 +101,6 @@ document.addEventListener("DOMContentLoaded", (e) => {
 
         }
     }
-
-   
-
-
-    //para cargar el soporte del bono
-    var bonoSoporteSelect = document.getElementById("bono")
-
-    bonoSoporteSelect.addEventListener("change",function(e){
-        //console.log('solicitar soporte - requerimientos')
-        const bono = document.getElementById("bono").value;
-        //console.log("bono id: ",bono)
-        solicitarSoporteBono(bono)
-    });
-
-    //para mostrar el campo kilometros del bono de viaje
-    var bonoViajeSelect = document.getElementById("bono")
-    bonoViajeSelect.addEventListener("change",function(e){
-        /**Aqui debes de reemplazar/cambiar los id de los bonos de viaje - PEP y PRIVADO */ 
-        selectBonoCurso = parseInt(document.getElementById('bono').value)
-        
-        if (selectBonoCurso == bonoViajePEP || selectBonoCurso == bonoViajePrivado) {
-            document.getElementById('km').classList.remove("d-none")
-        }else{
-            document.getElementById('km').classList.add("d-none")
-        }
-
-    });
 
     /**funcion para calcular los km - $1 x km a partir del km 501 se paga .50 */
     //para detectar cuando se pulsan los km ingresados
@@ -162,13 +119,14 @@ document.addEventListener("DOMContentLoaded", (e) => {
             cantidadInput.value = totalKM;
         }
     });
-    
+        
 
     //para cargar la cantidad del bono cuando se seleccione alguno puesto o bono
     var puestoSelect = document.getElementById("puesto");
     var bonoSelect = document.getElementById("bono");
 
     puestoSelect.addEventListener("change",function (e) {
+        console.log('click')
         const bono = document.getElementById("bono").value;
         const puesto = document.getElementById("puesto").value;
 

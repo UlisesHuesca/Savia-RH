@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import F, Sum
 from django.contrib.auth.models import User
 from simple_history.models import HistoricalRecords
+from django.core.exceptions import ValidationError
 
  #Tabla de vacaciones
 class TablaVacaciones(models.Model):
@@ -575,7 +576,10 @@ class Temas_comentario_solicitud_vacaciones(models.Model):
         return f'ID: {self.id},'
 
 class Solicitud_vacaciones(models.Model):
+    
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
+    #Es el supervisor - jefe inmediato
+    perfil = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True)
     periodo = models.CharField(max_length=50,null=True)
     fecha_inicio = models.DateField(null=True)
     fecha_fin = models.DateField(null=True)
@@ -589,14 +593,18 @@ class Solicitud_vacaciones(models.Model):
     temas = models.ForeignKey(Temas_comentario_solicitud_vacaciones, on_delete = models.CASCADE, null=True)
     anexos = models.CharField(max_length=200,null=True, blank=True)
     autorizar = models.BooleanField(null=True, default=None)
-    comentario_rh = models.CharField(max_length=100,null=True, blank=True)
+    comentario_rh = models.TextField(null=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.temas} id: {self.id} Status: {self.status} Fecha solicitud: {self.created_at} Días: {self.fecha_inicio} a {self.fecha_fin}'
-
+    def clean(self):
+        # Realiza la validación del campo obligatorio aquí
+        if not self.dia_inhabil:
+            raise ValidationError({'dia_inhabil': 'Por favor, complete este campo'})
+        
 class Vacaciones(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     periodo = models.CharField(max_length=50,null=True)
@@ -638,13 +646,16 @@ class Vacaciones_dias_tomados(models.Model):
 
 class Solicitud_economicos(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
+    #jefe inmediato
+    perfil = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True)
     periodo = models.CharField(max_length=50,null=True)
     fecha = models.DateField(null=True)
-    comentario = models.CharField(max_length=50,null=True)
+    comentario = models.TextField(null=True)
     autorizar = models.BooleanField(null=True, default=None)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
+    
 
     def __str__(self):
         return f'Status: {self.status} Fecha solicitud: {self.created_at} Día: {self.fecha}'

@@ -47,6 +47,10 @@ from datetime import datetime
 from datetime import datetime, timedelta
 from django.utils import timezone
 from datetime import date
+#pillow
+from PIL import Image
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -68,14 +72,6 @@ def listarBonosVarilleros(request):
     #se obtiene el perfil del usuario logueado
     solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
     
-    #Se muestran por catorcenas
-    fecha_actual = datetime.now()
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
-    fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
-    print("fecha inicial con H:i ", fecha_inicial)
-    fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
-    print("fecha final con H:i ", fecha_final)
-    
     subconsulta_ultima_fecha = AutorizarSolicitudes.objects.values('solicitud_id').annotate(
             ultima_fecha=Max('created_at')
         ).filter(solicitud_id=OuterRef('solicitud_id')).values('ultima_fecha')[:1]
@@ -86,14 +82,14 @@ def listarBonosVarilleros(request):
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__complete = 1,updated_at__range=(fecha_inicial,fecha_final)
+            solicitud__complete = 1
         ).order_by("-created_at")
     elif usuario.tipo.id ==  5: #supervisor
         #obtiene todas las ultimas autorizaciones de su distrito y roles
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,updated_at__range=(fecha_inicial,fecha_final)
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1
             #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     else:
@@ -101,7 +97,7 @@ def listarBonosVarilleros(request):
         autorizaciones = AutorizarSolicitudes.objects.filter(
             created_at=Subquery(subconsulta_ultima_fecha)
         ).select_related('solicitud', 'perfil').filter(
-            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,tipo_perfil_id=usuario.tipo.id ,updated_at__range=(fecha_inicial,fecha_final)
+            solicitud__solicitante_id__distrito_id=solicitante.distrito_id ,solicitud__complete = 1,tipo_perfil_id=usuario.tipo.id
             #solicitud__solicitante_id__distrito_id=solicitante.distrito_id,tipo_perfil_id = usuario.tipo.id ,solicitud__complete = 1
         ).order_by("-created_at")
     
@@ -121,6 +117,42 @@ def listarBonosVarilleros(request):
     }
     
     return render(request,'esquema/bonos_varilleros/listar.html',contexto)
+
+def comprimir_imagen(imagen):
+    """
+    Comprime una imagen y devuelve un objeto InMemoryUploadedFile.
+    
+    Args:
+    imagen (InMemoryUploadedFile): Objeto de imagen subida.
+    
+    Returns:
+    InMemoryUploadedFile: Objeto de imagen comprimida.
+    """
+    # Abre la imagen usando Pillow
+    img = Image.open(imagen)
+    
+    # Crea un flujo de bytes para almacenar la imagen comprimida
+    img_temp_output = BytesIO()
+    
+    ancho_original, alto_original = img.size
+
+    # Hace que el height y width se reduzca a la mitad
+    nuevo_ancho = ancho_original // 2
+    nuevo_alto = alto_original // 2
+
+    # Redimensionar la imagen
+    img = img.resize((nuevo_ancho, nuevo_alto))
+    
+    # Comprime la imagen y la guarda en el flujo de bytes
+    img.save(img_temp_output, format='JPEG', quality=25, optimize=True)  # Puedes ajustar la calidad según tus necesidades
+    
+    # Restablece el puntero del flujo de bytes al principio
+    img_temp_output.seek(0)
+    
+    # Crea un objeto InMemoryUploadedFile para la imagen comprimida
+    img_comprimida = InMemoryUploadedFile(img_temp_output, None, imagen.name.split('.')[0] + 'b.jpg', 'image/jpeg', img_temp_output.getbuffer().nbytes, None)
+    
+    return img_comprimida
 
 #para crear solicitudes de bonos
 @login_required(login_url='user-login')
@@ -199,10 +231,20 @@ def crearSolicitudBonosVarilleros(request):
                 if requerimientoForm.is_valid():
                     #Se recorren los archivos para ser almacenados
                     for archivo in archivos:
+                        #Comprime imagenes
+                        if archivo.content_type != 'application/pdf':
+                            documento = comprimir_imagen(archivo)
+                        #cuando es un PDF
+                        else:
+                            documento = archivo
+                        
+                        #Guarda imagen o PDF
                         Requerimiento.objects.create(
                             solicitud_id = folio,
-                            url = archivo,
+                             url = documento,
                         )
+                        
+                        
                     solicitud.complete_requerimiento = True
                     solicitud.save()
                     messages.success(request, "Los archivos se subieron correctamente")
@@ -310,9 +352,17 @@ def verificarSolicitudBonosVarilleros(request,solicitud):
 
             if requerimientoForm.is_valid():
                 for archivo in archivos:
+                    
+                    #Comprime imagenes
+                    if archivo.content_type != 'application/pdf':
+                        documento = comprimir_imagen(archivo)
+                    #cuando es un PDF
+                    else:
+                        documento = archivo
+                    
                     Requerimiento.objects.create(
                         solicitud_id=solicitud,
-                        url=archivo,
+                        url=documento,
                     )
                 messages.success(request, "Los archivos se han subido correctamente")
             
@@ -372,6 +422,11 @@ def verificarSolicitudBonosVarilleros(request,solicitud):
 @login_required(login_url='user-login')
 def verDetallesSolicitud(request,solicitud_id):    
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
+    
+    obtener_bono = Solicitud.objects.filter(pk=solicitud_id).values('bono_id').first()
+    soporte_detalles = Subcategoria.objects.filter(pk=obtener_bono['bono_id']).values('soporte').first()
+    soporte = soporte_detalles['soporte']
+    
     #los bonos solicitados
     bonos = BonoSolicitado.objects.filter(solicitud_id = solicitud_id)
     #los archivos
@@ -388,8 +443,6 @@ def verDetallesSolicitud(request,solicitud_id):
         solicitud__folio=solicitud_id
     ).first()
     
-    
-    
     #se carga el formulario con datos iniciales
     autorizarSolicitudesUpdateForm = AutorizarSolicitudesUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
     autorizarSolicitudesGerenteUpdateForm = AutorizarSolicitudesGerenteUpdateForm(initial={'estado':autorizaciones.estado.id,'comentario':autorizaciones.comentario})
@@ -400,7 +453,8 @@ def verDetallesSolicitud(request,solicitud_id):
         "bonos":bonos,
         "requerimientos": requerimientos,
         "autorizarSolicitudesUpdateForm":autorizarSolicitudesUpdateForm,
-        "autorizarSolicitudesGerenteUpdateForm":autorizarSolicitudesGerenteUpdateForm
+        "autorizarSolicitudesGerenteUpdateForm":autorizarSolicitudesGerenteUpdateForm,
+        "soporte":soporte
     }
     
     return render(request,'esquema/bonos_varilleros/detalles_solicitud.html',contexto)
@@ -624,7 +678,16 @@ def solicitarEsquemaBono(request):
         #datos = {'mensaje': 'comunicacion con el back'}
         #return JsonResponse(datos)
 
-
+@login_required(login_url='user-login')
+def solicitarSoporteBono(request):
+     if request.method == "POST":
+        #se obtienen los datos enviados del servidor            
+        data = json.loads(request.body)
+        subcategoria = Subcategoria.objects.get(pk=data['bono'])
+        return JsonResponse({'soporte':subcategoria.soporte},status=200,safe=False)
+         
+         
+         
 #GENERACION DE REPORTES EN EXCEL
 def convert_excel_bonos_aprobados(bonos,catorcena,total_monto,cantidad_bonos_aprobados):
     response= HttpResponse(content_type = "application/ms-excel")

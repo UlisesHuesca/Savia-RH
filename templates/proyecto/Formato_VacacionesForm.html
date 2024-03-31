@@ -55,6 +55,12 @@
                 <form method="POST">
                     {% csrf_token %}
                             <div class="row my-2">
+                                <label for="form.dia_inhabil" class="col-auto col-form-label my-1"><strong>Jefe inmediato: </strong></label>
+                                <div class="col-3">
+                                    {% render_field form.perfil class="form-control" %}
+                                </div>
+                            </div>
+                            <div class="row my-2">
                                 <label for="form.fecha_inicio" class="col-auto col-form-label my-1"><strong>Primer día de vacaciones:</strong></label>
                                 <div class="col-2">
                                     <div class="input-group mb-3">
@@ -75,6 +81,7 @@
                                 <div class="col-3">
                                     {{form.dia_inhabil|add_class:"form-control"}}
                                 </div>
+                                <small class="text-danger" id="url-error">{{ form.dia_inhabil.errors }}</small> 
                             </div>
                             <br>
                             <!--Si son mas de 3 días de vacaciones-->

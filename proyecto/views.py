@@ -7,6 +7,7 @@ from django.db.models import Sum, F
 from django.contrib import messages
 import locale
 import math
+from django.core.exceptions import ObjectDoesNotExist
 
 locale.setlocale( locale.LC_ALL, '' )
 
@@ -17,6 +18,7 @@ from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados
 from .models import Variables_carga_social, Variables_imss_patronal, CostoAnterior
 from revisar.models import AutorizarPrenomina
 from prenomina.models import Prenomina
+from prenomina.filters import PrenominaFilter
 import csv
 import json
 
@@ -1113,6 +1115,7 @@ def FormularioCosto(request):
                                                                                 messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
                                                                                 costo = form.save(commit=False)
                                                                                 costo.complete = True
+                                                                                costo.status.complete_costo = True
                                                                                 costo.save()
                                                                                 return redirect('Tabla_costo')
 
@@ -1440,7 +1443,7 @@ def Costo_revisar(request, pk):
     costo.bono_total=locale.currency(costo.bono_total, grouping=True)
     bonototal = locale.currency(bonototal, grouping=True)
     if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(costo,bonototal)
+        return reporte_pdf_costo_detalles(costo)
     
     if request.method =='POST' and 'Pdf2' in request.POST:
         return reporte_pdf_costo_incidencias(costo,bonototal)
@@ -2125,12 +2128,12 @@ def Tabla_Economicos(request): #Ya esta
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
-    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
-    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__isnull = False)
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
-    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    reinicio = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta__isnull = False,)
+    #reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
     if reinicio:
         for empleado in reinicio:
             economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None,
@@ -2174,8 +2177,7 @@ def Tabla_Economicos(request): #Ya esta
         'salidas_list':salidas_list,
         'salidas_listt':salidas_listt,
         'baja': request.GET.get('baja', False)
-        }
-
+    }
     return render(request, 'proyecto/Tabla_economicos.html',context)
 
 @login_required(login_url='user-login')
@@ -2325,7 +2327,7 @@ def convert_excel_costo(costos):
         'status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto__proyecto','status__perfil__subproyecto__subproyecto','status__perfil__numero_de_trabajador',
         Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','status__nivel__nivel','neto_catorcenal_sin_deducciones','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
         'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa',
-        'ingreso_mensual_neto_empleado','bonototal')
+        'ingreso_mensual_neto_empleado','bono_total')
 
     for id_costo, row in enumerate(rows):
         row_num += 1
@@ -3887,6 +3889,7 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
     costo.complemento_salario_mensual = (costo.complemento_salario_catorcenal/dato.dias_quincena)*dato.dias_mes
     costo.sueldo_mensual = costo.sueldo_diario*dato.dias_mes
     costo.sueldo_mensual_sdi = costo.sdi*dato.dias_mes #sdi
+    costo.apoyo_de_pasajes = costo.apoyo_de_pasajes*Decimal(((14-faltas)/14))
     costo.total_percepciones_mensual = costo.apoyo_de_pasajes + costo.sueldo_mensual
     for tabla in tablas:
         if costo.total_percepciones_mensual >= tabla.liminf:
@@ -4287,40 +4290,46 @@ def SolicitudVacaciones(request):
 
     now = date.today()
     periodo = str(now.year)
-    datos= Vacaciones.objects.get(complete=True,status=status,periodo=periodo) #Para sacar el dato actual
-
+    
+    try:
+        datos= Vacaciones.objects.get(complete=True,status=status,periodo=periodo) #Para sacar el dato actual
+    except ObjectDoesNotExist:
+        print("Aun no puedes solicitar vacaciones, no tienes la antiguedad")
+        return render(request, 'error_pages/solicitud_vacaciones.html')
 
     if request.method == 'POST' and 'btnSend' in request.POST:
         form = SolicitudVacacionesForm(request.POST, instance=solicitud)
-        form.save(commit=False)
+        #form.save(commit=False)
 
         #Se quita a la cantidad de días de vacaciones el día inhabil y los días festivos para sacar la cuenta de días que tomara
-        tabla_festivos = TablaFestivos.objects.all()
-        delta = timedelta(days=1)
-        day_count = (solicitud.fecha_fin - solicitud.fecha_inicio + delta ).days
-        cuenta = day_count
-        inhabil = solicitud.dia_inhabil.numero
-        for fecha in (solicitud.fecha_inicio + timedelta(n) for n in range(day_count)):
-            if fecha.isoweekday() == inhabil:
-                cuenta -= 1
-            else:
-                for dia in tabla_festivos:
-                    if fecha == dia.dia_festivo:
-                        cuenta -= 1  #Días que va a tomar con esta solicitud
-
-        if cuenta <= pendiente:
-            if solicitud.fecha_fin > solicitud.fecha_inicio:
-                verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
-                if verificar is None:
-                    valido = True
-                elif verificar.autorizar is not None:
-                    valido = True
+        if form.is_valid():
+            tabla_festivos = TablaFestivos.objects.all()
+            delta = timedelta(days=1)
+            day_count = (solicitud.fecha_fin - solicitud.fecha_inicio + delta ).days
+            cuenta = day_count
+            #inhabil = solicitud.dia_inhabil.numero
+            inhabil = form.cleaned_data['dia_inhabil']
+            for fecha in (solicitud.fecha_inicio + timedelta(n) for n in range(day_count)):
+                if fecha.isoweekday() == inhabil:
+                    cuenta -= 1
                 else:
-                    messages.error(request, 'Tiene una solicitud generada sin revisar')
+                    for dia in tabla_festivos:
+                        if fecha == dia.dia_festivo:
+                            cuenta -= 1  #Días que va a tomar con esta solicitud
+
+            if cuenta <= pendiente:
+                if solicitud.fecha_fin >= solicitud.fecha_inicio:
+                    verificar = Solicitud_vacaciones.objects.filter(status=status,periodo=periodo).last()
+                    if verificar is None:
+                        valido = True
+                    elif verificar.autorizar is not None:
+                        valido = True
+                    else:
+                        messages.error(request, 'Tiene una solicitud generada sin revisar')
+                else:
+                    messages.error(request,'La fecha de inicio no puede ser posterior a la final')
             else:
-                messages.error(request,'La fecha de inicio no puede ser posterior a la final')
-        else:
-            messages.error(request,f'Tiene {pendiente} días pendientes, y esta solicitando {cuenta} días de vacaciones')
+                messages.error(request,f'Tiene {pendiente} días pendientes, y esta solicitando {cuenta} días de vacaciones')
         if valido and form.is_valid():
             num_campos = int(request.POST.get('num_campos', 0))
 
@@ -4363,7 +4372,7 @@ def SolicitudVacaciones(request):
             #trabajos_encomendados.save()
             temas.complete=True
             temas.save()
-            messages.success(request, 'Solicitud enviada a RH')
+            messages.success(request, 'Solicitud enviada al Jefe Inmediato')
             now = date.today()
             solicitud.periodo = str(now.year)
             solicitud.status = status
@@ -4405,65 +4414,74 @@ def solicitud_vacacion_verificar(request, pk):
     delta = timedelta(days=1)
     valido = True
 
-    if request.method == 'POST' and 'btnSend' in request.POST:
+    if request.method == 'POST':
         form =SolicitudVacacionesUpdateForm(request.POST, instance=solicitud)
-        solicitud = form.save(commit=False)
+        #solicitud = form.save(commit=False)
             #Para las condicionales
-        if solicitud.fecha_fin < solicitud.fecha_inicio:
-            messages.error(request,'La fecha de inicio no puede ser posterior a la final')
-            valido=False
-
-        #Se quita a la cantidad de días de vacaciones el día inhabil y los días festivos para sacar la cuenta de días que tomara
-        tabla_festivos = TablaFestivos.objects.all()
-        delta = timedelta(days=1)
-        day_count = (solicitud.fecha_fin - solicitud.fecha_inicio + delta ).days
-        cuenta = day_count
-        inhabil = solicitud.dia_inhabil.numero
-        for fecha in (solicitud.fecha_inicio + timedelta(n) for n in range(day_count)):
-            if fecha.isoweekday() == inhabil:
-                cuenta -= 1
-            else:
-                for dia in tabla_festivos:
-                    if fecha == dia.dia_festivo:
-                        cuenta -= 1  #Días que va a tomar con esta solicitud
-        dias_vacacion = cuenta
-        if cuenta < 0:
-            messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
-            valido=False
-
-        #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
-        ultima_vacacion = Vacaciones.objects.filter(status=solicitud.status.id).last()
-        if ultima_vacacion is not None and ultima_vacacion.total_pendiente > 0:
-            datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
-            suma_total = datos.aggregate(total_suma=Sum('total_pendiente'))['total_suma']
-            if suma_total < cuenta:
-                messages.error(request, f'Esta pidiendo {cuenta} días cuando solo tiene {suma_total}')
+        if form.is_valid():
+            if solicitud.fecha_fin < solicitud.fecha_inicio:
+                messages.error(request,'La fecha de inicio no puede ser posterior a la final')
                 valido=False
-            if datos.exclude(id=datos.last().id) != None:
-                datos = datos.exclude(id=datos.last().id) #Hasta aqui bien
-                for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
-                    if cuenta <= dato.total_pendiente and cuenta > 0:
-                        if dato.dias_disfrutados == None:
-                            dato.dias_disfrutados = 0
-                        dato.total_pendiente -= cuenta
-                        dato.dias_disfrutados += cuenta
-                        cuenta = 0
-                        break
-                    elif cuenta > dato.total_pendiente and cuenta > 0:
-                        if dato.dias_disfrutados == None:
-                            dato.dias_disfrutados = 0
-                        dato.dias_disfrutados += dato.total_pendiente
-                        cuenta -=dato.total_pendiente
-                        dato.total_pendiente = 0
-        #else:
-        #    datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
-        ############################
+
+            #Se quita a la cantidad de días de vacaciones el día inhabil y los días festivos para sacar la cuenta de días que tomara
+            tabla_festivos = TablaFestivos.objects.all()
+            delta = timedelta(days=1)
+            day_count = (solicitud.fecha_fin - solicitud.fecha_inicio + delta ).days
+            cuenta = day_count
+            inhabil = solicitud.dia_inhabil.numero
+            for fecha in (solicitud.fecha_inicio + timedelta(n) for n in range(day_count)):
+                if fecha.isoweekday() == inhabil:
+                    cuenta -= 1
+                else:
+                    for dia in tabla_festivos:
+                        if fecha == dia.dia_festivo:
+                            cuenta -= 1  #Días que va a tomar con esta solicitud
+            dias_vacacion = cuenta
+            if cuenta < 0:
+                messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
+                valido=False
+
+            #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
+            ultima_vacacion = Vacaciones.objects.filter(status=solicitud.status.id).last()
+            if ultima_vacacion is not None and ultima_vacacion.total_pendiente > 0:
+                datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
+                suma_total = datos.aggregate(total_suma=Sum('total_pendiente'))['total_suma']
+                if suma_total < cuenta:
+                    messages.error(request, f'Esta pidiendo {cuenta} días cuando solo tiene {suma_total}')
+                    valido=False
+                if datos.exclude(id=datos.last().id) != None:
+                    datos = datos.exclude(id=datos.last().id) #Hasta aqui bien
+                    for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
+                        if cuenta <= dato.total_pendiente and cuenta > 0:
+                            if dato.dias_disfrutados == None:
+                                dato.dias_disfrutados = 0
+                            dato.total_pendiente -= cuenta
+                            dato.dias_disfrutados += cuenta
+                            cuenta = 0
+                            break
+                        elif cuenta > dato.total_pendiente and cuenta > 0:
+                            if dato.dias_disfrutados == None:
+                                dato.dias_disfrutados = 0
+                            dato.dias_disfrutados += dato.total_pendiente
+                            cuenta -=dato.total_pendiente
+                            dato.total_pendiente = 0
+            #else:
+            #    datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
+            ############################
         if valido and form.is_valid():
-            solicitud = form.save(commit=False)
-            solicitud.comentario_rh= request.POST.get('comentario')
-            solicitud.save()
-            coment = request.POST.get('comentario')
-            if solicitud.autorizar == True:
+            #solicitud = form.save(commit=False)
+            #solicitud.comentario_rh= request.POST.get('comentario')
+            #solicitud.save()
+            #coment = request.POST.get('comentario')
+           
+            #if solicitud.autorizar == True:
+            if 'btnAutorizar' in request.POST:
+                solicitud = form.save(commit=False)
+                solicitud.comentario_rh= request.POST.get('comentario')
+                solicitud.autorizar = 1
+                solicitud.save()
+                coment = request.POST.get('comentario')
+                
                 vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
                 vacacion.dias_disfrutados += cuenta
                 vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
@@ -4496,7 +4514,12 @@ def solicitud_vacacion_verificar(request, pk):
                 prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=vacacion,fecha_inicio=vacacion.fecha_inicio,fecha_fin=vacacion.fecha_fin,
                                         dia_inhabil=vacacion.dia_inhabil,comentario=vacacion.comentario,editado=vacacion.editado)
                 messages.success(request, 'Solicitud autorizada y días de vacaciones agregados')
-            else:
+            elif 'btnRechazar' in request.POST:
+                print("aqui pulso que no autoriza")
+                solicitud = form.save(commit=False)
+                solicitud.comentario_rh= request.POST.get('comentario')
+                solicitud.autorizar = 0
+                solicitud.save()
                 messages.success(request, 'Solicitud guardada como no autorizado')
 
             return redirect('Solicitudes_vacaciones')
@@ -4527,11 +4550,14 @@ def PdfFormatoVacaciones(request, pk):
                     cuenta -= 1
     diferencia = str(cuenta)
     #Para ubicar el dia de regreso en un dia habil (Puede caer en día festivo)
-    fin = fin + timedelta(days=1)
-    if fin.isoweekday() == inhabil:
-        fin = fin + timedelta(days=1)
+    #fin = fin + timedelta(days=1)
+    #if fin.isoweekday() == inhabil:
+    #    fin = fin + timedelta(days=1)
     now = date.today()
-    año1 = str(inicio.year)
+    #año1 = str(inicio.year)
+    #año2= str(fin.year)
+    año1 = fin - relativedelta(years=1)
+    año1 = str(año1.year)
     año2= str(fin.year)
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=letter)
@@ -4543,7 +4569,8 @@ def PdfFormatoVacaciones(request, pk):
     c.setFillColor(azul)
     c.setLineWidth(.2)
     c.setFont('Helvetica-Bold',16)
-    c.drawCentredString(305,765,'GRUPO VORCAB SA DE CV')
+    c.drawCentredString(305,765,'GRUPO VORDCAB SA DE CV')
+    c.setFont('Helvetica-Bold',11)
     c.drawCentredString(305,750,'SOLICITUD DE VACACIONES')
     c.drawInlineImage('static/images/vordcab.png',50,720, 4 * cm, 2 * cm) #Imagen Savia
     if solicitud.autorizar == False:
@@ -4618,12 +4645,12 @@ def PdfFormatoVacaciones(request, pk):
     c.drawCentredString(450,540-altura,diferencia)
     c.rect(35,538-altura, 175, 12)
     c.rect(360,538-altura, 190, 12)
-    c.drawString(40,520-altura,'CON GOCE DE SUELDO:')
-    c.rect(35,518-altura, 140, 12)
-    c.drawString(380,520-altura,'SI')
-    c.rect(360,518-altura, 50, 12)
-    c.drawString(425,520-altura,'NO')
-    c.rect(410,518-altura, 50, 12)
+    #c.drawString(40,520-altura,'CON GOCE DE SUELDO:')
+    #c.rect(35,518-altura, 140, 12)
+    #c.drawString(380,520-altura,'SI')
+    #c.rect(360,518-altura, 50, 12)
+    #c.drawString(425,520-altura,'NO')
+    #c.rect(410,518-altura, 50, 12)
     c.drawString(40,500-altura,'FECHA QUE DESEA SALIR DE VACACIONES:')
     c.drawCentredString(450,500-altura,str(inicio))
     c.rect(35,498-altura, 250, 12)
@@ -4870,37 +4897,39 @@ def FormatoEconomicos(request):
 def SolicitudEconomicos(request):
     usuario = UserDatos.objects.get(user__id=request.user.id)
     status = Status.objects.get(perfil__numero_de_trabajador=usuario.numero_de_trabajador, perfil__distrito=usuario.distrito)
-
+    
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Busca todos los status que no tengan vacaciones del año actual (periodo)
     status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
-    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+    #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
     #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
-    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__isnull = False)
     #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año,)
-    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    reinicio = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta__isnull = False,)
+    #reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+        
     if reinicio:
         for empleado in reinicio:
             economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None,
-                                                comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+                                                comentario="Generado autom. al cumplir la fecha de planta", editado="Sistema")
             empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
             empleado.save()
 
 
-    solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
+    #solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
     form = SolicitudEconomicosForm()
     now = date.today()
     periodo = str(now.year)
-    valido = True
+    
     datos= Economicos.objects.get(complete=True,status=status,periodo=periodo)
     if request.method == 'POST' and 'btnSend' in request.POST:
-
-        form = SolicitudEconomicosForm(request.POST, instance=solicitud)
-        form.save(commit=False)
+        valido = True
+        
+        form = SolicitudEconomicosForm(request.POST)
+        #form.save(commit=False)
 
 
         if datos.dias_disfrutados < 3:
@@ -4920,8 +4949,9 @@ def SolicitudEconomicos(request):
             messages.error(request,'Los días económicos no pueden ser seguidos')
             valido = False
         if valido and form.is_valid():
-            messages.success(request, 'Solicitud enviada a RH')
+            messages.success(request, 'Solicitud enviada al Jefe Inmediato')
             now = date.today()
+            solicitud = form.save(commit=False)
             solicitud.periodo = str(now.year)
             solicitud.status = status
             solicitud.complete=True
@@ -4942,17 +4972,22 @@ def solicitud_economico_verificar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     solicitud = Solicitud_economicos.objects.get(id=pk)
 
-    if request.method == 'POST' and 'btnSend' in request.POST:
+    if request.method == 'POST':
         form = SolicitudEconomicosUpdateForm(request.POST, instance=solicitud)
-        solicitud = form.save(commit=False)
+        #solicitud = form.save(commit=False)
 
         if form.is_valid():
-            solicitud = form.save(commit=False)
-            solicitud.comentario = request.POST.get('observaciones')
-            solicitud.save()
+            #solicitud = form.save(commit=False)
+            #solicitud.comentario = request.POST.get('observaciones')
+            #solicitud.save()
 
-            if solicitud.autorizar == True:
+            #if solicitud.autorizar == True:
+            if 'btnSolicitudAprobar' in request.POST:
+                solicitud = form.save(commit=False)
+                solicitud.comentario = request.POST.get('observaciones')
                 observaciones = request.POST.get('observaciones')
+                solicitud.autorizar = 1
+                solicitud.save()
                 # Buscamos o creamos una instancia de Economicos
                 economico, created = Economicos.objects.get_or_create(complete=True,status=solicitud.status,periodo=solicitud.periodo)
 
@@ -4981,11 +5016,17 @@ def solicitud_economico_verificar(request, pk):
                 prenomina_dia_tomado = Economicos_dia_tomado.objects.create(prenomina=economico,fecha=economico.fecha,
                                                                             comentario=economico.comentario,editado=economico.editado)
                 messages.success(request, 'Solicitud autorizada y días economicos agregados')
-            else:
+            elif 'btnSolicitudRechazar' in request.POST:
+                solicitud = form.save(commit=False)
+                solicitud.comentario = request.POST.get('observaciones')
+                solicitud.autorizar = 0
+                solicitud.save()
                 messages.success(request, 'Solicitud guardada como no autorizado')
             return redirect('Solicitudes_economicos')
     else:
+        print("estoy aqui: ",solicitud)
         form = SolicitudEconomicosUpdateForm(instance=solicitud)
+        
 
     context = {'form':form,'solicitud':solicitud}
 
@@ -5023,12 +5064,13 @@ def PdfFormatoEconomicos(request, pk):
     azul = Color(0.16015625,0.5,0.72265625)
     rojo = Color(0.59375, 0.05859375, 0.05859375)
 
-    c.setFillColor(black)
+    c.setFillColor(azul)
     c.setLineWidth(.2)
     c.setFont('Helvetica-Bold',16)
-    c.drawCentredString(305,765,'GRUPO VORCAB SA DE CV')
+    c.drawCentredString(305,765,'GRUPO VORDCAB SA DE CV')
     c.setFont('Helvetica-Bold',11)
     c.drawCentredString(305,750,'SOLICITUD DE DIA ECONOMICO')
+    c.drawInlineImage('static/images/vordcab.png',50,720, 4 * cm, 2 * cm) #Imagen Savia
     if solicitud.autorizar == False:
         c.setFillColor(rojo)
         c.setFont('Helvetica-Bold',16)
@@ -5095,12 +5137,12 @@ def PdfFormatoEconomicos(request, pk):
     elif economico == 3:
         c.rect(460,498, 50, 12, stroke = 1, fill = 1)
     c.setFillColor(black)
-    c.drawString(40,480,'CON GOCE DE SUELDO:')
-    c.rect(35,478, 140, 12)
-    c.drawString(380,480,'SI')
-    c.rect(360,478, 50, 12)
-    c.drawString(425,480,'NO')
-    c.rect(410,478, 50, 12)
+    #c.drawString(40,480,'CON GOCE DE SUELDO:')
+    #c.rect(35,478, 140, 12)
+    #c.drawString(380,480,'SI')
+    #c.rect(360,478, 50, 12)
+    #c.drawString(425,480,'NO')
+    #c.rect(410,478, 50, 12)
     c.drawString(40,460,'FECHA QUE DESEA SALIR DEL PERMISO:')
     c.drawCentredString(450,460,str(fecha))
     c.rect(35,458, 250, 12)
@@ -5667,6 +5709,7 @@ def Tabla_solicitud_vacaciones(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    
     if revisar_perfil.empresa == empresa_faxton:
         perfiles= Perfil.objects.filter(complete=True, baja=False, empresa=empresa_faxton).order_by("numero_de_trabajador")
     elif user_filter.distrito.distrito == 'Matriz':
@@ -5674,15 +5717,28 @@ def Tabla_solicitud_vacaciones(request):
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True, baja=False).order_by("numero_de_trabajador")
 
-    solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
-    solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    #solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
+    #solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
 
+    #RH solo puede ver solicitudes | Supervisor - Jefe inmediato puede autorizar solicitudes y ver solicitudes 
+    if user_filter.tipo_id == 4:
+         #solicitudes pendientes
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    else:
+        #solicitudes pendientes
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = revisar_perfil.id)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = revisar_perfil.id).exclude(Q(autorizar=None)).order_by("-id")
+    
     solicitud_filter = SolicitudesVacacionesFilter(request.GET, queryset=solicitudes)
     solicitudes = solicitud_filter.qs
     solicitud2_filter = SolicitudesVacacionesFilter(request.GET, queryset=solicitudes_revisadas)
     solicitudes_revisadas = solicitud2_filter.qs
 
     context= {
+        'user_filter': user_filter,
         'perfiles':perfiles,
         'solicitud_filter':solicitud_filter,
         'solicitudes':solicitudes,
@@ -5695,6 +5751,7 @@ def Tabla_solicitud_economicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    
     if revisar_perfil.empresa == empresa_faxton:
         perfiles= Perfil.objects.filter(complete=True,baja=False,empresa=empresa_faxton).order_by("numero_de_trabajador")
     elif user_filter.distrito.distrito == 'Matriz':
@@ -5702,8 +5759,17 @@ def Tabla_solicitud_economicos(request):
     else:
         perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
 
-    solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
-    solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    #RH solo puede ver solicitudes | Supervisor - Jefe inmediato puede autorizar solicitudes y ver solicitudes 
+    if user_filter.tipo_id == 4:
+         #solicitudes pendientes
+        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    else:
+        #solicitudes pendientes
+        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = revisar_perfil.id)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = revisar_perfil.id).exclude(Q(autorizar=None)).order_by("-id")
 
     solicitud_filter = SolicitudesEconomicosFilter(request.GET, queryset=solicitudes)
     solicitudes = solicitud_filter.qs
@@ -5711,6 +5777,7 @@ def Tabla_solicitud_economicos(request):
     solicitudes_revisadas = solicitud2_filter.qs
 
     context= {
+        'user_filter': user_filter,
         'perfiles':perfiles,
         'solicitud_filter':solicitud_filter,
         'solicitudes':solicitudes,
@@ -6221,6 +6288,7 @@ def tabla_variables_costo(request):
 #Boton generar costo mensual
 @login_required(login_url='user-login')
 def costo_mensual(request):
+    exit()
     from .models import CostoAnterior,SalarioDatos
     from esquema.models import Solicitud,BonoSolicitado
     from django.utils import timezone
@@ -6248,9 +6316,7 @@ def costo_mensual(request):
         #Me atre todos los costos actualmente
         costos = Costo.objects.all()
         porcentaje = SalarioDatos.objects.get(pk = 1)
-        
-        
-        
+                
         #Pasa los datos del modelo Costo a CostoAnterior para llevar el registro
         volcar_datos = [CostoAnterior(
             amortizacion_infonavit = costo.amortizacion_infonavit,
@@ -6306,6 +6372,7 @@ def costo_mensual(request):
         #se llama el metodo para pasar todos los datos
         CostoAnterior.objects.bulk_create(volcar_datos)
         
+        
         #resetear el costo del bono a 0 y tener el calculo previamente sin el bono
         costos = costos.filter(bono_total__gt=0)
         
@@ -6321,7 +6388,7 @@ def costo_mensual(request):
             costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
             costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
             costo.save()
-                        
+                       
         respuesta = HttpResponse("calcular el costo mensual")
         return respuesta
     
@@ -6489,3 +6556,199 @@ def costo_revisar_anterior(request, pk):
     context = {'costo':costo,}
 
     return render(request, 'proyecto/costo_revisar_anterior.html',context)
+
+@login_required(login_url='user-login')
+def TablaPrenominas(request):
+    user_filter = UserDatos.objects.get(user=request.user)
+    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    empresa_faxton = Empresa.objects.get(empresa="Faxton")
+    if revisar_perfil.empresa == empresa_faxton:
+        prenominas= Prenomina.objects.filter(empleado__status__perfil__empresa=empresa_faxton).order_by("empleado__status__perfil__numero_de_trabajador")
+    elif user_filter.distrito.distrito == 'Matriz':
+        prenominas= Prenomina.objects.all().order_by("empleado__status__perfil__numero_de_trabajador")
+    else:
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+        prenominas= Prenomina.objects.filter(empleado__status__perfil__id__in=perfil.all()).order_by("empleado__status__perfil__numero_de_trabajador")
+
+    prenomina_filter = PrenominaFilter(request.GET, queryset=prenominas)
+    prenominas = prenomina_filter.qs
+
+    for prenomina in prenominas:
+        ultima_autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina).order_by('-updated_at').first() #Ultimo modificado
+
+        if ultima_autorizacion is not None:
+            prenomina.valor = ultima_autorizacion.estado.tipo #Esta bien como agarra el dato de RH arriba que es el primero
+        prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
+
+    if request.method =='POST' and 'Excel' in request.POST:
+        return Excel_estado_prenomina(prenominas, user_filter)
+    
+                #Set up pagination
+    p = Paginator(prenominas, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
+    context= {
+        'prenominas':prenominas,
+        'prenomina_filter':prenomina_filter,
+        'salidas_list':salidas_list,
+        }
+
+    return render(request, 'proyecto/PrenominaTabla.html',context)
+
+def Excel_estado_prenomina(prenominas, user_filter):
+    response= HttpResponse(content_type = "application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Reporte_prenominas_' + str(datetime.date.today())+'.xlsx'
+    wb = Workbook()
+    ws = wb.create_sheet(title='Reporte')
+    #Comenzar en la fila 1
+    row_num = 1
+
+    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name = "head_style")
+    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
+    head_style.fill = PatternFill("solid", fgColor = '00003366')
+    wb.add_named_style(head_style)
+    #Create body style and adding to workbook
+    body_style = NamedStyle(name = "body_style")
+    body_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(body_style)
+    #Create messages style and adding to workbook
+    messages_style = NamedStyle(name = "mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size = 11)
+    wb.add_named_style(messages_style)
+    #Create date style and adding to workbook
+    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
+    date_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(date_style)
+    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+    money_style.font = Font(name ='Calibri', size = 10)
+    wb.add_named_style(money_style)
+    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
+    wb.add_named_style(money_resumen_style)
+
+    columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce sueldo',
+               'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo']
+
+    for col_num in range(len(columns)):
+        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
+        if col_num < 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
+        if col_num == 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        else:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+
+
+    columna_max = len(columns)+2
+
+    (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. JH}')).style = messages_style
+    (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    (ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
+    (ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
+    ws.column_dimensions[get_column_letter(columna_max)].width = 20
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
+    ahora = datetime.date.today()
+    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    rows = []
+
+    for prenomina in prenominas:
+        RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
+        CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
+        G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
+
+        if G is not None and G.estado.tipo == 'aprobado':
+            estado = 'aprobado'
+        elif G is not None and G.estado == 'rechazado':
+            estado = 'rechazado'
+        else:
+            estado = 'pendiente'
+
+        if RH is None:
+            RH ="Ninguno"   
+        else:
+            RH = str(RH.perfil.nombres)+(" ")+str(RH.perfil.apellidos)
+        if CT is None:
+            CT ="Ninguno"
+        else:
+            CT = str(CT.perfil.nombres)+(" ")+str(CT.perfil.apellidos)
+        if G is None:
+            G ="Ninguno"
+        else:
+            G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
+        retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        catorcena_num = catorcena_actual.catorcena
+
+        # Agregar los valores a la lista rows para cada prenomina
+        row = (
+            prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
+            prenomina.empleado.status.perfil.numero_de_trabajador,
+            prenomina.empleado.status.perfil.distrito.distrito,
+            catorcena_num,
+            prenomina.fecha,
+            prenomina.estado_general,
+            str(RH),
+            str(CT),
+            str(G),
+            estado,
+            retardos,
+            castigos,
+            permiso_goce,
+            permiso_sin,
+            descanso,
+            incapacidades,
+            faltas,
+            comision,
+            domingo
+        )
+        rows.append(row)
+
+    # Ahora puedes usar la lista rows como lo estás haciendo actualmente en tu código
+    for row_num, row in enumerate(rows, start=2):
+        for col_num, value in enumerate(row, start=1):
+            if col_num < 4:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+            elif col_num == 5:
+                ws.cell(row=row_num, column=col_num, value=value).style = date_style
+            else:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+
+
+    sheet = wb['Sheet']
+    wb.remove(sheet)
+    wb.save(response)
+
+    return(response)
+
+def determinar_estado_general(ultima_autorizacion):
+    if ultima_autorizacion is None:
+        return "Sin autorizaciones"
+
+    tipo_perfil = ultima_autorizacion.tipo_perfil.nombre.lower()
+    estado_tipo = ultima_autorizacion.estado.tipo.lower()
+
+    if tipo_perfil == 'rh' and estado_tipo == 'aprobado': #Ultimo upd rh y fue aprobado
+        return 'Controles técnicos pendiente'              #Solo puede editarlo ct
+
+    if tipo_perfil == 'control tecnico' and estado_tipo == 'aprobado': #Ultimo upd ct y fue aprobado
+        return 'Gerente pendiente'                         
+    
+    if tipo_perfil == 'gerencia' and estado_tipo == 'aprobado': #Ultimo upd gerencia y fue aprobado
+        return 'Gerente aprobado (Prenomina aprobada)'
+
+    if tipo_perfil == 'control tecnico' and estado_tipo == 'rechazado': #Ultimo upd ct y fue rechazado
+        return 'RH pendiente (rechazado por Controles técnicos)'
+    
+    if tipo_perfil == 'gerencia' and estado_tipo == 'rechazado': #Ultimo upd gerencia y fue rechazado
+        return 'RH pendiente (rechazado por Gerencia)'
+
+    return 'Estado no reconocido'

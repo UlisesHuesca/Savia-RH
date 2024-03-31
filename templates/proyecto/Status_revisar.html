@@ -32,6 +32,11 @@
 
 <hr>
 <hr>
+
+{% comment %}
+    
+
+    
 {% if usuario_fijo.id == empleado.id %}
     <div>
 {% elif usuario.tipo.admin == True and usuario.distrito == empleado.distrito %}
@@ -49,6 +54,7 @@
     <a href="{% url 'index' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i>  Inicio</a>
     <div class="d-none">
 {% endif %}
+{% endcomment %}
  <div class="container">
     <div class="row my-4">
             <div class="col-md-4"></div>

@@ -74,12 +74,12 @@
                 </tfoot>
             </table>
         </div>
-        {% comment %}Archivos{% endcomment %}
+        {% comment %}Archivos - Soporte de Bono{% endcomment %}
         <div class="col-12 col-md-12 mb-3">
             <div class="card">
                 <div class="card-body">
                     <ul class="list-group">
-                        <label for="" class="p-0 fw-bold">Requerimientos</label>
+                        <label for="" class="p-0 fw-bold">Soporte de Bono</label>
                         {% if requerimientos|length != 0 %}
                             {% for archivo in requerimientos  %}
                                 <li class="list-group-item border-0" title="Descargar">
@@ -91,9 +91,14 @@
                         {% endif %}
                             
                       </ul>  
+                      <hr>
+                      <p>{{soporte}}</p>
+
                 </div>
             </div>
         </div>
+     
+            
         {% comment %}Formulario Autorizacion{% endcomment %}
         <div class="col-12 mb-5">
             <div class="card">

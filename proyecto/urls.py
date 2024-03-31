@@ -85,11 +85,11 @@ urlpatterns = [
 
     path('Solicitar/Vacaciones', views.SolicitudVacaciones, name='Solicitar_vacacion'),
     path('Formato/Vacaciones', views.FormatoVacaciones, name='Formato_vacaciones'), #Borrar
-    #path('Formulario/Formato/Vacaciones', views.FormFormatoVacaciones, name='Formularioformato_vacaciones'),
+    #path('Formulario/Formato/Vacaciones', views.FormFormatoVacaciones, name='Formularioformato_vacaciutorizarones'),
     path('Formato/Economicos', views.FormatoEconomicos, name='Formato_economicos'), #Borrar
     path('Solicitar/Economico', views.SolicitudEconomicos, name='Solicitar_economico'),
 
-    path('Economicos/update/<int:pk>/', views.EconomicosUpdate, name='Economicos_update'),
+    #path('Economicos/update/<int:pk>/', views.EconomicosUpdate, name='Economicos_update'),
     path('Economicos/revisar/<int:pk>/', views.EconomicosRevisar, name='Economicos_revisar'),
     path('Solicitudes_economicos', views.Tabla_solicitud_economicos, name='Solicitudes_economicos'),
     path('Solicitudes_economicos_formato/<int:pk>/', views.PdfFormatoEconomicos, name='Solicitudes_economicos_formato'), #genera el pdf
@@ -101,6 +101,6 @@ urlpatterns = [
     #path('costo-mensual',views.costo_mensual,name="costo_mensual"),
     path('costo-anterior',views.costo_anterior,name="costo_anterior"),
     path('costo/revisar-anterior/<int:pk>/', views.costo_revisar_anterior, name='costo_revisar_anterior'),
-    
+    path('Tabla_prenominas', views.TablaPrenominas, name='Tabla_prenominas'),
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

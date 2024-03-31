@@ -77,7 +77,7 @@
                                     </button>
                                 </li>
                             </ul>
-                                {% if user_filter.tipo.nombre == "Gerencia" %}
+                                {% if user_filter.tipo.nombre == "Gerencia" or user_filter.tipo.nombre == "Control Tecnico" %}
                                 <ul class="nav d-flex justify-content-end"><h6>Autorización rapida</h6>
                                     <!-- Utiliza la clase 'ml-auto' en el elemento li para alinear a la derecha -->
                                     <li class="nav-item mx-4 ml-auto">

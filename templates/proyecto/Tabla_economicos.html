@@ -110,7 +110,12 @@
                     <th scope="col">Días económicos pendientes</th>
                     <th scope="col">Detalles</th>
                     {% if baja == 'False' %}
-                    <th scope="col">Agregar</th>
+                    
+                    {% comment %}
+                         <th scope="col">Agregar</th>
+                    {% endcomment %}
+                        
+                   
                     {% endif %} 
                 </tr>
             </thead>
@@ -124,7 +129,12 @@
                     <td>{{economico.dias_pendientes}}</td>
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Economicos_revisar' economico.status.id %}"><i class="fa-solid fa-clipboard"></i></a>
                     {% if baja == 'False' %}
-                    <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Economicos_update' economico.status.id %}"><i class="fa-solid fa-calendar-plus"></i></a>
+                    
+                    {% comment %}
+                          <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Economicos_update' economico.status.id %}"><i class="fa-solid fa-calendar-plus"></i></a>
+                    {% endcomment %}
+                        
+                  
                     {% endif %} 
                 </tr>
                 {% endfor %}

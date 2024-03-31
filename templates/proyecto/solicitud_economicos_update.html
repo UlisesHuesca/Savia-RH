@@ -48,6 +48,13 @@
                         <label for="form.nombre" class="col-auto col-form-label"><strong>Empleado: {{solicitud.status.perfil.nombres}} {{solicitud.status.perfil.apellidos}}</strong></label>
                         <br>
                         <div class="row my-2">
+                            <label for="form.fecha" class="col-auto col-form-label my-1"><strong>Jefe inmediato:</strong></label>
+                            <div class="col-4">
+                                <span class="form-control w-100" style="background-color: #f1f1f1;" w>{{ solicitud.perfil }}</span>
+                               
+                            </div>
+                        </div>
+                        <div class="row my-2">
                             <label for="form.fecha" class="col-auto col-form-label my-1"><strong>Fecha solicitada por el empleado:</strong></label>
                             <div class="col-2">
                                 <span class="form-control" style="background-color: #f1f1f1;">{{ form.fecha.value }}</span>
@@ -56,25 +63,39 @@
                         </div>
                         <div class="row my-2">
                             <label for="form.comentario" class="col-auto col-form-label my-1"><strong>Comentario del empleado:</strong></label>
-                            <div class="col-4">
-                                <span class="form-control" style="background-color: #f1f1f1;">{{ form.comentario.value }}</span>
-                                {{ form.comentario|add_class:"form-control d-none"}}
+                            <div class="col-12">
+                                {{form.comentario|add_class:"form-control"|append_attr:"placeholder=Observaciones"|attr:"cols:10"|attr:"readonly"}}
                             </div>
                         </div>
-                            <label for="id_autorizar" class="col-auto col-form-label my-1"><strong>Autorizar:</strong></label>
-                            <div class="col-1">
-                                {{ form.autorizar|add_class:"form-control"|attr:"id:id_autorizar"}}
-                            </div>
+                        
+                       
+                            
+                       
+                            
+                            
+                            
                         <label for="form.texto_personalizado" id="texto_personalizado_label" class="col-auto col-form-label my-1"><strong>Observaciones:</strong></label>
-                        <div class="col-3">
-                            <input type="text" name="observaciones" id="texto_personalizado" class="form-control" maxlength="40">
+                        <div class="col-12">
+                            {% comment %} <input type="text" name="observaciones" id="texto_personalizado" class="form-control"> {% endcomment %}
+                            <textarea name="observaciones" id="texto_personalidado" cols="100" rows="5"></textarea>
                         </div>
                 </div>
                 <hr>
-                <button type="submit" name="btnSend" class="btn btn-success">
-                    <span class="glyphicon glyphicon-ok"></span> Guardar
-                </button>
-                    <a href="{% url 'Solicitudes_economicos' %}" class="btn btn">Cancelar</a>
+                <div class="d-flex justify-content-between col-4"> 
+                    <button type="submit" name="btnSolicitudAprobar" class="btn btn-success">
+                        <span class="glyphicon glyphicon-ok"></span> Autorizar
+                    </button>
+                    <button type="submit" name="btnSolicitudRechazar" class="btn btn-danger">
+                        <span class="glyphicon glyphicon-ok"></span> Rechazar
+                    </button>
+                    <a href="{% url 'Solicitudes_economicos' %}" class="btn btn-secondary">Cancelar</a>
+                </div> 
+
+                
+               
+                    
+               
+                   
                 </form>
          </div>
     </div>
