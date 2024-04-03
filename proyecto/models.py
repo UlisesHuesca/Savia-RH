@@ -614,7 +614,7 @@ class Vacaciones(models.Model):
     fecha_fin = models.DateField(null=True)
     dias_disfrutados = models.IntegerField(null=True, default=0)
     total_pendiente = models.IntegerField(null=True, default=0)
-    comentario = models.CharField(max_length=100,null=True)
+    comentario = models.TextField(null=True)
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
@@ -641,7 +641,7 @@ class Vacaciones_dias_tomados(models.Model):
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
+    comentario = models.TextField(null=True)
     editado = models.CharField(max_length=100,blank=True)
 
 class Solicitud_economicos(models.Model):

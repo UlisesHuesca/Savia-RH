@@ -4413,11 +4413,12 @@ def solicitud_vacacion_verificar(request, pk):
     tabla_festivos = TablaFestivos.objects.all()
     delta = timedelta(days=1)
     valido = True
+    #dias_vacacion = 0
 
     if request.method == 'POST':
         form =SolicitudVacacionesUpdateForm(request.POST, instance=solicitud)
-        #solicitud = form.save(commit=False)
-            #Para las condicionales
+        solicitud = form.save(commit=False)
+        #Para las condicionales
         if form.is_valid():
             if solicitud.fecha_fin < solicitud.fecha_inicio:
                 messages.error(request,'La fecha de inicio no puede ser posterior a la final')
@@ -4468,61 +4469,60 @@ def solicitud_vacacion_verificar(request, pk):
             #else:
             #    datos = Vacaciones.objects.filter(status=solicitud.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
             ############################
-        if valido and form.is_valid():
-            #solicitud = form.save(commit=False)
-            #solicitud.comentario_rh= request.POST.get('comentario')
-            #solicitud.save()
-            #coment = request.POST.get('comentario')
-           
-            #if solicitud.autorizar == True:
-            if 'btnAutorizar' in request.POST:
-                solicitud = form.save(commit=False)
-                solicitud.comentario_rh= request.POST.get('comentario')
-                solicitud.autorizar = 1
-                solicitud.save()
-                coment = request.POST.get('comentario')
-                
-                vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
-                vacacion.dias_disfrutados += cuenta
-                vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
-                vacacion.dia_inhabil = solicitud.dia_inhabil
-                vacacion.fecha_fin = solicitud.fecha_fin
-                vacacion.fecha_inicio = solicitud.fecha_inicio
-                vacacion.comentario = coment
-                # Actualizamos el objeto status
-                status = Status.objects.get(id=vacacion.status.id)
-                status.complete_vacaciones = True
-                #Guardamos las vacaciones anteriores
-                for dato in datos:
-                    historial = dato.history.first()  # Obtener la primera versión histórica del objeto
-                    if historial and historial.total_pendiente != dato.total_pendiente:
-                        # El campo 'total_pendiente' ha cambiado
-                        dato._meta.get_field('created_at').auto_now = False
-                        dato.comentario ="Tomado periodo:" + str(solicitud.periodo)
-                        dato.fecha_inicio = solicitud.fecha_inicio
-                        dato.fecha_fin =  solicitud.fecha_fin
-                        dato.save()
-                        dato._meta.get_field('created_at').auto_now = True
-                # Guardamos los cambios en la base de datos
-                vacacion.comentario +=" "+"Dias tomados:" + str(dias_vacacion)
-                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                vacacion.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
-                vacacion.save()
-                status.save()
-                
-                #Parte para la prenomina
-                prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=vacacion,fecha_inicio=vacacion.fecha_inicio,fecha_fin=vacacion.fecha_fin,
-                                        dia_inhabil=vacacion.dia_inhabil,comentario=vacacion.comentario,editado=vacacion.editado)
-                messages.success(request, 'Solicitud autorizada y días de vacaciones agregados')
-            elif 'btnRechazar' in request.POST:
-                print("aqui pulso que no autoriza")
-                solicitud = form.save(commit=False)
-                solicitud.comentario_rh= request.POST.get('comentario')
-                solicitud.autorizar = 0
-                solicitud.save()
-                messages.success(request, 'Solicitud guardada como no autorizado')
+            if valido:
+                #solicitud = form.save(commit=False)
+                #solicitud.comentario_rh= request.POST.get('comentario')
+                #solicitud.save()
+                #coment = request.POST.get('comentario')
 
-            return redirect('Solicitudes_vacaciones')
+                #if solicitud.autorizar == True:
+                if 'btnAutorizar' in request.POST:
+                    solicitud = form.save(commit=False)
+                    solicitud.comentario_rh= request.POST.get('comentario')
+                    solicitud.autorizar = 1
+                    solicitud.save()
+                    coment = request.POST.get('comentario')
+
+                    vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
+                    vacacion.dias_disfrutados += cuenta
+                    vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
+                    vacacion.dia_inhabil = solicitud.dia_inhabil
+                    vacacion.fecha_fin = solicitud.fecha_fin
+                    vacacion.fecha_inicio = solicitud.fecha_inicio
+                    vacacion.comentario = coment
+                    # Actualizamos el objeto status
+                    status = Status.objects.get(id=vacacion.status.id)
+                    status.complete_vacaciones = True
+                    #Guardamos las vacaciones anteriores
+                    for dato in datos:
+                        historial = dato.history.first()  # Obtener la primera versión histórica del objeto
+                        if historial and historial.total_pendiente != dato.total_pendiente:
+                            # El campo 'total_pendiente' ha cambiado
+                            dato._meta.get_field('created_at').auto_now = False
+                            dato.comentario ="Tomado periodo:" + str(solicitud.periodo)
+                            dato.fecha_inicio = solicitud.fecha_inicio
+                            dato.fecha_fin =  solicitud.fecha_fin
+                            dato.save()
+                            dato._meta.get_field('created_at').auto_now = True
+                    # Guardamos los cambios en la base de datos
+                    vacacion.comentario +=" "+"Dias tomados:" + str(dias_vacacion)
+                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                    vacacion.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
+                    vacacion.save()
+                    status.save()
+
+                    #Parte para la prenomina
+                    prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=vacacion,fecha_inicio=vacacion.fecha_inicio,fecha_fin=vacacion.fecha_fin,
+                                            dia_inhabil=vacacion.dia_inhabil,comentario=vacacion.comentario,editado=vacacion.editado)
+                    messages.success(request, 'Solicitud autorizada y días de vacaciones agregados')
+                elif 'btnRechazar' in request.POST:
+                    solicitud = form.save(commit=False)
+                    solicitud.comentario_rh= request.POST.get('comentario')
+                    solicitud.autorizar = 0
+                    solicitud.save()
+                    messages.success(request, 'Solicitud guardada como no autorizado')
+
+                return redirect('Solicitudes_vacaciones')
     else:
         form = SolicitudVacacionesUpdateForm(instance=solicitud)
 
