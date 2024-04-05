@@ -149,12 +149,11 @@ class SolicitudEconomicosForm(forms.ModelForm):
         fields = ['perfil','fecha','comentario',]
     
     def __init__(self, *args, **kwargs):
+        #si se necesita agregar el usuario para obtener el distrito y aplicar el filtrado**
         super(SolicitudEconomicosForm, self).__init__(*args, **kwargs)
         # Filtrar las opciones del campo 'perfil'
-        usuarios = UserDatos.objects.filter(tipo_id = 5)
-        nt_usuarios = [usuario.numero_de_trabajador for usuario in usuarios]
-        self.fields['perfil'].queryset = Perfil.objects.filter(numero_de_trabajador__in=nt_usuarios)
-
+        self.fields['perfil'].queryset = Perfil.objects.all()
+        
 class SolicitudEconomicosUpdateForm(forms.ModelForm):
 
     class Meta:

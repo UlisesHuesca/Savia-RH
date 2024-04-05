@@ -67,18 +67,16 @@
                                 {{form.comentario|add_class:"form-control"|append_attr:"placeholder=Observaciones"|attr:"cols:10"|attr:"readonly"}}
                             </div>
                         </div>
-                        
-                       
-                            
-                       
-                            
-                            
-                            
-                        <label for="form.texto_personalizado" id="texto_personalizado_label" class="col-auto col-form-label my-1"><strong>Observaciones:</strong></label>
-                        <div class="col-12">
-                            {% comment %} <input type="text" name="observaciones" id="texto_personalizado" class="form-control"> {% endcomment %}
-                            <textarea name="observaciones" id="texto_personalidado" cols="100" rows="5"></textarea>
-                        </div>
+
+                        {% if user.is_authenticated%}
+                            {% if economico_menu %}
+                                <label for="form.texto_personalizado" id="texto_personalizado_label" class="col-auto col-form-label my-1"><strong>Observaciones:</strong></label>
+                                <div class="col-12">
+                                    {% comment %} <input type="text" name="observaciones" id="texto_personalizado" class="form-control"> {% endcomment %}
+                                    <textarea name="observaciones" id="texto_personalidado" cols="100" rows="5"></textarea>
+                                </div>
+                            {% endif %}        
+                        {% endif %}
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between col-4"> 

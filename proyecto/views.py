@@ -788,7 +788,7 @@ def Solicitudes_revisar_empleado(request):
     user_filter = UserDatos.objects.get(user=request.user)
     perfil = Perfil.objects.get(distrito=user_filter.distrito.id, numero_de_trabajador=user_filter.numero_de_trabajador)
     solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(status__perfil=perfil, complete=True).order_by("-id")
-    solicitudes_economicos = Solicitud_economicos.objects.filter(status__perfil=perfil, complete=True).order_by("-id")
+    solicitudes_economicos = Solicitud_economicos.objects.filter(status__perfil=perfil, complete=True).exclude(autorizar = None).order_by("-id")
 
 
     context = {'solicitudes_vacaciones':solicitudes_vacaciones,'solicitudes_economicos':solicitudes_economicos,}
@@ -4921,6 +4921,9 @@ def SolicitudEconomicos(request):
 
     #solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
     form = SolicitudEconomicosForm()
+    empleados = Perfil.objects.filter(distrito_id = usuario.distrito_id, empresa_id = 5, baja = False)
+    form.fields['perfil'].queryset = empleados
+    
     now = date.today()
     periodo = str(now.year)
     
@@ -4929,6 +4932,7 @@ def SolicitudEconomicos(request):
         valido = True
         
         form = SolicitudEconomicosForm(request.POST)
+        form.fields['perfil'].queryset = empleados
         #form.save(commit=False)
 
 
@@ -4972,6 +4976,8 @@ def solicitud_economico_verificar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     solicitud = Solicitud_economicos.objects.get(id=pk)
 
+    print(user_filter)
+    
     if request.method == 'POST':
         form = SolicitudEconomicosUpdateForm(request.POST, instance=solicitud)
         #solicitud = form.save(commit=False)
@@ -4983,57 +4989,85 @@ def solicitud_economico_verificar(request, pk):
 
             #if solicitud.autorizar == True:
             if 'btnSolicitudAprobar' in request.POST:
-                solicitud = form.save(commit=False)
-                solicitud.comentario = request.POST.get('observaciones')
-                observaciones = request.POST.get('observaciones')
-                solicitud.autorizar = 1
-                solicitud.save()
-                # Buscamos o creamos una instancia de Economicos
-                economico, created = Economicos.objects.get_or_create(complete=True,status=solicitud.status,periodo=solicitud.periodo)
+                
+                if solicitud.autorizar_jefe == None:
+                    solicitud = form.save(commit=False)
+                    solicitud.observacion_jefe = request.POST.get('observaciones')
+                    #observaciones = request.POST.get('observaciones')
+                    solicitud.autorizar_jefe = 1
+                    #la solicitud se autoriza y se envia al gerente del distrito
+                    rol = UserDatos.objects.filter(distrito_id=user_filter.distrito, tipo_id=8).values('numero_de_trabajador').first()
+                    perfil_gerente = Perfil.objects.filter(numero_de_trabajador = rol['numero_de_trabajador']).values('id').first() 
+                    solicitud.perfil_gerente_id = perfil_gerente['id']
+                    solicitud.save()
+                    messages.success(request, 'Solicitud autorizada y enviada al gerente')
+                    
+               
+                    
+                elif solicitud.autorizar_jefe == True: 
+                    solicitud = form.save(commit=False)
+                    solicitud.comentario = solicitud.observacion_jefe
+                    observaciones = solicitud.observacion_jefe
+                    solicitud.autorizar = 1
+                    solicitud.save()
+                    
+                    # Buscamos o creamos una instancia de Economicos
+                    economico, created = Economicos.objects.get_or_create(complete=True,status=solicitud.status,periodo=solicitud.periodo)
 
-                if not created:
-                    anterior = Economicos.objects.get(complete=True,status=solicitud.status,periodo=solicitud.periodo)
-                    # Si no se creó una nueva instancia, editamos los campos necesarios
-                    economico.comentario = observaciones
-                    economico.dias_disfrutados = anterior.dias_disfrutados + 1
-                    economico.dias_pendientes = anterior.dias_pendientes - 1
-                    economico.fecha = solicitud.fecha
-                else:
-                    economico.comentario = observaciones
-                    economico.dias_disfrutados = 1
-                    economico.dias_pendientes = 2
-                    economico.fecha = solicitud.fecha
-                # Actualizamos el objeto status
-                status = Status.objects.get(id=economico.status.id)
-                status.complete_economicos = True
-                if economico.dias_pendientes == 0:
-                    economico.complete_dias =True
-                # Guardamos los cambios en la base de datos
-                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                economico.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
-                economico.save()
-                status.save()
-                prenomina_dia_tomado = Economicos_dia_tomado.objects.create(prenomina=economico,fecha=economico.fecha,
-                                                                            comentario=economico.comentario,editado=economico.editado)
-                messages.success(request, 'Solicitud autorizada y días economicos agregados')
+                    if not created:
+                        anterior = Economicos.objects.get(complete=True,status=solicitud.status,periodo=solicitud.periodo)
+                        # Si no se creó una nueva instancia, editamos los campos necesarios
+                        economico.comentario = observaciones
+                        economico.dias_disfrutados = anterior.dias_disfrutados + 1
+                        economico.dias_pendientes = anterior.dias_pendientes - 1
+                        economico.fecha = solicitud.fecha
+                    else:
+                        economico.comentario = observaciones
+                        economico.dias_disfrutados = 1
+                        economico.dias_pendientes = 2
+                        economico.fecha = solicitud.fecha
+                    # Actualizamos el objeto status
+                    status = Status.objects.get(id=economico.status.id)
+                    status.complete_economicos = True
+                    if economico.dias_pendientes == 0:
+                        economico.complete_dias =True
+                    # Guardamos los cambios en la base de datos
+                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                    economico.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
+                    economico.save()
+                    status.save()
+                    prenomina_dia_tomado = Economicos_dia_tomado.objects.create(prenomina=economico,fecha=economico.fecha,
+                                                                                comentario=economico.comentario,editado=economico.editado)
+                    
+                    messages.success(request, 'Solicitud autorizada y días economicos agregados')
+            
             elif 'btnSolicitudRechazar' in request.POST:
-                solicitud = form.save(commit=False)
-                solicitud.comentario = request.POST.get('observaciones')
+                
+                if solicitud.autorizar_jefe == None:
+                    solicitud = form.save(commit=False)
+                    solicitud.comentario = request.POST.get('observaciones','')
+                else: 
+                    solicitud = form.save(commit=False)
+                    solicitud.comentario = solicitud.observacion_jefe
+                
                 solicitud.autorizar = 0
+                solicitud.autorizar_jefe = 0
                 solicitud.save()
-                messages.success(request, 'Solicitud guardada como no autorizado')
+                
+                messages.success(request, 'Solicitud no autorizada')
             return redirect('Solicitudes_economicos')
     else:
-        print("estoy aqui: ",solicitud)
         form = SolicitudEconomicosUpdateForm(instance=solicitud)
         
-
     context = {'form':form,'solicitud':solicitud}
-
+    
     return render(request,'proyecto/solicitud_economicos_update.html',context)
 
 def PdfFormatoEconomicos(request, pk):
     solicitud= Solicitud_economicos.objects.get(id=pk)
+    #jefe_inmediato = Perfil.objects.get(pk = solicitud.perfil_id) 
+    #gerente = Perfil.objects.get(pk = solicitud.perfil_gerente_id)
+    
     now = date.today()
     fecha = solicitud.fecha
     periodo = str(fecha.year)
@@ -5130,12 +5164,22 @@ def PdfFormatoEconomicos(request, pk):
     c.line(410,510,410,498)
     c.line(460,510,460,498)
     c.setFillColorRGB(0.8, 0.8, 0.8)  # Color de relleno
-    if economico == 1:
-        c.rect(360,498, 50, 12, stroke = 1, fill = 1)
-    elif economico == 2:
-        c.rect(410,498, 50, 12, stroke = 1, fill = 1)
-    elif economico == 3:
-        c.rect(460,498, 50, 12, stroke = 1, fill = 1)
+    if solicitud.autorizar == True:
+        if economico == 1:
+            c.rect(360,498, 50, 12, stroke = 1, fill = 1)
+        elif economico == 2:
+            c.rect(410,498, 50, 12, stroke = 1, fill = 1)
+        elif economico == 3:
+            c.rect(460,498, 50, 12, stroke = 1, fill = 1)
+    else:
+        economico = economico + 1 
+        if economico == 1:
+            c.rect(360,498, 50, 12, stroke = 1, fill = 1)
+        elif economico == 2:
+            c.rect(410,498, 50, 12, stroke = 1, fill = 1)
+        elif economico == 3:
+            c.rect(460,498, 50, 12, stroke = 1, fill = 1)
+        
     c.setFillColor(black)
     #c.drawString(40,480,'CON GOCE DE SUELDO:')
     #c.rect(35,478, 140, 12)
@@ -5165,9 +5209,11 @@ def PdfFormatoEconomicos(request, pk):
         y -= 25
     c.rect(40,368, 530, 12)
     c.rect(40,300, 530, 68)
+    #c.drawCentredString(170, 138, gerente.nombres+" "+gerente.apellidos)
     c.drawCentredString(170,125,'FIRMA GERENCIA')
     c.rect(70,123, 200, 12)
     c.rect(70,135, 200, 50)
+    #c.drawCentredString(440, 138, jefe_inmediato.nombres+" "+gerente.apellidos)
     c.drawCentredString(440,125,'FIRMA DE JEFE INMEDIATO')
     c.rect(330,123, 210, 12)
     c.rect(330,135, 210, 50)
@@ -5750,8 +5796,9 @@ def Tabla_solicitud_vacaciones(request):
 def Tabla_solicitud_economicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    print(revisar_perfil.id)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    
+        
     if revisar_perfil.empresa == empresa_faxton:
         perfiles= Perfil.objects.filter(complete=True,baja=False,empresa=empresa_faxton).order_by("numero_de_trabajador")
     elif user_filter.distrito.distrito == 'Matriz':
@@ -5765,12 +5812,18 @@ def Tabla_solicitud_economicos(request):
         solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
         #solicitudes aprobadas y rechazadas
         solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
-    else:
+    elif user_filter.tipo_id == 8:
         #solicitudes pendientes
-        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = revisar_perfil.id)
+        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar= None, perfil_gerente = revisar_perfil.id)
         #solicitudes aprobadas y rechazadas
-        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = revisar_perfil.id).exclude(Q(autorizar=None)).order_by("-id")
-
+        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, perfil_gerente = revisar_perfil.id).exclude(Q(autorizar=None)).order_by("-id")
+    else: 
+        #solicitudes pendientes
+        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar_jefe=None, perfil_id = revisar_perfil.id )
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = revisar_perfil.id).exclude(Q(autorizar_jefe=None)).order_by("-id")
+        
+        
     solicitud_filter = SolicitudesEconomicosFilter(request.GET, queryset=solicitudes)
     solicitudes = solicitud_filter.qs
     solicitud2_filter = SolicitudesEconomicosFilter(request.GET, queryset=solicitudes_revisadas)

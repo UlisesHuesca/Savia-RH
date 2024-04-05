@@ -57,27 +57,32 @@ def contadores_processor(request):
                 prenomina_estado = 0 #Ninguna de las anteriores
         else:
             prenomina_estado = None
-        
+      
     #Solicitudes economicos - Jefe inmediato
-    if usuario_fijo:
-        solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar=None, perfil_id = usuario_fijo.id)
-        economicos_count = solicitudes_economicos.count()
-        
-        solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(complete=True, autorizar=None, perfil_id = usuario_fijo.id)
-        vacaciones_count = solicitudes_vacaciones.count()
-    else:
-        economicos_count = None
-        vacaciones_count = None
-              
-    #solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar=None)
-    #economicos_count = solicitudes_economicos.count()
-    #solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(complete=True, autorizar=None)
-    #vacaciones_count = solicitudes_vacaciones.count()
+    economicos_count = None
+    economico_menu = None
+    vacaciones_count = None
+    
+    if usuario_fijo:        
+        if usuario.tipo_id == 8 : #Gerente o sudireccion
+            solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar=None, perfil_gerente_id = usuario_fijo.id)
+            economicos_count = solicitudes_economicos.count()
+            solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(complete=True, autorizar=None, perfil_id = usuario_fijo.id)
+            vacaciones_count = solicitudes_vacaciones.count()
+        else:
+            solicitudes_economicos = Solicitud_economicos.objects.filter(complete=True, autorizar_jefe=None, perfil_id = usuario_fijo.id)
+            economicos_count = solicitudes_economicos.count()
+            economico_menu = Solicitud_economicos.objects.filter(complete=True, perfil_id = usuario_fijo.id).exists()
+            
+            solicitudes_vacaciones = Solicitud_vacaciones.objects.filter(complete=True, autorizar=None, perfil_id = usuario_fijo.id)
+            vacaciones_count = solicitudes_vacaciones.count()                      
+            
     return {
         'usuario':usuario,
         'usuario_fijo':usuario_fijo,
         'status_fijo':status_fijo,
         'economicos_count':economicos_count,
+        'economico_menu': economico_menu,
         'vacaciones_count':vacaciones_count,
         'prenomina_estado':prenomina_estado,
     }

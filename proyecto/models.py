@@ -648,10 +648,13 @@ class Solicitud_economicos(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     #jefe inmediato
     perfil = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True)
+    perfil_gerente = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True, related_name='perfil_gerente')
     periodo = models.CharField(max_length=50,null=True)
     fecha = models.DateField(null=True)
     comentario = models.TextField(null=True)
+    observacion_jefe = models.TextField(null=True)
     autorizar = models.BooleanField(null=True, default=None)
+    autorizar_jefe = models.BooleanField(null=True, default = None)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     complete = models.BooleanField(default=False)
@@ -666,7 +669,7 @@ class Economicos(models.Model):
     dias_disfrutados = models.IntegerField(null=True, default=0)
     dias_pendientes = models.IntegerField(null=True, default=0)
     fecha = models.DateField(null=True)
-    comentario = models.CharField(max_length=100,null=True)
+    comentario = models.TextField(null = True)
     complete = models.BooleanField(default=False)
     complete_dias = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)
@@ -685,7 +688,7 @@ class Economicos_dia_tomado(models.Model):
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
+    comentario = models.TextField(null=True)
     editado = models.CharField(max_length=100,blank=True)
 
 class Empleados_Batch(models.Model):
