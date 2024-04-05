@@ -4286,6 +4286,9 @@ def SolicitudVacaciones(request):
         pendiente += dato.total_pendiente #Para sacar el total de días pendientes
     solicitud, created = Solicitud_vacaciones.objects.get_or_create(complete=False)
     form = SolicitudVacacionesForm()
+    empleados = Perfil.objects.filter(distrito_id = usuario.distrito_id, empresa_id = 5, baja = False)
+    form.fields['perfil'].queryset = empleados
+    
     valido = False
 
     now = date.today()
@@ -4420,6 +4423,7 @@ def solicitud_vacacion_verificar(request, pk):
         solicitud = form.save(commit=False)
         #Para las condicionales
         if form.is_valid():
+            #aqui se preparan los datos y se validan antes de ser guardados.
             if solicitud.fecha_fin < solicitud.fecha_inicio:
                 messages.error(request,'La fecha de inicio no puede ser posterior a la final')
                 valido=False
@@ -4477,48 +4481,64 @@ def solicitud_vacacion_verificar(request, pk):
 
                 #if solicitud.autorizar == True:
                 if 'btnAutorizar' in request.POST:
-                    solicitud = form.save(commit=False)
-                    solicitud.comentario_rh= request.POST.get('comentario')
-                    solicitud.autorizar = 1
-                    solicitud.save()
-                    coment = request.POST.get('comentario')
+                    
+                    if solicitud.autorizar_jefe == None:
+                        solicitud = form.save(commit=False)
+                        solicitud.comentario_rh= request.POST.get('comentario')
+                        solicitud.autorizar_jefe = 1
+                        #la solicitud se autoriza y se envia al gerente del distrito
+                        rol = UserDatos.objects.filter(distrito_id=user_filter.distrito, tipo_id=8).values('numero_de_trabajador').first()
+                        perfil_gerente = Perfil.objects.filter(numero_de_trabajador = rol['numero_de_trabajador']).values('id').first() 
+                        
+                        solicitud.perfil_gerente_id = perfil_gerente['id']
+                        solicitud.save()
+                        coment = request.POST.get('comentario')
+                        messages.success(request, 'Solicitud autorizada y enviada al gerente')
+                    
+                    elif solicitud.autorizar_jefe == True: 
+                        solicitud = form.save(commit=False)
+                        #solicitud.comentario_rh= request.POST.get('comentario')
+                        solicitud.autorizar = 1
+                        solicitud.save()
+                        #coment = request.POST.get('comentario')
 
-                    vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
-                    vacacion.dias_disfrutados += cuenta
-                    vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
-                    vacacion.dia_inhabil = solicitud.dia_inhabil
-                    vacacion.fecha_fin = solicitud.fecha_fin
-                    vacacion.fecha_inicio = solicitud.fecha_inicio
-                    vacacion.comentario = coment
-                    # Actualizamos el objeto status
-                    status = Status.objects.get(id=vacacion.status.id)
-                    status.complete_vacaciones = True
-                    #Guardamos las vacaciones anteriores
-                    for dato in datos:
-                        historial = dato.history.first()  # Obtener la primera versión histórica del objeto
-                        if historial and historial.total_pendiente != dato.total_pendiente:
-                            # El campo 'total_pendiente' ha cambiado
-                            dato._meta.get_field('created_at').auto_now = False
-                            dato.comentario ="Tomado periodo:" + str(solicitud.periodo)
-                            dato.fecha_inicio = solicitud.fecha_inicio
-                            dato.fecha_fin =  solicitud.fecha_fin
-                            dato.save()
-                            dato._meta.get_field('created_at').auto_now = True
-                    # Guardamos los cambios en la base de datos
-                    vacacion.comentario +=" "+"Dias tomados:" + str(dias_vacacion)
-                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                    vacacion.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
-                    vacacion.save()
-                    status.save()
+                        vacacion = Vacaciones.objects.get(complete=True, status=solicitud.status, periodo=solicitud.periodo)
+                        vacacion.dias_disfrutados += cuenta
+                        vacacion.total_pendiente = vacacion.dias_de_vacaciones - vacacion.dias_disfrutados
+                        vacacion.dia_inhabil = solicitud.dia_inhabil
+                        vacacion.fecha_fin = solicitud.fecha_fin
+                        vacacion.fecha_inicio = solicitud.fecha_inicio
+                        vacacion.comentario = solicitud.comentario_rh
+                        # Actualizamos el objeto status
+                        status = Status.objects.get(id=vacacion.status.id)
+                        status.complete_vacaciones = True
+                        #Guardamos las vacaciones anteriores
+                        for dato in datos:
+                            historial = dato.history.first()  # Obtener la primera versión histórica del objeto
+                            if historial and historial.total_pendiente != dato.total_pendiente:
+                                # El campo 'total_pendiente' ha cambiado
+                                dato._meta.get_field('created_at').auto_now = False
+                                dato.comentario ="Tomado periodo:" + str(solicitud.periodo)
+                                dato.fecha_inicio = solicitud.fecha_inicio
+                                dato.fecha_fin =  solicitud.fecha_fin
+                                dato.save()
+                                dato._meta.get_field('created_at').auto_now = True
+                        # Guardamos los cambios en la base de datos
+                        vacacion.comentario +=" "+"Dias tomados:" + str(dias_vacacion)
+                        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                        vacacion.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
+                        vacacion.save()
+                        status.save()
 
-                    #Parte para la prenomina
-                    prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=vacacion,fecha_inicio=vacacion.fecha_inicio,fecha_fin=vacacion.fecha_fin,
-                                            dia_inhabil=vacacion.dia_inhabil,comentario=vacacion.comentario,editado=vacacion.editado)
-                    messages.success(request, 'Solicitud autorizada y días de vacaciones agregados')
+                        #Parte para la prenomina
+                        prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=vacacion,fecha_inicio=vacacion.fecha_inicio,fecha_fin=vacacion.fecha_fin,
+                                                dia_inhabil=vacacion.dia_inhabil,comentario=vacacion.comentario,editado=vacacion.editado)
+                        messages.success(request, 'Solicitud autorizada y días de vacaciones agregados')
                 elif 'btnRechazar' in request.POST:
                     solicitud = form.save(commit=False)
-                    solicitud.comentario_rh= request.POST.get('comentario')
+                    #solicitud.comentario_rh= solicitud.co
                     solicitud.autorizar = 0
+                    solicitud.autorizar_jefe = 0
                     solicitud.save()
                     messages.success(request, 'Solicitud guardada como no autorizado')
 
@@ -4975,9 +4995,7 @@ def SolicitudEconomicos(request):
 def solicitud_economico_verificar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     solicitud = Solicitud_economicos.objects.get(id=pk)
-
-    print(user_filter)
-    
+        
     if request.method == 'POST':
         form = SolicitudEconomicosUpdateForm(request.POST, instance=solicitud)
         #solicitud = form.save(commit=False)
@@ -5768,15 +5786,20 @@ def Tabla_solicitud_vacaciones(request):
 
     #RH solo puede ver solicitudes | Supervisor - Jefe inmediato puede autorizar solicitudes y ver solicitudes 
     if user_filter.tipo_id == 4:
-         #solicitudes pendientes
-        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
-        #solicitudes aprobadas y rechazadas
-        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
-    else:
         #solicitudes pendientes
         solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = revisar_perfil.id)
         #solicitudes aprobadas y rechazadas
-        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = revisar_perfil.id).exclude(Q(autorizar=None)).order_by("-id")
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    elif user_filter.tipo_id == 8:
+        #solicitudes pendientes
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_gerente = revisar_perfil.id)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True , perfil_gerente = revisar_perfil.id).exclude(Q(autorizar=None)).order_by("-id")
+    else:
+        #solicitudes pendientes
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar_jefe=None, perfil_id = revisar_perfil.id)
+        #solicitudes aprobadas y rechazadas
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = revisar_perfil.id).exclude(Q(autorizar_jefe=None)).order_by("-id")
     
     solicitud_filter = SolicitudesVacacionesFilter(request.GET, queryset=solicitudes)
     solicitudes = solicitud_filter.qs
@@ -5809,7 +5832,7 @@ def Tabla_solicitud_economicos(request):
     #RH solo puede ver solicitudes | Supervisor - Jefe inmediato puede autorizar solicitudes y ver solicitudes 
     if user_filter.tipo_id == 4:
          #solicitudes pendientes
-        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
+        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = revisar_perfil.id)
         #solicitudes aprobadas y rechazadas
         solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
     elif user_filter.tipo_id == 8:

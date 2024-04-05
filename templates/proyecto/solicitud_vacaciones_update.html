@@ -80,13 +80,23 @@
                                 {{ form.dia_inhabil|add_class:"form-control d-none" }}
                                 <input type="text" class="form-control bg-gray" value="{{ solicitud.dia_inhabil }}" readonly>
                             </div>
-                           
+
+                            {% if solicitud.autorizar_jefe == True %} 
+                            <div class="row my-3 align-items-center">
+                                <label for="form.comentario" class="col-auto col-form-label my-1"><strong>Comentario:</strong></label>
+                                <div class="col-6">
+                                    <textarea readonly name="comentario" id="comentario_id" class="form-control" rows="5" cols="50">{{solicitud.comentario_rh}}</textarea>
+                                </div>
+                            </div>
+                            {% else %}
                             <div class="row my-3 align-items-center">
                                 <label for="form.comentario" class="col-auto col-form-label my-1"><strong>Comentario:</strong></label>
                                 <div class="col-6">
                                     <textarea name="comentario" id="comentario_id" class="form-control" rows="5" cols="50"></textarea>
                                 </div>
                             </div>
+                            {% endif %}
+
                         </div>
                             <br>
                             <!--Si son mas de 3 días de vacaciones-->

@@ -580,6 +580,7 @@ class Solicitud_vacaciones(models.Model):
     status = models.ForeignKey(Status, on_delete = models.CASCADE, null=True)
     #Es el supervisor - jefe inmediato
     perfil = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True)
+    perfil_gerente = models.ForeignKey(Perfil, on_delete = models.CASCADE, null=True, related_name='perfil_vacacion_gerente')
     periodo = models.CharField(max_length=50,null=True)
     fecha_inicio = models.DateField(null=True)
     fecha_fin = models.DateField(null=True)
@@ -593,6 +594,7 @@ class Solicitud_vacaciones(models.Model):
     temas = models.ForeignKey(Temas_comentario_solicitud_vacaciones, on_delete = models.CASCADE, null=True)
     anexos = models.CharField(max_length=200,null=True, blank=True)
     autorizar = models.BooleanField(null=True, default=None)
+    autorizar_jefe = models.BooleanField(null=True, default=None)
     comentario_rh = models.TextField(null=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
