@@ -8,6 +8,19 @@ from proyecto.models import Empresa, Distrito
 
 
 class PrenominaFilter(django_filters.FilterSet):
+    incidencias = django_filters.ChoiceFilter(label='Opción', choices=(
+        ('1', 'Retardos'),
+        ('2', 'Castigos'),
+        ('3', 'Permiso con goce de sueldo'),
+        ('4', 'Permiso sin goce de sueldo'),
+        ('5', 'Descanso'),
+        ('6', 'Incapacidades'),
+        ('7', 'Faltas'),
+        ('8', 'Comisión'),
+        ('9', 'Domingo'),
+        ('10', 'Dia extra')
+    ), method='filtrar_por_incidencias')
+    
     id = django_filters.NumberFilter(field_name='id')
     numero_de_trabajador = django_filters.NumberFilter(field_name='empleado__status__perfil__numero_de_trabajador')
     nombres_apellidos = CharFilter(method='nombres_apellidos_filter', label="Search")
@@ -15,13 +28,50 @@ class PrenominaFilter(django_filters.FilterSet):
     distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.all(), field_name='empleado__status__perfil__distrito__distrito')
     start_date = DateFilter(field_name = 'fecha', lookup_expr='gte')
     end_date = DateFilter(field_name = 'fecha', lookup_expr='lte')
+    
+    #incidencias = django_filters.ChoiceFilter(choices=opciones, method='filtrar_por_incidencias')
+    
     #subproyecto = django_filters.CharFilter(field_name='status__perfil__subproyecto', lookup_expr='icontains')
-
     BAJA_CHOICES = ((False, 'Activo'),(True, 'Dado de baja'))
     baja = django_filters.ChoiceFilter(field_name='empleado__status__perfil__baja',choices=BAJA_CHOICES,empty_label=None)
+    
     class Meta:
         model = Prenomina
-        fields = ['id', 'numero_de_trabajador','nombres_apellidos','empresa','distrito','baja','start_date','end_date',]
+        fields = ['id', 'numero_de_trabajador','nombres_apellidos','empresa','distrito','baja','start_date','end_date']
 
     def nombres_apellidos_filter(self, queryset, name, value):
         return queryset.annotate(nombres_apellidos_combined=Concat('empleado__status__perfil__nombres', Value(' '), 'empleado__status__perfil__apellidos', output_field=CharField())).filter(nombres_apellidos_combined__icontains=value)
+    
+    def filtrar_por_incidencias(self, queryset, name, value):
+        if value == '1':
+            premominas = queryset.filter(retardos__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '2':
+            premominas = queryset.filter(castigos__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '3':
+            premominas = queryset.filter(permiso_goce__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '4':
+            premominas = queryset.filter(permiso_sin__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '5':
+            premominas = queryset.filter(descanso__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '6':
+            premominas = queryset.filter(incapacidades__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '7':
+            premominas = queryset.filter(faltas__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '8':
+            premominas = queryset.filter(comision__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '9':
+            premominas = queryset.filter(domingo__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '10':
+            premominas = queryset.filter(dia_extra__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        else:
+            return queryset

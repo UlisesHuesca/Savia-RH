@@ -82,7 +82,8 @@ def Tabla_prenomina(request):
                 nueva_prenomina.save()
         #costo_filter = CostoFilter(request.GET, queryset=costo)
         #costo = costo_filter.qs
-        prenominas = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador")
+        prenominas = Prenomina.objects.filter(empleado__in=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador")
+        
         prenomina_filter = PrenominaFilter(request.GET, queryset=prenominas)
         prenominas = prenomina_filter.qs
 

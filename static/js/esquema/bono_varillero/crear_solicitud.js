@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
     const bonoViajePEP = 13
     const bonoViajePrivado = 16 
     const bonoCurso = 14
+    const url = 'http://127.0.0.1:8000/esquema/bonos_varillero/'
 
      /**Buscar el soporte para el bono seleccionado */
      async function solicitarSoporteBono(bono){
@@ -351,7 +352,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
                     // Este código se ejecuta después de que el usuario hace clic en OK
                     if (result.isConfirmed) {
                       console.log('El usuario hizo clic en OK');
-                      window.location.href = 'http://127.0.0.1:8000/esquema/bonos_varillero/';
+                      window.location.href = url;
                     }
                 });
                
