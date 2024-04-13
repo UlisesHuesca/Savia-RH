@@ -68,7 +68,7 @@
                     <tbody>
                         {% for fecha, etiqueta, comentario, archivo in fechas_con_etiquetas %}
                             <tr>
-                                <td>{{ fecha|date:'Y-m-d' }}</td>
+                                <td>{{ fecha|date:'d/m/Y' }}</td>
                                 <td>{{ etiqueta }}</td>
                                 <td>
                                     {% if etiqueta == "festivo" %}
@@ -78,7 +78,7 @@
                                     {% elif etiqueta == "vacaciones" %}
                                         Vacaciones
                                     {% else %}
-                                        <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}">
+                                        <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}" class="form-control">
                                     {% endif %}
                                 </td>
                                 <td>
@@ -95,7 +95,7 @@
                                             <i class="fa-solid fa-file-pdf fa-2xl"></i>
                                         </button>
                                     {% else %}
-                                    <select name="estado_{{ fecha|date:'Y-m-d' }}" onchange="showInput(this)">
+                                    <select name="estado_{{ fecha|date:'Y-m-d' }}" onchange="showInput(this)" class="form-select" aria-label="Default select example">
                                         <option value="asistencia" {% if etiqueta == "asistencia" %}selected{% endif %}>Asistencia</option>
                                         <option value="retardo" {% if etiqueta == "retardo" %}selected{% endif %}>Retardo</option>
                                         <option value="castigo" {% if etiqueta == "castigo" %}selected{% endif %}>Castigo</option>
@@ -106,14 +106,14 @@
                                         <option value="faltas" {% if etiqueta == "faltas" %}selected{% endif %}>Faltas</option>
                                         <option value="comision" {% if etiqueta == "comision" %}selected{% endif %}>Comisión</option>
                                         <option value="domingo" {% if etiqueta == "domingo" %}selected{% endif %}>Domingo</option>
-                                        <option value="extra" {% if etiqueta == "extra" %}selected{% endif %}>Día extra</option>
+                                        <option value="extra" {% if etiqueta == "extra" %}selected{% endif %}>Día de descanso laborado</option>
                                         <!-- Agrega más opciones según tus factores -->
                                     </select>
                                     {% endif %}
                                 </td>
                                 <td> <!-- Nueva columna para subir archivos -->
                                     <div class="custom-file">
-                                        <input type="file" class="custom-file-input" id="archivo_{{ fecha|date:'Y-m-d' }}" name="archivo_{{ fecha|date:'Y-m-d' }}">
+                                        <input type="file" class="custom-file-input form-control-sm" id="archivo_{{ fecha|date:'Y-m-d' }}" name="archivo_{{ fecha|date:'Y-m-d' }}">
                                         <label class="custom-file-label" for="archivo_{{ fecha|date:'Y-m-d' }}">{{ archivo.name|default:'Seleccionar archivo' }}</label>
                                     </div>
                                     {% if archivo %}

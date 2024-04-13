@@ -619,8 +619,9 @@ def removerArchivo(request,archivo_id):
             
             if os.path.isfile(archivo.url.path):
                 os.remove(archivo.url.path)
+                
             archivo.delete()
-            
+                        
             return JsonResponse({"archivo_id":archivo_id},status=200,safe=False)
         except:
             return JsonResponse({'mensaje':'objecto no encontrado'},status=404,safe=True)    

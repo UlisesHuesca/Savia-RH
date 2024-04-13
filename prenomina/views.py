@@ -435,15 +435,19 @@ def Excel_estado_prenomina(prenominas, user_filter):
     money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
     money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
     wb.add_named_style(money_resumen_style)
+    dato_style = NamedStyle(name='dato_style',number_format='DD/MM/YYYY')
+    dato_style.font = Font(name="Arial Narrow", size = 11)
         
     columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce sueldo',
-               'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Economicos','Vacaciones','Salario Catorcenal',
+               'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Economicos','Vacaciones','Salario Cartocenal','Salario Catorcenal',
                'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','Fonacot','Total deducciones','Neto a pagar en nomina']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
+        if col_num == 1:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 50
         if col_num < 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
         if col_num == 4:
             ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
         else:
@@ -451,17 +455,21 @@ def Excel_estado_prenomina(prenominas, user_filter):
 
 
     columna_max = len(columns)+2
+    
+    ahora = datetime.now()
+    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
 
     (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. JH}')).style = messages_style
     (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    (ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
-    (ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
-    ws.column_dimensions[get_column_letter(columna_max)].width = 20
-    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
-    ahora = datetime.now()
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    #(ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
+    #(ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
+    (ws.cell(column = columna_max, row = 4, value=f'Catorcena: {catorcena_actual.catorcena}: {catorcena_actual.fecha_inicial.strftime("%d/%m/%Y")} - {catorcena_actual.fecha_final.strftime("%d/%m/%Y")}')).style = dato_style
+    ws.column_dimensions[get_column_letter(columna_max)].width = 50
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 50
+
     rows = []
 
+    sub_salario_catorcenal_costo = Decimal(0.00) #Valor de referencia del costo
     sub_salario_catorcenal = Decimal(0.00)
     sub_apoyo_pasajes = Decimal(0.00)
     sub_total_bonos = Decimal(0.00)
@@ -498,6 +506,8 @@ def Excel_estado_prenomina(prenominas, user_filter):
             G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
         
         #datos para obtener los calculos de la prenomina dependiendo el empleado
+        salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
+        
         salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
         neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
         apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
@@ -518,13 +528,13 @@ def Excel_estado_prenomina(prenominas, user_filter):
            
         #calculo del infonavit
         if infonavit == 0:
-            prestamo_infonavit = 0
+            prestamo_infonavit = Decimal(0.00)
         else:
             prestamo_infonavit = Decimal((infonavit / Decimal(30.4) ) * 14 )
        
         #calculo del fonacot
         if fonacot == 0:
-            prestamo_fonacot = 0
+            prestamo_fonacot = Decimal(0.00)
         else:
             #Se haya la catorcena actual, y cuenta cuantas catorcenas le corresponden al mes actual
             primer_dia_mes = datetime(datetime.now().year, datetime.now().month, 1).date()
@@ -620,7 +630,46 @@ def Excel_estado_prenomina(prenominas, user_filter):
         total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos
         total_deducciones = prestamo_infonavit + prestamo_fonacot
         pagar_nomina = total_percepciones - total_deducciones
-                
+        
+        if retardos == 0: 
+            retardos = ''
+        
+        if castigos == 0:
+            castigos = ''
+            
+        if permiso_goce == 0:
+            permiso_goce = ''
+            
+        if permiso_sin == 0:
+            permiso_sin = ''
+            
+        if descanso == 0:
+            descanso =''
+                    
+        if incapacidades == 0:
+            incapacidades = ''
+        
+        if faltas == 0:
+            faltas = ''
+        
+        if comision == 0:
+            comision = ''
+            
+        if domingo == 0:
+            domingo = ''
+            
+        if festivos == 0:
+            festivos = ''
+            
+        if economicos == 0:
+            economicos = ''
+            
+        if vacaciones == 0:
+            vacaciones = ''
+            
+        
+            
+        
         # Agregar los valores a la lista rows para cada prenomina
         row = (
             prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
@@ -646,6 +695,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
             festivos,
             economicos,
             cantidad_dias,
+            salario_catorcenal_costo,
             salario_catorcenal,
             apoyo_pasajes,
             total_bonos,
@@ -657,6 +707,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
         )
         rows.append(row)
         
+        sub_salario_catorcenal_costo = sub_salario_catorcenal_costo + salario_catorcenal_costo
         sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
         sub_apoyo_pasajes = sub_apoyo_pasajes + apoyo_pasajes
         sub_total_bonos = sub_total_bonos + total_bonos
@@ -697,6 +748,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
     
     
     add_last_row = ['Total','','','','','','','','','','','','','','','','','','','','','','',
+                    sub_salario_catorcenal_costo,
                     sub_salario_catorcenal,
                     sub_apoyo_pasajes,
                     sub_total_bonos,
