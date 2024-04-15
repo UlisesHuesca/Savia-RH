@@ -53,6 +53,8 @@ from decimal import Decimal
 import calendar
 from esquema.models import BonoSolicitado
 from django.db.models import Sum
+
+from .forms import IncapacidadesForm
 # Create your views here.
 
 @login_required(login_url='user-login')
@@ -121,6 +123,7 @@ def Tabla_prenomina(request):
     else:
             return render(request, 'revisar/403.html')
 
+@login_required(login_url='user-login')
 def Autorizar_general(prenominas, user_filter,request):
     nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
     aprobado = Estado.objects.get(tipo="aprobado")
@@ -134,7 +137,59 @@ def Autorizar_general(prenominas, user_filter,request):
         messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
     return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
 
+@login_required(login_url='user-login')
+def programar_incidencias(request,pk):
+    # crea el nuevo dato según el nuevo estado o comentario
+    if request.method == 'POST' and 'btn_incidencias' in request.POST:
+        
+        #saber catorcena
+        ahora = datetime.date.today()
+        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        
+        #RH
+        user_filter = UserDatos.objects.get(user=request.user)
+        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+        
+        #Empleado
+        costo = Costo.objects.get(id=pk)
+        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) 
+         
+        incidencia = request.POST['incidencias']
+        fecha_incio = request.POST['fecha']
+        fecha_fin = request.POST['fecha_fin']
+        comentario = request.POST['comentario']
+       
+        
+        if incidencia == '1':
+            evento_model = Incapacidades
+            url = request.FILES['url']
+        elif incidencia == '2':
+            evento_model = Castigos
+            url = None
+        elif incidencia == '3':
+            evento_model = Permiso_goce
+            url = request.FILES['url']
+        elif incidencia == '4':
+            evento_model = Permiso_sin
+            url = request.FILES['url']
+                    
+        if evento_model:
+            if url:
+                obj, created = evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+                obj.url = url
+                obj.save()
+            else:
+                evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+        else:
+            #  donde nuevo_estado no tiene un mapeo en el diccionario
+            print(f"Error: nuevo_estado desconocido")
+        
+        messages.success(request, 'Cambios guardados exitosamente')
+        
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+    
 
+@login_required(login_url='user-login')
 def prenomina_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     ahora = datetime.date.today()
@@ -184,6 +239,7 @@ def prenomina_revisar_ajax(request, pk):
                             else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha=fecha).first().comentario if fecha in fechas_con_permiso_sin else "") if fecha in fechas_con_permiso_sin
                             else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
                             else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha=fecha).first().comentario if fecha in fechas_con_incapacidades else "") if fecha in fechas_con_incapacidades
+                            #else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
                             else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
                             else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario if fecha in fechas_con_comision else "") if fecha in fechas_con_comision
                             else (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
@@ -230,6 +286,7 @@ def PrenominaRevisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "RH":
         ahora = datetime.date.today()
+        incapacidadesform = IncapacidadesForm()
         costo = Costo.objects.get(id=pk)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
@@ -261,7 +318,7 @@ def PrenominaRevisar(request, pk):
         fechas_con_permiso_goce = [permiso_goc.fecha for permiso_goc in prenomina.permiso_goce]
         fechas_con_permiso_sin = [permiso_si.fecha for permiso_si in prenomina.permiso_sin]
         fechas_con_descanso = [descans.fecha for descans in prenomina.descanso]
-        fechas_con_incapacidades = [incapacidade.fecha for incapacidade in prenomina.incapacidades]
+        #fechas_con_incapacidades = [incapacidade.fecha for incapacidade in prenomina.incapacidades]
         fechas_con_faltas = [falta.fecha for falta in prenomina.faltas]
         fechas_con_comision = [comisio.fecha for comisio in prenomina.comision]
         fechas_con_domingo = [doming.fecha for doming in prenomina.domingo]
@@ -275,11 +332,15 @@ def PrenominaRevisar(request, pk):
 
         #lista de tuplas con la fecha y su etiqueta
         fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
-                                else (fecha, "castigo", prenomina.castigos.filter(fecha=fecha).first().comentario if fecha in fechas_con_castigos else "") if fecha in fechas_con_castigos
-                                else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha=fecha).first().comentario, prenomina.permiso_goce.filter(fecha=fecha).first().url if fecha in fechas_con_permiso_goce and prenomina.permiso_goce.filter(fecha=fecha).first().url else "") if fecha in fechas_con_permiso_goce
-                                else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha=fecha).first().comentario, prenomina.permiso_sin.filter(fecha=fecha).first().url if fecha in fechas_con_permiso_sin and prenomina.permiso_sin.filter(fecha=fecha).first().url else "") if fecha in fechas_con_permiso_sin
-                                else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
-                                else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha=fecha).first().comentario, prenomina.incapacidades.filter(fecha=fecha).first().url if fecha in fechas_con_incapacidades and prenomina.incapacidades.filter(fecha=fecha).first().url else "") if fecha in fechas_con_incapacidades
+                                #else (fecha, "castigo", prenomina.castigos.filter(fecha=fecha).first().comentario if fecha in fechas_con_castigos else "") if fecha in fechas_con_castigos
+                                else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
+                                #else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha=fecha).first().comentario, prenomina.permiso_goce.filter(fecha=fecha).first().url if fecha in fechas_con_permiso_goce and prenomina.permiso_goce.filter(fecha=fecha).first().url else "") if fecha in fechas_con_permiso_goce
+                                else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
+                                #else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha=fecha).first().comentario, prenomina.permiso_sin.filter(fecha=fecha).first().url if fecha in fechas_con_permiso_sin and prenomina.permiso_sin.filter(fecha=fecha).first().url else "") if fecha in fechas_con_permiso_sin
+                                else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
+                                #else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha=fecha).first().comentario, prenomina.incapacidades.filter(fecha=fecha).first().url if fecha in fechas_con_incapacidades and prenomina.incapacidades.filter(fecha=fecha).first().url else "") if fecha in fechas_con_incapacidades
+                                else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
+
                                 else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
                                 else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario, prenomina.comision.filter(fecha=fecha).first().url if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().url else "") if fecha in fechas_con_comision
                                 else (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
@@ -324,11 +385,11 @@ def PrenominaRevisar(request, pk):
                 if nuevo_estado and nuevo_estado != etiqueta:
                     # elimina el dato asociado a la fecha
                     prenomina.retardos.filter(fecha=fecha).delete()
-                    prenomina.castigos.filter(fecha=fecha).delete()
-                    prenomina.permiso_goce.filter(fecha=fecha).delete()
-                    prenomina.permiso_sin.filter(fecha=fecha).delete()
+                    prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).delete()
+                    prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).delete()
+                    prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).delete()
                     prenomina.descanso.filter(fecha=fecha).delete()
-                    prenomina.incapacidades.filter(fecha=fecha).delete()
+                    prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).delete()
                     prenomina.faltas.filter(fecha=fecha).delete()
                     prenomina.comision.filter(fecha=fecha).delete()
                     prenomina.domingo.filter(fecha=fecha).delete()
@@ -337,11 +398,11 @@ def PrenominaRevisar(request, pk):
                 if nuevo_estado and nuevo_estado != 'asistencia':
                     evento_model = {
                         'retardo': Retardos,
-                        'castigo': Castigos,
-                        'permiso_goce': Permiso_goce,  
-                        'permiso_sin': Permiso_sin,  
+                        #'castigo': Castigos,
+                        #'permiso_goce': Permiso_goce,  
+                        #'permiso_sin': Permiso_sin,  
                         'descanso': Descanso,  
-                        'incapacidades': Incapacidades,  
+                        #'incapacidades': Incapacidades,  
                         'faltas': Faltas,  
                         'comision': Comision,  
                         'domingo': Domingo,  
@@ -352,7 +413,13 @@ def PrenominaRevisar(request, pk):
                         archivo = request.FILES.get(f'archivo_{fecha_str}')  # Obtener el archivo de la solicitud
                         if archivo:
                             obj, created = evento_model.objects.update_or_create(fecha=fecha, prenomina=prenomina, defaults={'comentario': nuevo_comentario}, editado=str("E:"+nombre.nombres+" "+nombre.apellidos))
-                            obj.url = archivo
+                            # Obtener la URL del archivo
+                            url_archivo = obj.url.url
+
+                            # Eliminar el archivo asociado al objeto evento_model
+                            if url_archivo:
+                                obj.url.delete(save=False) 
+                            #obj.url = archivo
                             obj.save()
                         else:
                             evento_model.objects.update_or_create(fecha=fecha, prenomina=prenomina, defaults={'comentario': nuevo_comentario}, editado=str("E:"+nombre.nombres+" "+nombre.apellidos))
@@ -371,6 +438,8 @@ def PrenominaRevisar(request, pk):
             'fechas_con_etiquetas': fechas_con_etiquetas,
             'autorizacion1':autorizacion1,
             'autorizacion2':autorizacion2,
+            'incapacidadesform':incapacidadesform
+            
             }
 
         return render(request, 'prenomina/Actualizar_revisar.html',context)
@@ -553,11 +622,15 @@ def Excel_estado_prenomina(prenominas, user_filter):
         
         #contar no. de incidencias 
         retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        #castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        #permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        #permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        #incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
         comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
         domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
@@ -565,15 +638,51 @@ def Excel_estado_prenomina(prenominas, user_filter):
         festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
         economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
         vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
+        
+        #calular el numero de permiso con goce de sueldo
+        cantidad_dias_castigos = 0
+        if permiso_sin.exists():
+            for goce in permiso_sin:
+                diferencia = goce.fecha_fin - goce.fecha
+                permiso_sin = diferencia.days + 1
+        else:
+            permiso_sin = 0
+        
+        #calular el numero de permiso con goce de sueldo
+        cantidad_dias_castigos = 0
+        if permiso_goce.exists():
+            for goce in permiso_goce:
+                diferencia = goce.fecha_fin - goce.fecha
+                permiso_goce = diferencia.days + 1
+        else:
+            permiso_goce = 0
+                    
+        #calular el numero de castigos
+        cantidad_dias_castigos = 0
+        if castigos.exists():
+            for castigo in castigos:
+                diferencia = castigo.fecha_fin - castigo.fecha
+                castigos = diferencia.days + 1
+        else:
+            castigos = 0
+                
+        #calular el numero de incapacidades
+        cantidad_dias_incapacides = 0
+        if incapacidades.exists():
+            for incapacidad in incapacidades:
+                diferencia = incapacidad.fecha_fin - incapacidad.fecha
+                incapacidades = diferencia.days + 1
+        else: 
+            incapacidades = 0
                 
         #calcular el numero de vacaciones
-        cantidad_dias = 0
+        cantidad_dias_vacacion = 0
         if vacaciones.exists():
-            for v in vacaciones:
-                diferencia = v.fecha_fin - v.fecha_inicio
-                cantidad_dias = diferencia.days + 1
+            for vacacion in vacaciones:
+                diferencia = vacacion.fecha_fin - vacacion.fecha_inicio
+                cantidad_dias_vacacion = diferencia.days + 1
                 
-        print("total vacaciones: ", cantidad_dias)
+        print("total vacaciones: ", cantidad_dias_vacacion)
         
         #numero de catorena
         catorcena_num = catorcena_actual.catorcena 
@@ -694,7 +803,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
             dia_extra,
             festivos,
             economicos,
-            cantidad_dias,
+            cantidad_dias_vacacion,
             salario_catorcenal_costo,
             salario_catorcenal,
             apoyo_pasajes,
@@ -757,8 +866,6 @@ def Excel_estado_prenomina(prenominas, user_filter):
                     sub_prestamo_fonacot,
                     sub_total_deducciones,
                     sub_pagar_nomina
-                    
-                    
                     ]
     ws.append(add_last_row) 
     

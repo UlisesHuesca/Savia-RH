@@ -229,6 +229,8 @@ function mostrarVistaPrevia(event, costoId) {
                     // limpia cualquier contenido existente
                     const tbody = filaOculta.querySelector('tbody'); //Para encontrar donde añadir los datos
                     tbody.innerHTML = '';
+                    
+                    console.log(data)
 
                     // pasar por todos los factores y agregarlos a la fila oculta
                     data.fechas_con_etiquetas.forEach(item => {
