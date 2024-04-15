@@ -18,6 +18,7 @@ from .models import Status_Batch, Empresa, Distrito, Nivel, Contrato, Sangre, Se
 from .models import Seleccion, SalarioDatos, FactorIntegracion, TablaCesantia, Solicitud_economicos, Solicitud_vacaciones, Empleado_cv
 from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados, Vacaciones_anteriores_Batch, Dia_vacacion, Datos_baja
 from .models import Variables_carga_social, Variables_imss_patronal, CostoAnterior
+from esquema.models import BonoSolicitado
 from revisar.models import AutorizarPrenomina
 from prenomina.models import Prenomina
 from prenomina.filters import PrenominaFilter
@@ -54,7 +55,7 @@ from django.db.models import Count
 from django.db.models import IntegerField
 from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect
-
+import calendar
 
 
 
