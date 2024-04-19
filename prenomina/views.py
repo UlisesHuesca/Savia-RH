@@ -260,7 +260,6 @@ def prenomina_revisar_ajax(request, pk):
                             else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
                             else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
     
-    
     response_data = {
         'fechas_con_etiquetas': fechas_con_etiquetas,
         'autorizacion': {

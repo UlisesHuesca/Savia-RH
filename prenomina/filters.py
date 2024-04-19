@@ -4,7 +4,9 @@ from django.db.models import CharField, Value
 from django.db.models.functions import Concat
 from django_filters import DateFilter, CharFilter
 from .models import Prenomina
+from proyecto.models import Vacaciones_dias_tomados
 from proyecto.models import Empresa, Distrito
+from django.db.models import Exists, OuterRef
 
 
 class PrenominaFilter(django_filters.FilterSet):
@@ -18,7 +20,8 @@ class PrenominaFilter(django_filters.FilterSet):
         ('7', 'Faltas'),
         ('8', 'Comisión'),
         ('9', 'Domingo'),
-        ('10', 'Dia extra')
+        ('10', 'Dia extra'),
+        ('11', 'Vacaciones')
     ), method='filtrar_por_incidencias')
     
     id = django_filters.NumberFilter(field_name='id')
@@ -72,6 +75,9 @@ class PrenominaFilter(django_filters.FilterSet):
             return queryset.filter(id__in=premominas)
         if value == '10':
             premominas = queryset.filter(dia_extra__fecha__isnull = False)
+            return queryset.filter(id__in=premominas)
+        if value == '11':
+            premominas = queryset.filter(vacaciones_dias_tomados__fecha_inicio__isnull = False)
             return queryset.filter(id__in=premominas)
         else:
             return queryset
