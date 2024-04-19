@@ -70,6 +70,11 @@ from django.http import FileResponse
 from django.core.files.base import ContentFile
 import math
 
+#importar reporte Excel prenomina
+from prenomina.views import Excel_estado_prenomina
+
+from prenomina.filters import PrenominaFilter
+
 #BONOS
 def asignarBonoCosto(solicitud):
     #una lista que lleva cada cantidad del bono
@@ -239,6 +244,7 @@ def Tabla_solicitudes_prenomina(request):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
         ahora = datetime.date.today()
+        #ahora = datetime.date.today() + timedelta(days=16)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         empresa_faxton = Empresa.objects.get(empresa="Faxton")
@@ -329,6 +335,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
         ahora = datetime.date.today()
+        #ahora = datetime.date.today() + timedelta(days=16)
         costo = Costo.objects.get(id=pk)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
@@ -342,12 +349,13 @@ def Prenomina_Solicitud_Revisar(request, pk):
 
         #obtener factores de días asociados a cada prenomina
         prenomina.retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) 
-        prenomina.permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        #prenomina.castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        prenomina.castigos = Castigos.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        prenomina.permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        prenomina.permiso_sin = Permiso_sin.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
         prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) or Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        prenomina.incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
         prenomina.faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
@@ -449,6 +457,8 @@ def Prenomina_Solicitud_Revisar(request, pk):
 def prenomina_solicitudes_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     ahora = datetime.date.today()
+    #ahora = datetime.date.today() + timedelta(days=16)
+    
     costo = Costo.objects.get(id=pk)
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
     prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
@@ -575,139 +585,6 @@ def Autorizar_general(prenominas, user_filter,request):
         revisado.save()
         messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
     return redirect('Prenominas_solicitudes')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
-
-def Excel_estado_prenomina(prenominas, user_filter):
-    response= HttpResponse(content_type = "application/ms-excel")
-    response['Content-Disposition'] = 'attachment; filename = Reporte_prenominas_' + str(datetime.date.today())+'.xlsx'
-    wb = Workbook()
-    ws = wb.create_sheet(title='Reporte')
-    #Comenzar en la fila 1
-    row_num = 1
-
-    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
-    head_style = NamedStyle(name = "head_style")
-    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
-    head_style.fill = PatternFill("solid", fgColor = '00003366')
-    wb.add_named_style(head_style)
-    #Create body style and adding to workbook
-    body_style = NamedStyle(name = "body_style")
-    body_style.font = Font(name ='Calibri', size = 10)
-    wb.add_named_style(body_style)
-    #Create messages style and adding to workbook
-    messages_style = NamedStyle(name = "mensajes_style")
-    messages_style.font = Font(name="Arial Narrow", size = 11)
-    wb.add_named_style(messages_style)
-    #Create date style and adding to workbook
-    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
-    date_style.font = Font(name ='Calibri', size = 10)
-    wb.add_named_style(date_style)
-    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
-    money_style.font = Font(name ='Calibri', size = 10)
-    wb.add_named_style(money_style)
-    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
-    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
-    wb.add_named_style(money_resumen_style)
-
-    columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce sueldo',
-               'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo']
-
-    for col_num in range(len(columns)):
-        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
-        if col_num < 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 10
-        if col_num == 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
-        else:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
-
-
-    columna_max = len(columns)+2
-
-    (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. JH}')).style = messages_style
-    (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    (ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
-    (ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
-    ws.column_dimensions[get_column_letter(columna_max)].width = 20
-    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
-    ahora = datetime.date.today()
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    rows = []
-
-    for prenomina in prenominas:
-        RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
-        CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
-        G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
-
-        if G is not None and G.estado.tipo == 'aprobado':
-            estado = 'aprobado'
-        elif G is not None and G.estado.tipo == 'rechazado':
-            estado = 'rechazado'
-        else:
-            estado = 'pendiente'
-
-        if RH is None:
-            RH ="Ninguno"   
-        else:
-            RH = str(RH.perfil.nombres)+(" ")+str(RH.perfil.apellidos)
-        if CT is None:
-            CT ="Ninguno"
-        else:
-            CT = str(CT.perfil.nombres)+(" ")+str(CT.perfil.apellidos)
-        if G is None:
-            G ="Ninguno"
-        else:
-            G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
-        retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        #incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        catorcena_num = catorcena_actual.catorcena
-
-        # Agregar los valores a la lista rows para cada prenomina
-        row = (
-            prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
-            prenomina.empleado.status.perfil.numero_de_trabajador,
-            prenomina.empleado.status.perfil.distrito.distrito,
-            catorcena_num,
-            prenomina.fecha,
-            prenomina.estado_general,
-            str(RH),
-            str(CT),
-            str(G),
-            estado,
-            retardos,
-            castigos,
-            permiso_goce,
-            permiso_sin,
-            descanso,
-            incapacidades,
-            faltas,
-            comision,
-            domingo
-        )
-        rows.append(row)
-
-    # Ahora puedes usar la lista rows como lo estás haciendo actualmente en tu código
-    for row_num, row in enumerate(rows, start=2):
-        for col_num, value in enumerate(row, start=1):
-            if col_num < 4:
-                ws.cell(row=row_num, column=col_num, value=value).style = body_style
-            elif col_num == 5:
-                ws.cell(row=row_num, column=col_num, value=value).style = date_style
-            else:
-                ws.cell(row=row_num, column=col_num, value=value).style = body_style
-
-
-    sheet = wb['Sheet']
-    wb.remove(sheet)
-    wb.save(response)
-
-    return(response)
 
 def PdfFormatoEconomicos(request, solicitud):
     solicitud= Solicitud_economicos.objects.get(id=solicitud.id)

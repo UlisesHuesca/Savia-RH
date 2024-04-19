@@ -47,20 +47,29 @@
                     <h5>Filtro de empleados</h5>
                     <form method="GET" class="row g-3">
                         {% csrf_token %}
-                        <label for="prenomina_filter.form.id" class="col-sm-auto col-form-label text-right"><strong>ID Prenomina:</strong></label>
                         <div class="col-auto">
-                                {% render_field prenomina_filter.form.id class="form-control" %}
-                        </div>
-                        <label for="prenomina_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
-                        <div class="col-auto">
-                                {% render_field prenomina_filter.form.numero_de_trabajador class="form-control" %}
-                        </div>
-                        <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
-                        <div class="col-auto">
-                                {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
+                            <label for="prenomina_filter.form.id" class="col-sm-auto col-form-label text-right"><strong>ID Prenomina:</strong></label>
+                            {% render_field prenomina_filter.form.id class="form-control" %}
                         </div>
                         <div class="col-auto">
-                        <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+                            <label for="prenomina_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
+                            {% render_field prenomina_filter.form.numero_de_trabajador class="form-control" %}
+                        </div>
+                        <div class="col-auto">
+                            <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                            {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
+                        </div>
+                        <div class="col-auto">
+                            <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Incidencias:</strong></label>
+                            {% render_field prenomina_filter.form.incidencias class="form-control" %}
+                        </div>
+                        <div class="col-auto">
+                            <label for="prenomina_filter.forms.distrito" class="col-sm-auto col-form-label text-right"><strong>distrito:</strong></label>
+                            {% render_field prenomina_filter.form.distrito class="form-control" %}
+                        </div>
+                        <div class="col-auto mt-5">
+                            <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
                     </div>
                     </form>
                 </div>

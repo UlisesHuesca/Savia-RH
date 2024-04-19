@@ -58,7 +58,6 @@ from django.http import HttpResponseRedirect
 import calendar
 
 
-
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib.pagesizes import letter,A4,landscape
@@ -6750,6 +6749,629 @@ def TablaPrenominas(request):
     return render(request, 'proyecto/PrenominaTabla.html',context)
 
 def Excel_estado_prenomina(prenominas, user_filter):
+    from datetime import datetime
+    from prenomina.models import Castigos,Permiso_goce,Permiso_sin,Incapacidades
+    
+    response= HttpResponse(content_type = "application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Reporte_prenominas_' + str(datetime.now())+'.xlsx'
+    wb = Workbook()
+    ws = wb.create_sheet(title='Reporte')
+    #Comenzar en la fila 1
+    row_num = 1
+
+    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name = "head_style")
+    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
+    head_style.fill = PatternFill("solid", fgColor = '00003366')
+    wb.add_named_style(head_style)
+    #Create body style and adding to workbook
+    body_style = NamedStyle(name = "body_style")
+    body_style.font = Font(name ='Calibri', size = 11)
+    wb.add_named_style(body_style)
+    #Create messages style and adding to workbook
+    messages_style = NamedStyle(name = "mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size = 11)
+    wb.add_named_style(messages_style)
+    #Create date style and adding to workbook
+    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
+    date_style.font = Font(name ='Calibri', size = 11)
+    wb.add_named_style(date_style)
+    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+    money_style.font = Font(name ='Calibri', size = 11)
+    bold_money_style = NamedStyle(name='bold_money_style', number_format='$#,##0.00', font=Font(bold=True))
+    wb.add_named_style(money_style)
+    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
+    wb.add_named_style(money_resumen_style)
+    dato_style = NamedStyle(name='dato_style',number_format='DD/MM/YYYY')
+    dato_style.font = Font(name="Arial Narrow", size = 11)
+        
+    columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce sueldo',
+               'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Economicos','Vacaciones','Salario Cartocenal','Salario Catorcenal',
+               'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','Fonacot','Total deducciones','Neto a pagar en nomina']
+
+    for col_num in range(len(columns)):
+        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
+        if col_num == 1:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 50
+        if col_num < 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        if col_num == 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        else:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+
+
+    columna_max = len(columns)+2
+    
+    #ahora = datetime.now()
+    #ahora = datetime.now() + timedelta(days=16)
+    
+    #extraer la fecha 
+    fecha_prenomina = prenominas.first()
+    catorcena_actual = Catorcenas.objects.get(fecha_inicial__lte=fecha_prenomina.fecha, fecha_final__gte=fecha_prenomina.fecha)
+    #catorcena_actual = Catorcenas.objects.filter(fecha_inicial =fecha_prenomina.fecha
+    
+    (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. JH}')).style = messages_style
+    (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+    #(ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
+    #(ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
+    (ws.cell(column = columna_max, row = 4, value=f'Catorcena: {catorcena_actual.catorcena}: {catorcena_actual.fecha_inicial.strftime("%d/%m/%Y")} - {catorcena_actual.fecha_final.strftime("%d/%m/%Y")}')).style = dato_style
+    ws.column_dimensions[get_column_letter(columna_max)].width = 50
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 50
+
+    rows = []
+
+    sub_salario_catorcenal_costo = Decimal(0.00) #Valor de referencia del costo
+    sub_salario_catorcenal = Decimal(0.00)
+    sub_apoyo_pasajes = Decimal(0.00)
+    sub_total_bonos = Decimal(0.00)
+    sub_total_percepciones = Decimal(0.00)
+    sub_prestamo_infonavit = Decimal(0.00)
+    sub_prestamo_fonacot = Decimal(0.00)
+    sub_total_deducciones = Decimal(0.00)
+    sub_pagar_nomina = Decimal(0.00)
+        
+    for prenomina in prenominas:
+                  
+        RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
+        CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
+        G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
+
+        if G is not None and G.estado.tipo == 'aprobado':
+            estado = 'aprobado'
+        elif G is not None and G.estado == 'rechazado':
+            estado = 'rechazado'
+        else:
+            estado = 'pendiente'
+
+        if RH is None:
+            RH ="Ninguno"   
+        else:
+            RH = str(RH.perfil.nombres)+(" ")+str(RH.perfil.apellidos)
+        if CT is None:
+            CT ="Ninguno"
+        else:
+            CT = str(CT.perfil.nombres)+(" ")+str(CT.perfil.apellidos)
+        if G is None:
+            G ="Ninguno"
+        else:
+            G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
+        
+        #datos para obtener los calculos de la prenomina dependiendo el empleado
+        salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
+        
+        salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
+        neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
+        apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
+        infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
+        fonacot = prenomina.empleado.status.costo.fonacot 
+        
+        #Fecha para obtener los bonos agregando la hora y la fecha de acuerdo a la catorcena
+        fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
+        fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
+        
+        total_bonos = BonoSolicitado.objects.filter(
+            trabajador_id=prenomina.empleado.status.perfil.id,
+            solicitud__fecha_autorizacion__isnull=False,
+            solicitud__fecha_autorizacion__range=(fecha_inicial, fecha_final)
+        ).aggregate(total=Sum('cantidad'))['total'] or 0
+
+        print("Total Bonos:", total_bonos)
+           
+        #calculo del infonavit
+        if infonavit == 0:
+            prestamo_infonavit = Decimal(0.00)
+        else:
+            prestamo_infonavit = Decimal((infonavit / Decimal(30.4) ) * 14 )
+       
+        #calculo del fonacot
+        if fonacot == 0:
+            prestamo_fonacot = Decimal(0.00)
+        else:
+            #Se haya la catorcena actual, y cuenta cuantas catorcenas le corresponden al mes actual
+            primer_dia_mes = datetime(datetime.now().year, datetime.now().month, 1).date()
+            ultimo_dia_mes = datetime(datetime.now().year, datetime.now().month,
+                                    calendar.monthrange(datetime.now().year, datetime.now().month)[1]).date()
+            numero_catorcenas =  Catorcenas.objects.filter(fecha_final__range=(primer_dia_mes,ultimo_dia_mes)).count()
+            prestamo_fonacot = prestamo_fonacot / numero_catorcenas
+            
+            
+        print("infonavit", prestamo_infonavit)
+        print("fonacot", prestamo_fonacot)
+        
+        print(prenomina.empleado)
+        print("neto catorcenal: ",  neto_catorcenal)
+        print("salario: ",salario)
+        
+        #contar no. de incidencias 
+        retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        #castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        #castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        castigos = Castigos.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        #permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        #permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        #permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        #permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        permiso_sin = Permiso_sin.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        print("DESCANSO", descanso)
+        #incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        #incapacidades = prenomina.incapacidades_set.filter(Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        dia_extra = prenomina.dia_extra_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+        festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
+        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
+        vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
+        
+        #calular el numero de permiso con goce de sueldo
+        cantidad_dias_castigos = 0
+        if permiso_sin.exists():   
+            #checar las incapacides de la catorcena
+            for goce in permiso_sin:
+                goce_fecha = goce.fecha
+                goce_fecha_fin = goce.fecha_fin
+                
+            print("castigo INICIO", goce_fecha, "castigo FIN", goce_fecha_fin)
+            
+            #se obtiene el numero de catorcenas si esta en otras catorcenas
+            catorcenas = Catorcenas.objects.filter(Q(fecha_inicial__range=(goce_fecha, goce_fecha_fin)) |  Q(fecha_final__range=( goce_fecha,  goce_fecha_fin)))
+            numero_catorcenas_goce = catorcenas.count()
+            print("NUMERO DE CATORCENAS castigos", numero_catorcenas_goce)
+            
+            if numero_catorcenas_goce > 1:
+                print("PERTENECE A MÁS CATORCENAS")    
+                #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
+                cat1 = Catorcenas.objects.filter(fecha_inicial__lte=goce.fecha,fecha_final__gte=goce.fecha).first()
+                cat2 = Catorcenas.objects.filter(fecha_inicial__lte=goce.fecha_fin,fecha_final__gte=goce.fecha_fin).first()
+                
+                print("Actual",catorcena_actual)
+                
+                if cat1.catorcena == catorcena_actual.catorcena:
+                    print("Es la cat1 atrasada: ", cat1.catorcena)
+                    diferencia = cat1.fecha_final - goce_fecha
+                    dias = abs(diferencia.days) + 1
+                    #print("dias correspondientes",dias)
+                    permiso_sin = dias
+                                    
+                elif cat2.catorcena == catorcena_actual.catorcena:
+                        
+                    cat2_diferencia = goce.fecha_fin - cat2.fecha_inicial
+                    dias_dos = abs(cat2_diferencia.days) + 1
+                    print("dias correspondientes cat 2 Actual",dias_dos)
+                    permiso_sin = dias_dos
+                                                  
+            else:#EL CALCULO LO HACE CORRECTO
+                print("AQUI HACE EL BRINCO A LA CATORCENA")
+                print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LOS CASTIGOS")
+                for goce in permiso_sin:
+                    diferencia = goce.fecha_fin - goce.fecha
+                    permiso_sin = diferencia.days + 1
+                    
+        else: 
+            permiso_sin = 0
+            print("NO TIENE CASTIGOS: ",castigos)
+        
+        """
+        if permiso_sin.exists():
+            for goce in permiso_sin:
+                diferencia = goce.fecha_fin - goce.fecha
+                permiso_sin = diferencia.days + 1
+        else:
+            permiso_sin = 0
+        """
+        
+        #calular el numero de permiso con goce de sueldo
+        cantidad_dias_castigos = 0
+        """
+        if permiso_goce.exists():
+            for goce in permiso_goce:
+                diferencia = goce.fecha_fin - goce.fecha
+                permiso_goce = diferencia.days + 1
+        else:
+            permiso_goce = 0
+        """
+        if permiso_goce.exists():   
+            #checar las incapacides de la catorcena
+            for goce in permiso_goce:
+                goce_fecha = goce.fecha
+                goce_fecha_fin = goce.fecha_fin
+                
+            print("castigo INICIO", goce_fecha, "castigo FIN", goce_fecha_fin)
+            
+            #se obtiene el numero de catorcenas si esta en otras catorcenas
+            catorcenas = Catorcenas.objects.filter(Q(fecha_inicial__range=(goce_fecha, goce_fecha_fin)) |  Q(fecha_final__range=( goce_fecha,  goce_fecha_fin)))
+            numero_catorcenas_goce = catorcenas.count()
+            print("NUMERO DE CATORCENAS castigos", numero_catorcenas_goce)
+            
+            if numero_catorcenas_goce > 1:
+                print("PERTENECE A MÁS CATORCENAS")    
+                #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
+                cat1 = Catorcenas.objects.filter(fecha_inicial__lte=goce.fecha,fecha_final__gte=goce.fecha).first()
+                cat2 = Catorcenas.objects.filter(fecha_inicial__lte=goce.fecha_fin,fecha_final__gte=goce.fecha_fin).first()
+                
+                print("Actual",catorcena_actual)
+                
+                if cat1.catorcena == catorcena_actual.catorcena:
+                    print("Es la cat1 atrasada: ", cat1.catorcena)
+                    diferencia = cat1.fecha_final - goce_fecha
+                    dias = abs(diferencia.days) + 1
+                    #print("dias correspondientes",dias)
+                    permiso_goce = dias
+                                    
+                elif cat2.catorcena == catorcena_actual.catorcena:
+                        
+                    cat2_diferencia = goce.fecha_fin - cat2.fecha_inicial
+                    dias_dos = abs(cat2_diferencia.days) + 1
+                    print("dias correspondientes cat 2 Actual",dias_dos)
+                    permiso_goce = dias_dos
+                                                  
+            else:#EL CALCULO LO HACE CORRECTO
+                print("AQUI HACE EL BRINCO A LA CATORCENA")
+                print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LOS CASTIGOS")
+                for goce in permiso_goce:
+                    diferencia = goce.fecha_fin - goce.fecha
+                    permiso_goce = diferencia.days + 1
+                    
+        else: 
+            permiso_goce = 0
+            print("NO TIENE CASTIGOS: ",castigos)
+            
+            
+        #calular el numero de castigos
+        cantidad_dias_castigos = 0
+        if castigos.exists():   
+            #checar las incapacides de la catorcena
+            for castigo in castigos:
+                castigo_fecha = castigo.fecha
+                castigo_fecha_fin = castigo.fecha_fin
+                        
+            print("castigo INICIO", castigo_fecha, "castigo FIN", castigo_fecha_fin)
+            
+            #se obtiene el numero de catorcenas si esta en otras catorcenas
+            catorcenas = Catorcenas.objects.filter(Q(fecha_inicial__range=(castigo_fecha, castigo_fecha_fin)) |  Q(fecha_final__range=(castigo_fecha, castigo_fecha_fin)))
+            numero_catorcenas_castigos = catorcenas.count()
+            print("NUMERO DE CATORCENAS castigos", numero_catorcenas_castigos)
+            
+            if numero_catorcenas_castigos > 1:
+                print("PERTENECE A MÁS CATORCENAS")    
+                #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
+                cat1 = Catorcenas.objects.filter(fecha_inicial__lte=castigo.fecha,fecha_final__gte=castigo.fecha).first()
+                cat2 = Catorcenas.objects.filter(fecha_inicial__lte=castigo.fecha_fin,fecha_final__gte=castigo.fecha_fin).first()
+                
+                print("Actual",catorcena_actual)
+                
+                if cat1.catorcena == catorcena_actual.catorcena:
+                    print("Es la cat1 atrasada: ", cat1.catorcena)
+                    diferencia = cat1.fecha_final - castigo_fecha
+                    dias = abs(diferencia.days) + 1
+                    #print("dias correspondientes",dias)
+                    castigos = dias
+                                    
+                elif cat2.catorcena == catorcena_actual.catorcena:
+                        
+                    cat2_diferencia = castigo.fecha_fin - cat2.fecha_inicial
+                    dias_dos = abs(cat2_diferencia.days) + 1
+                    print("dias correspondientes cat 2 Actual",dias_dos)
+                    castigos = dias_dos
+                                                  
+            else:#EL CALCULO LO HACE CORRECTO
+                print("AQUI HACE EL BRINCO A LA CATORCENA")
+                print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LOS CASTIGOS")
+                for castigo in castigos:
+                    diferencia = castigo.fecha_fin - castigo.fecha
+                    castigos = diferencia.days + 1
+                    
+        else: 
+            castigos = 0
+            print("NO TIENE CASTIGOS: ",castigos)
+                
+        #calular el numero de incapacidades    
+        cantidad_dias_incapacides = 0
+        incidencias_incapacidades_pasajes = 0
+        incidencias_incapacidades = 0
+        
+        if incapacidades.exists():   
+            #checar las incapacides de la catorcena
+            for incapacidad in incapacidades:
+                incapacidad_fecha = incapacidad.fecha
+                incapacidad_fecha_fin = incapacidad.fecha_fin
+                        
+            print("INCAPACIDAD INICIO", incapacidad_fecha, "INCAPACIDAD FIN", incapacidad_fecha_fin)
+            
+            #se obtiene el numero de catorcenas si esta en otras catorcenas
+            catorcenas = Catorcenas.objects.filter(Q(fecha_inicial__range=(incapacidad_fecha, incapacidad_fecha_fin)) |  Q(fecha_final__range=(incapacidad_fecha, incapacidad_fecha_fin)))
+            numero_catorcenas_incapacidades = catorcenas.count()
+            print("NUMERO DE CATORCENAS INCAPACIDADES", numero_catorcenas_incapacidades)
+            
+            if numero_catorcenas_incapacidades > 1:
+                print("PERTENECE A MÁS CATORCENAS")    
+                #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
+                cat1 = Catorcenas.objects.filter(fecha_inicial__lte=incapacidad.fecha,fecha_final__gte=incapacidad.fecha).first()
+                cat2 = Catorcenas.objects.filter(fecha_inicial__lte=incapacidad.fecha_fin,fecha_final__gte=incapacidad.fecha_fin).first()
+                
+                print("Actual",catorcena_actual)
+                
+                if cat1.catorcena == catorcena_actual.catorcena:
+                    print("Es la cat1 atrasada: ", cat1.catorcena)
+                    diferencia = cat1.fecha_final - incapacidad_fecha
+                    dias = abs(diferencia.days) + 1
+                    #print("dias correspondientes",dias)
+                    incapacidades = dias
+                    
+                    #realiza el calculo de la incapacidad
+                    if incapacidades > 0:
+                        incidencias_incapacidades_pasajes = incapacidades
+                        if incapacidades > 3:
+                            incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
+                            print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
+                
+                elif cat2.catorcena == catorcena_actual.catorcena:
+                    print("Es la cat2 actual: ", cat2.catorcena)
+                
+                    cat1_diferencia = cat1.fecha_final - incapacidad.fecha
+                    dias_uno = abs(cat1_diferencia.days) + 1
+                    print("dias correspondientes cat 1 Atrasada",dias_uno)
+                    
+                    cat2_diferencia = incapacidad.fecha_fin - cat2.fecha_inicial
+                    dias_dos = abs(cat2_diferencia.days) + 1
+                    print("dias correspondientes cat 2 Actual",dias_dos)
+                    
+                    incapacidades = dias_uno + dias_dos
+                
+                    #realiza el calculo de la incapacidad
+                    if incapacidades > 0:
+                        incidencias_incapacidades_pasajes = incapacidades
+                        if incapacidades > 3:
+                            incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
+                            print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
+                                                  
+            else:#EL CALCULO LO HACE CORRECTO
+                print("AQUI HACE EL BRINCO A LA CATORCENA")
+                print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LAS INCAPACIDADES")
+                for incapacidad in incapacidades:
+                    diferencia = incapacidad.fecha_fin - incapacidad.fecha
+                    incapacidades = diferencia.days + 1
+                    
+                #realiza el calculo de la incapacidad
+                if incapacidades > 0:
+                    incidencias_incapacidades_pasajes = incapacidades
+                    if incapacidades > 3:
+                        incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
+                        print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
+        else: 
+            incapacidades = 0
+            print("NO TIENE INCAPACIDADES: ",incapacidades)
+                
+        #calcular el numero de vacaciones
+        cantidad_dias_vacacion = 0
+        if vacaciones.exists():
+            for vacacion in vacaciones:
+                diferencia = vacacion.fecha_fin - vacacion.fecha_inicio
+                cantidad_dias_vacacion = diferencia.days + 1
+                
+        print("total vacaciones: ", cantidad_dias_vacacion)
+        
+        #numero de catorena
+        catorcena_num = catorcena_actual.catorcena 
+        
+        incidencias = 0
+        incidencias_retardos = 0
+        
+        if faltas > 0:
+            incidencias = incidencias + faltas
+            print("Faltas: ", faltas)
+            
+        if retardos > 0:
+            incidencias_retardos = retardos // 3 #3 retardos se decuenta 1 dia
+            
+        if castigos > 0:
+            incidencias = incidencias + castigos
+            print("Castigos incidencias contadas", castigos)
+        
+        if permiso_sin > 0:
+            incidencias = incidencias + permiso_sin
+        
+        pago_doble = 0  
+        if dia_extra > 0:
+            pago_doble = Decimal(dia_extra * salario)
+            
+                            
+        #calculo de la prenomina - regla de tres   
+        dias_de_pago = 12
+        print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "incidencias_inca", incidencias_incapacidades)
+        dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + incidencias_incapacidades)
+        proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
+        proporcion_laborados = proporcion_septimos_dias + dias_laborados
+        salario_catorcenal = (proporcion_laborados * salario) + pago_doble
+        
+        print("las incidencias incapacidades", incidencias_incapacidades)
+        if incidencias_incapacidades_pasajes > 0:
+            apoyo_pasajes = (apoyo_pasajes / 12 * (12 - (incidencias + incidencias_incapacidades_pasajes))) #12 son los dias trabajados
+            print("Aqui es donde se ejecuta el codigo")
+        else:
+            apoyo_pasajes = (apoyo_pasajes / 12 * (12 - (incidencias))) #12 son los dias trabajados
+            print("Aqui no se deberia ejecutar el codigo")
+        
+        print("apoyos pasajes: ", apoyo_pasajes)
+        print("total: ", salario_catorcenal)
+        print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
+        
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos
+        total_deducciones = prestamo_infonavit + prestamo_fonacot
+        pagar_nomina = total_percepciones - total_deducciones
+        
+        if retardos == 0: 
+            retardos = ''
+        
+        if castigos == 0:
+            castigos = ''
+            
+        if permiso_goce == 0:
+            permiso_goce = ''
+            
+        if permiso_sin == 0:
+            permiso_sin = ''
+            
+        if descanso == 0: 
+            descanso = ' '
+                    
+        if incapacidades == 0:
+            incapacidades = ''
+        
+        if faltas == 0:
+            faltas = ''
+        
+        if comision == 0:
+            comision = ''
+            
+        if domingo == 0:
+            domingo = ''
+            
+        if festivos == 0:
+            festivos = ''
+            
+        if economicos == 0:
+            economicos = ''
+            
+        if cantidad_dias_vacacion == 0:
+            cantidad_dias_vacacion = ''
+            
+        
+            
+        
+        # Agregar los valores a la lista rows para cada prenomina
+        row = (
+            prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
+            prenomina.empleado.status.perfil.numero_de_trabajador,
+            prenomina.empleado.status.perfil.distrito.distrito,
+            catorcena_num,
+            prenomina.fecha,
+            prenomina.estado_general,
+            str(RH),
+            str(CT),
+            str(G),
+            estado,
+            retardos,
+            castigos,
+            permiso_goce,
+            permiso_sin,
+            descanso,
+            incapacidades,
+            faltas,
+            comision,
+            domingo,
+            dia_extra,
+            festivos,
+            economicos,
+            cantidad_dias_vacacion,
+            salario_catorcenal_costo,
+            salario_catorcenal,
+            apoyo_pasajes,
+            total_bonos,
+            total_percepciones,
+            prestamo_infonavit,
+            prestamo_fonacot,
+            total_deducciones,
+            pagar_nomina,
+        )
+        rows.append(row)
+        
+        sub_salario_catorcenal_costo = sub_salario_catorcenal_costo + salario_catorcenal_costo
+        sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
+        sub_apoyo_pasajes = sub_apoyo_pasajes + apoyo_pasajes
+        sub_total_bonos = sub_total_bonos + total_bonos
+        sub_total_percepciones = sub_total_percepciones + total_percepciones
+        sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
+        sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
+        sub_total_deducciones = sub_total_deducciones + total_deducciones
+        sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
+        
+        
+                 
+    # Ahora puedes usar la lista rows como lo estás haciendo actualmente en tu código
+    for row_num, row in enumerate(rows, start=2):
+        for col_num, value in enumerate(row, start=1):
+            if col_num < 4:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+            elif col_num == 5:
+                ws.cell(row=row_num, column=col_num, value=value).style = date_style
+            elif col_num > 5 and col_num < 24:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+            elif col_num >= 24:
+                ws.cell(row=row_num, column=col_num, value=value).style = money_style
+            else:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+
+    #sumar las columnas
+    
+    #print("Salario neto cartocelnal", salario_catorcenal)
+    #sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
+    #print("subtotal catorcenal",sub_salario_catorcenal)
+    #sub_apoyo_pasajes = Decimal(sub_apoyo_pasajes) + apoyo_pasajes
+    #sub_total_bonos = sub_total_bonos + total_bonos
+    #sub_total_percepciones = sub_total_percepciones + total_percepciones
+    #sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
+    #sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
+    #sub_total_deducciones = sub_total_deducciones + total_deducciones
+    #sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
+    
+    
+    add_last_row = ['Total','','','','','','','','','','','','','','','','','','','','','','',
+                    sub_salario_catorcenal_costo,
+                    sub_salario_catorcenal,
+                    sub_apoyo_pasajes,
+                    sub_total_bonos,
+                    sub_total_percepciones,
+                    sub_prestamo_infonavit,
+                    sub_prestamo_fonacot,
+                    sub_total_deducciones,
+                    sub_pagar_nomina
+                    ]
+    ws.append(add_last_row) 
+    
+    # Aplicar el estilo money_style a cada celda de la fila
+    for row in ws.iter_rows(min_row=ws.max_row, max_row=ws.max_row):
+        for cell in row:
+            cell.style = bold_money_style
+
+    
+    #referencia_celda = f'{"x"}{"24"}'
+    #celda = ws[referencia_celda]
+    #celda.value = 'Laravel'
+    
+    sheet = wb['Sheet']
+    wb.remove(sheet)
+    wb.save(response)
+
+    return(response)
+
+"""
+def Excel_estado_prenomina(prenominas, user_filter):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_prenominas_' + str(datetime.date.today())+'.xlsx'
     wb = Workbook()
@@ -6881,6 +7503,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
     wb.save(response)
 
     return(response)
+"""
 
 def determinar_estado_general(ultima_autorizacion):
     if ultima_autorizacion is None:
