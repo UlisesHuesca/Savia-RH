@@ -18,7 +18,8 @@ class PrenominaFilter(django_filters.FilterSet):
         ('7', 'Faltas'),
         ('8', 'Comisión'),
         ('9', 'Domingo'),
-        ('10', 'Dia extra')
+        ('10', 'Dia extra'),
+        ('11', 'Vacaciones')
     ), method='filtrar_por_incidencias')
     
     id = django_filters.NumberFilter(field_name='id')
@@ -73,5 +74,6 @@ class PrenominaFilter(django_filters.FilterSet):
         if value == '10':
             premominas = queryset.filter(dia_extra__fecha__isnull = False)
             return queryset.filter(id__in=premominas)
+        
         else:
             return queryset

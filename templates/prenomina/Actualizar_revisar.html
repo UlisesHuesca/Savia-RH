@@ -130,7 +130,14 @@
                         {% for fecha, etiqueta, comentario, archivo in fechas_con_etiquetas %}
                             <tr>
                                 <td>{{ fecha|date:'d/m/Y' }}</td>
-                                <td>{{ etiqueta }}</td>
+                                <td>
+                                    {% if etiqueta == 'día extra' %}                            
+                                        día de descanso laborado
+                                    {% else %}
+                                        {{etiqueta}}
+                                    {% endif %}
+                                   
+                                </td>
                                 <td>
                                     {% if etiqueta == "festivo" %}
                                         Festivo
@@ -167,7 +174,7 @@
                                         <option value="faltas" {% if etiqueta == "faltas" %}selected{% endif %}>Faltas</option>
                                         <option value="comision" {% if etiqueta == "comision" %}selected{% endif %}>Comisión</option>
                                         <option value="domingo" {% if etiqueta == "domingo" %}selected{% endif %}>Domingo</option>
-                                        <option value="extra" {% if etiqueta == "extra" %}selected{% endif %}>Día de descanso laborado</option>
+                                        <option value="día extra" {% if etiqueta == "día extra" %}selected{% endif %}>Día de descanso laborado</option>
                                         <!-- Agrega más opciones según tus factores -->
                                     </select>
                                     {% endif %}
