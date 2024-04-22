@@ -5,9 +5,10 @@ from django.db.models.functions import Concat
 from django_filters import DateFilter, CharFilter
 from .models import Prenomina
 from proyecto.models import Vacaciones_dias_tomados
-from proyecto.models import Empresa, Distrito
+from proyecto.models import Empresa, Distrito, Vacaciones_dias_tomados, Catorcenas, Economicos_dia_tomado
 from django.db.models import Exists, OuterRef
-
+import datetime 
+from datetime import timedelta, date
 
 class PrenominaFilter(django_filters.FilterSet):
     incidencias = django_filters.ChoiceFilter(label='Opción', choices=(
@@ -21,7 +22,8 @@ class PrenominaFilter(django_filters.FilterSet):
         ('8', 'Comisión'),
         ('9', 'Domingo'),
         ('10', 'Dia extra'),
-        ('11', 'Vacaciones')
+        ('11', 'Vacaciones'),
+        ('12', 'Economicos')
     ), method='filtrar_por_incidencias')
     
     id = django_filters.NumberFilter(field_name='id')
@@ -77,6 +79,17 @@ class PrenominaFilter(django_filters.FilterSet):
             premominas = queryset.filter(dia_extra__fecha__isnull = False)
             return queryset.filter(id__in=premominas)
         if value == '11':
-            premominas = queryset.filter()
+            ahora = datetime.date.today()
+            catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+            #Filtro fecha de inicio y fecha fin de dia tomado que este alguna entre el rango de la catorcena
+            datos = Vacaciones_dias_tomados.objects.filter(Q(fecha_inicio__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) |Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+            status_ids = datos.values_list('prenomina__status', flat=True)
+            return queryset.filter(empleado__status__id__in=status_ids)
+        if value == '12':
+            ahora = datetime.date.today()
+            catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+            datos = Economicos_dia_tomado.objects.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+            status_ids = datos.values_list('prenomina__status', flat=True)
+            return queryset.filter(empleado__status__id__in=status_ids)
         else:
             return queryset
