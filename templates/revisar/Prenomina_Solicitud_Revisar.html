@@ -99,7 +99,9 @@
                                 </td>
                                 <td>
                                     {% if archivo %}
-                                        <a href="{{ archivo.url }}" target="_blank">{{ archivo.name }}</a>
+                                       
+                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> {{archivo}} </p>
+                                    
                                     {% else %}
                                         Sin archivo
                                     {% endif %}

@@ -90,7 +90,7 @@
                             <hr>
                         <div>   
                         {% endif %}
-                        {% if usuario.tipo.autorizacion == True %}
+                        {% if usuario.tipo.autorizacion == True or economico_menu == True or vacacion_menu == True%}
                         <div>
                             <h6 class="dropdown-header">Autorización de solicitudes</h6>
                             <div class="dropdown-divider"></div>

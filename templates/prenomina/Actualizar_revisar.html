@@ -41,7 +41,68 @@
 <div class="container card card-body">
     <div class="columns is-mobile">
         <div class="column is-half is-offset-one-quarter">
-            <h4 class="title is-size-2">Prenomina del empleado</h4>
+            <div class="d-flex justify-content-between mb-1">
+                <h4 class="title is-size-2">Prenomina del empleado</h4>
+                <!-- Button trigger modal -->
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+                    Programar Incidencias
+                </button>
+                
+                <!-- Modal -->
+                <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                    <form action="{% url 'programar_incidencias' costo.id %}" method="post" enctype="multipart/form-data" id="incidencias-form">
+                        {% csrf_token %}
+                        <div class="modal-content">
+                            <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Programar Incidencias</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+
+                                <div class="input-group mb-3">
+                                    <select id="incidencias" name="incidencias" class="form-control mb-2">
+                                        <option selected disabled>------------</option>
+                                        <option value="1">Incapacidades</option>
+                                        <option value="2">Castigos</option>
+                                        <option value="3">Permisos con goce </option>
+                                        <option value="4">Permisos sin goce</option>
+                                    </select>
+                                </div>
+
+                                <label>Fecha Inicio</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incapacidadesform.fecha type="date" class="form-control"%}
+                                </div>
+
+                                <label>Fecha Final</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incapacidadesform.fecha_fin type="date" class="form-control"%}
+                                </div>
+
+                               
+                                <label>Comentario</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incapacidadesform.comentario type="comentario" class="form-control"%}
+                                </div>
+
+                                <label>Soporte</label>
+                                <div class="input-group mb-3" id="show-soporte">
+                                    {% render_field incapacidadesform.url type="file" class="form-control" accept=".png, .jpg, .jpeg, .pdf" %}
+                                </div>
+
+                            </div>
+                            <div class="modal-footer d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" name="btn_incidencias" class="btn btn-primary">Guardar</button>
+                            </div>
+                        </div>
+                    </form>
+                    </div>
+                </div>
+                
+
+            </div>
             <span class="h4">{{cos.nombres}} {{empleado.apellidos}}</span>
         </div>
         <hr>
@@ -68,8 +129,15 @@
                     <tbody>
                         {% for fecha, etiqueta, comentario, archivo in fechas_con_etiquetas %}
                             <tr>
-                                <td>{{ fecha|date:'Y-m-d' }}</td>
-                                <td>{{ etiqueta }}</td>
+                                <td>{{ fecha|date:'d/m/Y' }}</td>
+                                <td>
+                                    {% if etiqueta == 'día extra' %}                            
+                                        día de descanso laborado
+                                    {% else %}
+                                        {{etiqueta}}
+                                    {% endif %}
+                                   
+                                </td>
                                 <td>
                                     {% if etiqueta == "festivo" %}
                                         Festivo
@@ -78,7 +146,7 @@
                                     {% elif etiqueta == "vacaciones" %}
                                         Vacaciones
                                     {% else %}
-                                        <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}">
+                                        <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}" class="form-control">
                                     {% endif %}
                                 </td>
                                 <td>
@@ -95,29 +163,30 @@
                                             <i class="fa-solid fa-file-pdf fa-2xl"></i>
                                         </button>
                                     {% else %}
-                                    <select name="estado_{{ fecha|date:'Y-m-d' }}" onchange="showInput(this)">
+                                    <select name="estado_{{ fecha|date:'Y-m-d' }}" onchange="showInput(this)" class="form-select" aria-label="Default select example">
                                         <option value="asistencia" {% if etiqueta == "asistencia" %}selected{% endif %}>Asistencia</option>
                                         <option value="retardo" {% if etiqueta == "retardo" %}selected{% endif %}>Retardo</option>
-                                        <option value="castigo" {% if etiqueta == "castigo" %}selected{% endif %}>Castigo</option>
-                                        <option value="permiso_goce" {% if etiqueta == "permiso_goce" %}selected{% endif %}>Permiso con goce de sueldo</option>
-                                        <option value="permiso_sin" {% if etiqueta == "permiso_sin" %}selected{% endif %}>Permiso sin goce de sueldo</option>
+                                        <option disabled value="castigo" {% if etiqueta == "castigo" %}selected{% endif %}>Castigo</option>
+                                        <option disabled value="permiso_goce" {% if etiqueta == "permiso_goce" %}selected{% endif %}>Permiso con goce de sueldo</option>
+                                        <option disabled value="permiso_sin" {% if etiqueta == "permiso_sin" %}selected{% endif %}>Permiso sin goce de sueldo</option>
                                         <option value="descanso" {% if etiqueta == "descanso" %}selected{% endif %}>Descanso</option>
-                                        <option value="incapacidades" {% if etiqueta == "incapacidades" %}selected{% endif %}>Incapacidades</option>
+                                        <option disabled value="incapacidades" {% if etiqueta == "incapacidades" %}selected{% endif %}>Incapacidades</option>
                                         <option value="faltas" {% if etiqueta == "faltas" %}selected{% endif %}>Faltas</option>
                                         <option value="comision" {% if etiqueta == "comision" %}selected{% endif %}>Comisión</option>
                                         <option value="domingo" {% if etiqueta == "domingo" %}selected{% endif %}>Domingo</option>
-                                        <option value="extra" {% if etiqueta == "extra" %}selected{% endif %}>Día extra</option>
+                                        <option value="día extra" {% if etiqueta == "día extra" %}selected{% endif %}>Día de descanso laborado</option>
                                         <!-- Agrega más opciones según tus factores -->
                                     </select>
                                     {% endif %}
                                 </td>
                                 <td> <!-- Nueva columna para subir archivos -->
                                     <div class="custom-file">
-                                        <input type="file" class="custom-file-input" id="archivo_{{ fecha|date:'Y-m-d' }}" name="archivo_{{ fecha|date:'Y-m-d' }}">
+                                        <input type="file" class="custom-file-input form-control-sm" id="archivo_{{ fecha|date:'Y-m-d' }}" name="archivo_{{ fecha|date:'Y-m-d' }}">
                                         <label class="custom-file-label" for="archivo_{{ fecha|date:'Y-m-d' }}">{{ archivo.name|default:'Seleccionar archivo' }}</label>
                                     </div>
                                     {% if archivo %}
-                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank">{{ archivo }}</a></p>
+                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> {{archivo}} </p>
+                                    
                                     {% endif %}
                                 </td>
                             </tr>
@@ -142,7 +211,6 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-
     $(document).ready(function() {
         function updateFileInputs() {
             // Recorrer cada fila de la tabla
@@ -176,6 +244,36 @@
         });
     });
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var incidenciasForm = document.getElementById('incidencias-form')
+
+        var seleccionarIncidencia = document.getElementById('incidencias');
+
+        // Añadir un listener para el evento change en el select
+        seleccionarIncidencia.addEventListener('change', function() {
+            // Obtener el valor seleccionado
+            var seleccionado = seleccionarIncidencia.value;
+            var showSoporte = document.getElementById('show-soporte')
+
+            //cuando se selecciona se oculta para no subir archivos
+            if (seleccionado === '2'){
+                incidenciasForm.setAttribute('novalidate', '');
+                showSoporte.style.display = 'none'
+            }else{
+                incidenciasForm.removeAttribute('novalidate', '');
+                showSoporte.removeAttribute('style');
+                console.log(seleccionado)
+            }
+           
+        });
+    });
+</script>
+
+
+
+
 
 {% endblock %}
 </body>

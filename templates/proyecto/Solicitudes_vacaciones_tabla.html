@@ -90,7 +90,7 @@
 <div class="row">
 
     
-    {% if user_filter.tipo_id == 5 %}
+    {% if user_filter.tipo_id == 4 or user_filter.tipo_id == 8 or vacacion_menu == True %}
 	<div class="col-md">
 		<div class="card card-body">
 			<h5>Solicitudes pendientes de autorizar:</h5>
@@ -133,7 +133,11 @@
                     <th scope="col">Distrito</th>
                     <th scope="col"># Solicitud</th>
                     <th scope="col">Fecha Sol.</th>
-                    <th scope="col">PDF</th>
+                    <th scope="col">Autorizacion</th>
+                    {% if user_filter.tipo_id == 8 or user_filter.tipo_id == 4%}
+                        <th scope="col">PDF</th>
+                    {% endif %}
+                   
                 </tr>
             </thead>
             <tbody>
@@ -144,7 +148,22 @@
                     <td>{{solicitud.status.perfil.distrito}}</td>
                     <td>{{solicitud.id}}</td>
                     <td>{{solicitud.fecha_inicio}}-{{solicitud.fecha_fin}}</td>
-                    <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Solicitudes_vacaciones_formato' solicitud.id %}"><i class="fa-solid fa-file-pdf fa-2xl"></i></a></td>
+                    {% if user_filter.tipo_id == 8 or user_filter.tipo_id == 4%}
+                        {% if solicitud.autorizar == 0 %}
+                            <td>Rechazado</td>
+                        {% else %}
+                            <td>Autorizado</td>
+                        {% endif %}
+                    {% else %}
+                        {% if solicitud.autorizar == 0 %}
+                            <td>Rechazado</td>
+                        {% else %}
+                            <td>Autorizado</td>
+                        {% endif %}
+                    {% endif %}
+                    {% if user_filter.tipo_id == 8 or user_filter.tipo_id == 4%}
+                        <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Solicitudes_vacaciones_formato' solicitud.id %}"><i class="fa-solid fa-file-pdf fa-2xl"></i></a></td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>

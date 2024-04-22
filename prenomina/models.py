@@ -39,6 +39,7 @@ class Retardos(models.Model):
     
 class Castigos(models.Model):
     fecha = models.DateField(null=True)
+    fecha_fin = models.DateField(null=True) #fecha fin
     prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
@@ -51,6 +52,7 @@ class Castigos(models.Model):
     
 class Permiso_goce(models.Model):
     fecha = models.DateField(null=True)
+    fecha_fin = models.DateField(null=True) #fecha fin
     prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
@@ -64,6 +66,7 @@ class Permiso_goce(models.Model):
 
 class Permiso_sin(models.Model):
     fecha = models.DateField(null=True)
+    fecha_fin = models.DateField(null=True) #fecha fin
     prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
@@ -88,7 +91,8 @@ class Descanso(models.Model):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
     
 class Incapacidades(models.Model):
-    fecha = models.DateField(null=True)
+    fecha = models.DateField(null=True) #fecha inicio
+    fecha_fin = models.DateField(null=True) #fecha fin
     prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)

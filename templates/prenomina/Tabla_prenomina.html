@@ -47,27 +47,36 @@
                     <h5>Filtro de empleados</h5>
                     <form method="GET" class="row g-3">
                         {% csrf_token %}
-                        <label for="prenomina_filter.form.id" class="col-sm-auto col-form-label text-right"><strong>ID Prenomina:</strong></label>
                         <div class="col-auto">
-                                {% render_field prenomina_filter.form.id class="form-control" %}
-                        </div>
-                        <label for="prenomina_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
-                        <div class="col-auto">
-                                {% render_field prenomina_filter.form.numero_de_trabajador class="form-control" %}
-                        </div>
-                        <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
-                        <div class="col-auto">
-                                {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
+                            <label for="prenomina_filter.form.id" class="col-sm-auto col-form-label text-right"><strong>ID Prenomina:</strong></label>
+                            {% render_field prenomina_filter.form.id class="form-control" %}
                         </div>
                         <div class="col-auto">
-                        <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+                            <label for="prenomina_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
+                            {% render_field prenomina_filter.form.numero_de_trabajador class="form-control" %}
+                        </div>
+                        <div class="col-auto">
+                            <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
+                            {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
+                        </div>
+                        <div class="col-auto">
+                            <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Incidencias:</strong></label>
+                            {% render_field prenomina_filter.form.incidencias class="form-control" %}
+                        </div>
+                        <div class="col-auto">
+                            <label for="prenomina_filter.forms.distrito" class="col-sm-auto col-form-label text-right"><strong>distrito:</strong></label>
+                            {% render_field prenomina_filter.form.distrito class="form-control" %}
+                        </div>
+                        <div class="col-auto mt-5">
+                            <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
                     </div>
                     </form>
-                    <form method=POST>
+                    <form method=POST class="mt-2">
                     {% csrf_token %}
                     <ul class="nav nav-pills">
                         <li class="nav-item mx-2">
-                            <button type="submit" name="Excel" class="btn btn-outline-success" value='Reporte Excel'>
+                            <button type="submit" name="Excel" class="btn btn-outline-success mnt-2" value='Reporte Excel' title="Generar el reporte de la prenomina">
                                 <i class="fa-solid fa-file-excel fa-2xl"></i>
                             </button>
                         </li>
@@ -220,6 +229,8 @@ function mostrarVistaPrevia(event, costoId) {
                     // limpia cualquier contenido existente
                     const tbody = filaOculta.querySelector('tbody'); //Para encontrar donde añadir los datos
                     tbody.innerHTML = '';
+                    
+                    console.log(data)
 
                     // pasar por todos los factores y agregarlos a la fila oculta
                     data.fechas_con_etiquetas.forEach(item => {
