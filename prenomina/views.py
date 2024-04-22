@@ -229,7 +229,25 @@ def programar_incidencias(request,pk):
             fecha__lte=fecha_fin,  # La fecha de inicio de la incapacidad debe ser menor o igual a la fecha fin del rango proporcionado
             fecha_fin__gte=fecha_incio,   # La fecha fin de la incapacidad debe ser mayor o igual a la fecha inicio del rango proporcionado
         )
-                
+        
+        castigos = Castigos.objects.filter(
+            prenomina__empleado_id=prenomina.empleado.id,
+            fecha__lte=fecha_fin,
+            fecha_fin__gte=fecha_incio,
+        )
+        
+        permisos_goce = Permiso_goce.objects.filter(
+            prenomina__empleado_id=prenomina.empleado.id,
+            fecha__lte=fecha_fin,
+            fecha_fin__gte=fecha_incio,
+        )
+        
+        permisos_sin = Permiso_sin.objects.filter(
+            prenomina__empleado_id=prenomina.empleado.id,
+            fecha__lte=fecha_fin,
+            fecha_fin__gte=fecha_incio,
+        )
+                       
         if incapacidades.exists():
             for inca in incapacidades:
                 #print(inca)
@@ -238,7 +256,7 @@ def programar_incidencias(request,pk):
             
             if inca.fecha < catorcena_actual.fecha_inicial:
                 print("No se puede generar")
-                messages.error(request, 'Ya existen incapacidades - continuacion catorcena')
+                messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
                 return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
             else:
                 #se elimina el soporte asociado
@@ -247,11 +265,75 @@ def programar_incidencias(request,pk):
                 #se elima la incapacidad de la BD
                 incapacidades.delete()
                 print("Se puede generar")
-                capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        else:
-            print("Aqui no existe el rango de fechas dado - se puede agregar")  
-            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        #exit()
+                #capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+        #else:
+        #    print("Aqui no existe el rango de fechas dado - se puede agregar")  
+        #    capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+        
+        
+        if castigos.exists():
+            for castigo in castigos:
+                #print(inca)
+                print("Fecha", castigo.fecha)
+                print("Fecha fin", castigo.fecha_fin)
+            
+            if castigo.fecha < catorcena_actual.fecha_inicial:
+                print("No se puede generar")
+                messages.error(request, 'Ya existen castigos de la catorcena anterior')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
+            else:
+                #se elimina el soporte asociado
+                castigos.delete()
+                print("Se puede generar")
+                #capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+        #else:
+        #    print("Aqui no existe el rango de fechas dado - se puede agregar")  
+        #    capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+        
+        if permisos_goce.exists():
+            for permiso_goce in permisos_goce:
+                #print(inca)
+                print("Fecha", permiso_goce.fecha)
+                print("Fecha fin", permiso_goce.fecha_fin)
+            
+            if permiso_goce.fecha < catorcena_actual.fecha_inicial:
+                print("No se puede generar")
+                messages.error(request, 'Ya existen permisos con goce de sueldo de la catorcena anterior')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
+            else:
+                #se elimina el soporte asociado
+                #se elimina el soporte asociado
+                soporte = permisos_goce.first()
+                os.remove(soporte.url.path)
+                #se elima la incapacidad de la BD
+                permisos_goce.delete()
+                print("Se puede generar")
+                #capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+        #else:
+        #    print("Aqui no existe el rango de fechas dado - se puede agregar")  
+        #    capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)    
+        
+        if permisos_sin.exists():
+            for permiso_sin in permisos_sin:
+                #print(inca)
+                print("Fecha", permiso_sin.fecha)
+                print("Fecha fin", permiso_sin.fecha_fin)
+            
+            if permiso_sin.fecha < catorcena_actual.fecha_inicial:
+                print("No se puede generar")
+                messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
+            else:
+                #se elimina el soporte asociado
+                soporte = permisos_sin.first()
+                os.remove(soporte.url.path)
+                #se elima la incapacidad de la BD
+                permisos_sin.delete()
+                print("Se puede generar")
+                #capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+        #else:
+        #    print("Aqui no existe el rango de fechas dado - se puede agregar")  
+        #    capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
         
         capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))

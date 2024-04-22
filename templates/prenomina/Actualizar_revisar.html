@@ -185,7 +185,8 @@
                                         <label class="custom-file-label" for="archivo_{{ fecha|date:'Y-m-d' }}">{{ archivo.name|default:'Seleccionar archivo' }}</label>
                                     </div>
                                     {% if archivo %}
-                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank">{{ archivo }}</a></p>
+                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> {{archivo}} </p>
+                                    
                                     {% endif %}
                                 </td>
                             </tr>
