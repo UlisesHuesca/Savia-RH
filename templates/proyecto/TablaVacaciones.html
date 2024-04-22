@@ -121,9 +121,11 @@
                     <!--<th scope="col">Dato creado</th>-->
                     <th scope="col">Dato actualizado</th> 
                     <th scope="col">Revisar</th>
+                    <!---
                     {% if baja == 'False' %}
                     <th scope="col">Añadir</th>
-                    {% endif %} 
+                    {% endif %}
+                    --> 
                 </tr>
             </thead>
             <tbody>
@@ -140,9 +142,11 @@
                     <!--<td>{{descanso.created_at}}</td>-->
                     <td>{{descanso.updated_at}}</td>
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Vacaciones_revisar' descanso.id %}"><i class="fa-solid fa-magnifying-glass"></i></a>
+                    <!--
                     {% if baja == 'False' %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Vacaciones_update' descanso.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
-                    {% endif %} 
+                    {% endif %}
+                    --> 
                 </tr>
                 {% endfor %}
             </tbody>

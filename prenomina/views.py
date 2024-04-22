@@ -343,7 +343,7 @@ def programar_incidencias(request,pk):
 def prenomina_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     ahora = datetime.date.today()
-    #ahora = datetime.date.today() + timedelta(days=16)
+    #ahora = datetime.date.today() + timedelta(days=10)
     costo = Costo.objects.get(id=pk)
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
     prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
@@ -568,8 +568,8 @@ def PrenominaRevisar(request, pk):
                     comision = prenomina.comision.filter(fecha=fecha)
                     eliminar_soporte_incidencia(comision)
                     prenomina.domingo.filter(fecha=fecha).delete()
-                    extra = prenomina.extra.filter(fecha=fecha)
-                    eliminar_soporte_incidencia(extra)
+                    extra = prenomina.extra.filter(fecha=fecha).delete()
+                    #eliminar_soporte_incidencia(extra)
                     
                 # crea el nuevo dato según el nuevo estado o comentario
                 if nuevo_estado and nuevo_estado != 'asistencia':
@@ -701,7 +701,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
     columna_max = len(columns)+2
     
     ahora = datetime.now()
-    #ahora = datetime.now() + timedelta(days=16)
+    #ahora = datetime.now() + timedelta(days=10)
     
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
 
@@ -986,7 +986,8 @@ def Excel_estado_prenomina(prenominas, user_filter):
         cantidad_dias_incapacides = 0
         incidencias_incapacidades_pasajes = 0
         incidencias_incapacidades = 0
-        
+        incapacidades_anterior = 0
+        incapacidades_actual = 0
         if incapacidades.exists():   
             #checar las incapacides de la catorcena
             for incapacidad in incapacidades:
@@ -1025,7 +1026,10 @@ def Excel_estado_prenomina(prenominas, user_filter):
                         if incapacidades > 3:
                             incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
                             print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
-                
+                    
+                    incapacidades_anterior = 0
+                    incapacidades_actual = incapacidades
+                    
                 elif cat2.catorcena == catorcena_actual.catorcena:
                     print("Es la cat2 actual: ", cat2.catorcena)
                 
@@ -1038,6 +1042,10 @@ def Excel_estado_prenomina(prenominas, user_filter):
                     print("dias correspondientes cat 2 Actual",dias_dos)
                     
                     incapacidades = dias_uno + dias_dos
+                    #incapacidades = dias_dos
+
+                    incapacidades_anterior = dias_uno
+                    incapacidades_actual = dias_dos
                 
                     #realiza el calculo de la incapacidad
                     if incapacidades > 0:
@@ -1095,7 +1103,8 @@ def Excel_estado_prenomina(prenominas, user_filter):
         pago_doble = 0  
         if dia_extra > 0:
             pago_doble = Decimal(dia_extra * salario)
-            
+        
+        incapacidad = str("")   
                             
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
@@ -1180,7 +1189,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
             permiso_goce,
             permiso_sin,
             descanso,
-            incapacidades,
+            str("Días anteriores: ")+str(incapacidades_anterior)+str(" Días actual: ")+str(incapacidades_actual),
             faltas,
             comision,
             domingo,

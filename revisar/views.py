@@ -335,7 +335,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
         ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=16)
+        #ahora = datetime.date.today() + timedelta(days=10)
         costo = Costo.objects.get(id=pk)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
@@ -456,7 +456,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
 def prenomina_solicitudes_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     ahora = datetime.date.today()
-    #ahora = datetime.date.today() + timedelta(days=16)
+    #ahora = datetime.date.today() + timedelta(days=10)
     
     costo = Costo.objects.get(id=pk)
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()

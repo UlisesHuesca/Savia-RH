@@ -4136,7 +4136,8 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
     cantidad_dias_incapacides = 0
     incidencias_incapacidades_pasajes = 0
     incidencias_incapacidades = 0
-    
+    incapacidades_anterior = 0
+    incapacidades_actual = 0
     if incapacidades.exists():   
         #checar las incapacides de la catorcena
         for incapacidad in incapacidades:
@@ -4172,6 +4173,9 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
                         incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
                         print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
             
+                incapacidades_anterior = 0
+                incapacidades_actual = dias
+            
             elif cat2.catorcena == catorcena_actual.catorcena:
                 print("Es la cat2 actual: ", cat2.catorcena)
             
@@ -4184,6 +4188,9 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
                 print("dias correspondientes cat 2 Actual",dias_dos)
                 
                 incapacidades = dias_uno + dias_dos
+                
+                incapacidades_anterior = dias_uno
+                incapacidades_actual = dias_dos
             
                 #realiza el calculo de la incapacidad
                 if incapacidades > 0:
@@ -4410,7 +4417,8 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
     c.drawString(130, 400,str(permiso_goce))
     c.drawString(150, 375,str(permiso_sin))
     c.drawString(130, 350,str(descanso))
-    c.drawString(130, 325,str(incapacidades))
+    #c.drawString(130, 325,str(incapacidades))
+    c.drawString(130, 325,str("Días anteriores: ")+str(incapacidades_anterior)+str(" actual: ")+str(incapacidades_actual))
     c.drawString(130, 300,str(faltas))
     c.drawString(130, 275,str(comision))
     c.drawString(130, 250,str(domingo))
@@ -7357,7 +7365,8 @@ def Excel_estado_prenomina(prenominas, user_filter):
         cantidad_dias_incapacides = 0
         incidencias_incapacidades_pasajes = 0
         incidencias_incapacidades = 0
-        
+        incapacidades_anterior = 0
+        incapacidades_actual = 0
         if incapacidades.exists():   
             #checar las incapacides de la catorcena
             for incapacidad in incapacidades:
@@ -7392,6 +7401,9 @@ def Excel_estado_prenomina(prenominas, user_filter):
                         if incapacidades > 3:
                             incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
                             print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
+                            
+                    incapacidades_anterior = 0
+                    incapacidades_actual = incapacidades
                 
                 elif cat2.catorcena == catorcena_actual.catorcena:
                     print("Es la cat2 actual: ", cat2.catorcena)
@@ -7412,7 +7424,10 @@ def Excel_estado_prenomina(prenominas, user_filter):
                         if incapacidades > 3:
                             incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
                             print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
-                                                  
+                    
+                    incapacidades_anterior = dias_uno
+                    incapacidades_actual = dias_dos
+                    
             else:#EL CALCULO LO HACE CORRECTO
                 print("AQUI HACE EL BRINCO A LA CATORCENA")
                 print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LAS INCAPACIDADES")
@@ -7544,7 +7559,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
             permiso_goce,
             permiso_sin,
             descanso,
-            incapacidades,
+            str("Días anteriores: ")+str(incapacidades_anterior)+str(" Días actual: ")+str(incapacidades_actual),
             faltas,
             comision,
             domingo,
