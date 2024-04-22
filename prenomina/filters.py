@@ -77,7 +77,6 @@ class PrenominaFilter(django_filters.FilterSet):
             premominas = queryset.filter(dia_extra__fecha__isnull = False)
             return queryset.filter(id__in=premominas)
         if value == '11':
-            premominas = queryset.filter(vacaciones_dias_tomados__fecha_inicio__isnull = False)
-            return queryset.filter(id__in=premominas)
+            premominas = queryset.filter()
         else:
             return queryset

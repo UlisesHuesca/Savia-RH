@@ -65,7 +65,7 @@ def Tabla_prenomina(request):
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
     if user_filter.tipo.nombre == "RH":
         ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=16)
+        #ahora = datetime.date.today() + timedelta(days=10)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         if revisar_perfil.empresa == empresa_faxton:
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
@@ -140,13 +140,45 @@ def Autorizar_general(prenominas, user_filter,request):
     return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
 
 @login_required(login_url='user-login')
+def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre):
+                
+            #error
+            if incidencia == '1':
+                evento_model = Incapacidades
+                url = request.FILES['url']
+            elif incidencia == '2':
+                evento_model = Castigos
+                url = None
+            elif incidencia == '3':
+                evento_model = Permiso_goce
+                url = request.FILES['url']
+            elif incidencia == '4':
+                evento_model = Permiso_sin
+                url = request.FILES['url']
+                        
+            if evento_model:
+                if url:
+                    obj, created = evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+                    obj.url = url
+                    obj.save()
+                else:
+                    evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+            else:
+                #  donde nuevo_estado no tiene un mapeo en el diccionario
+                print(f"Error: nuevo_estado desconocido")
+            
+            messages.success(request, 'Cambios guardados exitosamente')
+            
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+@login_required(login_url='user-login')
 def programar_incidencias(request,pk):
     # crea el nuevo dato según el nuevo estado o comentario
     if request.method == 'POST' and 'btn_incidencias' in request.POST:
         
         #saber catorcena
         ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=16)
+        #ahora = datetime.date.today() + timedelta(days=10)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         
         #RH
@@ -156,39 +188,72 @@ def programar_incidencias(request,pk):
         #Empleado
         costo = Costo.objects.get(id=pk)
         prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) 
-         
-        incidencia = request.POST['incidencias']
+        print("EMPLEADO ",prenomina.empleado)                    
+        incidencia = request.POST.get('incidencias')
         fecha_incio = request.POST['fecha']
         fecha_fin = request.POST['fecha_fin']
         comentario = request.POST['comentario']
-       
+
+        #VALIDACIONES
+        if fecha_incio > fecha_fin:
+            print("La fecha de inicio es posterior a la fecha final.")
+            messages.error(request, 'La fecha de inicio debe ser menor a la fecha final')
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
-        if incidencia == '1':
-            evento_model = Incapacidades
-            url = request.FILES['url']
-        elif incidencia == '2':
-            evento_model = Castigos
-            url = None
-        elif incidencia == '3':
-            evento_model = Permiso_goce
-            url = request.FILES['url']
-        elif incidencia == '4':
-            evento_model = Permiso_sin
-            url = request.FILES['url']
-                    
-        if evento_model:
-            if url:
-                obj, created = evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
-                obj.url = url
-                obj.save()
+        if not incidencia:
+            messages.error(request, 'Debes seleccionar una incidencia')
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
+        if datetime.datetime.strptime(fecha_incio, '%Y-%m-%d').date() < catorcena_actual.fecha_inicial:
+            messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
+        vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[fecha_incio, fecha_fin]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[fecha_incio, fecha_fin]))
+        if vacaciones.exists():
+            messages.error(request, 'Ya existen vacaciones dentro del rango de fechas especificado')
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
+        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[fecha_incio, fecha_fin])
+        if economicos.exists():            
+            messages.error(request, 'Ya existen economicos dentro del rango de fechas especificado')
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
+        festivos = TablaFestivos.objects.filter(dia_festivo__range=[fecha_incio, fecha_fin])
+        if festivos.exists():
+            messages.error(request, 'Ya existen festivos dentro del rango de fechas especificado')
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
+        
+        #VALIDAR INCIDENCIAS - EDITAR UNA INCIDENCIA QUE ESTE DENTRO DEL RANGO DE LA CAT Y VERIFICAR QUE EXISTA EN LA CAT ANTERIOIR
+        incapacidades = Incapacidades.objects.filter(
+            prenomina__empleado_id=prenomina.empleado.id,
+            fecha__lte=fecha_fin,  # La fecha de inicio de la incapacidad debe ser menor o igual a la fecha fin del rango proporcionado
+            fecha_fin__gte=fecha_incio,   # La fecha fin de la incapacidad debe ser mayor o igual a la fecha inicio del rango proporcionado
+        )
+                
+        if incapacidades.exists():
+            for inca in incapacidades:
+                #print(inca)
+                print("Fecha", inca.fecha)
+                print("Fecha fin", inca.fecha_fin)
+            
+            if inca.fecha < catorcena_actual.fecha_inicial:
+                print("No se puede generar")
+                messages.error(request, 'Ya existen incapacidades - continuacion catorcena')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
             else:
-                evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+                #se elimina el soporte asociado
+                soporte = incapacidades.first()
+                os.remove(soporte.url.path)
+                #se elima la incapacidad de la BD
+                incapacidades.delete()
+                print("Se puede generar")
+                capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
         else:
-            #  donde nuevo_estado no tiene un mapeo en el diccionario
-            print(f"Error: nuevo_estado desconocido")
+            print("Aqui no existe el rango de fechas dado - se puede agregar")  
+            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+        #exit()
         
-        messages.success(request, 'Cambios guardados exitosamente')
-        
+        capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
     
 
@@ -297,7 +362,7 @@ def PrenominaRevisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "RH":
         ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=16)
+        #ahora = datetime.date.today() + timedelta(days=10)
         incapacidadesform = IncapacidadesForm()
         costo = Costo.objects.get(id=pk)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
@@ -436,7 +501,7 @@ def PrenominaRevisar(request, pk):
                         'faltas': Faltas,  
                         'comision': Comision,  
                         'domingo': Domingo,  
-                        'extra': Dia_extra,  
+                        'día extra': Dia_extra,  
                     }.get(nuevo_estado)
 
                     if evento_model:
@@ -845,6 +910,10 @@ def Excel_estado_prenomina(prenominas, user_filter):
             for incapacidad in incapacidades:
                 incapacidad_fecha = incapacidad.fecha
                 incapacidad_fecha_fin = incapacidad.fecha_fin
+            #status y por la fecha, 
+            #si se quieren traer las incapacidades que estan en boolean = True, False no se pagan, 
+            #en la parte de las incidencias en la primera incapacidad boolean = True 
+            #si se hace otra incapacidad se detecta que es la continuacion de una que se paga, esta sera False
                         
             print("INCAPACIDAD INICIO", incapacidad_fecha, "INCAPACIDAD FIN", incapacidad_fecha_fin)
             
