@@ -1,0 +1,76 @@
+numero_de_trabajador,empresa,distrito,nombres,apellidos,fecha_nacimiento,correo_electronico,proyecto,subproyecto
+1,VORDCAB,MATRIZ,MARIA CRISTINA,ACOSTA DURAN,14/06/1979,xtina14@outlook.com,Dirección General,ESTAFF DG
+4,VORDCAB,MATRIZ,ANA MARIA,ARANO SALGADO,21/08/1971,ana.arano@hotmail.com,Dirección General,ESTAFF DG
+135,FAXTON,MATRIZ,MICHEL ISRAEL,AISPURO FLORES,24/10/1982,supermecanico10@hotmail.com,Sub. Administrativa,FAXTON 
+100,VORDCAB,MATRIZ,MARIA ISABEL,AZAMAR TINOCO,29/12/1971,isamar2971@gmail.com,Sub. Administrativa,Intendencia
+8,VORDCAB,MATRIZ,MARIA DEL CARMEN,BENAVIDES VALADEZ,30/10/1970,carmenbeva70@gmail.com,Sub. Finanzas y ventas,Sub. Finanzas y ventas
+6,SPP,MATRIZ,VIRGILIO ,CAMPOY LARA,05/03/1965,campoy@prodigy.net.mx,Sub. Administrativa,Contabilidad
+666,SPP,MATRIZ,ALDO DE JESUS ,CAMACHO PERALTA,19/04/1987,aldocamachoperalta@gmail.com,Dirección General,Publicidad redes
+640,VORDCAB,MATRIZ,FRANCISCO,CANO LARA,02/04/1974,canofrancisco8@yahoo.com.mx,Dirección General,RP
+668,SPP,MATRIZ,DANIEL ,CARMONA PARRA,30/03/1999,dnpcarmona33@yahoo.com,Sub. Ingeniería,SUBIDT
+654,VORDCAB,MATRIZ,HUGO,CASTELLANOS BONILLA,24/05/1985,cebeache@gmail.com,Sub. Ventas,Contratos y licitaciones
+13,VORDCAB,MATRIZ,LORETO DE IOEDEMIR,CASTILLO GEA,25/12/1974,mimicastillogea@hotmail.com,Sub. Operaciones,Sub. Operaciones
+123,VORDCAB,MATRIZ,SUSANA,CONTRERAS GALLEGOS,18/07/1986,susana.contreras202@gmail.com,Sub. Administrativa,Sistemas
+15,VORDCAB,MATRIZ,ABEL,CONTRERAS LOZADA,17/09/1960,contreraslozada@hotmail.com,Dirección General,ESTAFF DG
+652,VORDCAB,MATRIZ,LORENA ITZEL,CONTRERAS ROMERO,18/10/1995,itzel_8118@hotmail.com,Sub. Administrativa,Contabilidad
+102,VORDCAB,MATRIZ,JULIO ROBERTO,CORTINA MENDEZ,13/08/1986,julio_cortina13@hotmail.com,Dirección General,RP
+2084,VORDCAB,MATRIZ,FELIPE,DIAZ ARENAS,20/11/1980,fe_da20@hotmail.com,Sub. Operaciones,Sub. Operaciones
+173,VORDCAB,MATRIZ,ARTURO,FLORES LIAHUT,18/05/1989,arturofliahut@gmail.com,Sub. Administrativa,Compras
+657,SPP,MATRIZ,NATALIA ALEJANDRA,GARCIA BAUTISTA,01/08/1994,Natalejandra01@hotmail.com,Sub. Administrativa,RH
+149,VORDCAB,MATRIZ,DANIEL GUILLERMO,GARCIA GARCIA,18/12/1975,dany365_12@hotmail.com,Dirección General,Controles técnicos
+628,VORDCAB,MATRIZ,MARTIN ,GARCIA LORENZO M,04/12/1986,mg2126@gmail.com,Sub. Finanzas y ventas,Tesorería
+29,VORDCAB,MATRIZ,JOSE ULISES,GARCIA PALAFOX,28/03/1988,ulisespalafox@gmail.com,Sub. Ingeniería,SUBIDT
+659,SPP,MATRIZ,JONATHAN MARTIN,GONZALEZ MENDOZA,30/01/1994,jg.serviciosconsultoria@gmail.com,Dirección General,SEOV
+650,VORDCAB,MATRIZ,RAFAEL,GOMEZ ORTIZ,28/03/1995,fallo28_goor@hotmail.com,Sub. Ventas,Ventas
+674,SPP,MATRIZ,JUAN CARLOS,HERNANDEZ  ALDANA,07/08/1989,jcarlhernandez00@hotmail.com,Sub. Ingeniería,SUBIDT
+641,VORDCAB,MATRIZ,CELESTE,HERNANDEZ CARMONA,21/10/2022,celeste254_@hotmail.com,Sub. Administrativa,RH
+669,SPP,MATRIZ,AKETZALI,HERNANDEZ HERRERA,27/04/1996,aketzahdez@gmail.com,Sub. Administrativa,Contabilidad
+602,VORDCAB,MATRIZ,JOSE ALBERTO,HERNANDEZ LUCIDO,08/08/1990,alberto.hernandez1004@hotmail.com,Sub. Administrativa,Contabilidad
+2442,VORDCAB,MATRIZ,CARLOS ALBERTO,HERNANDEZ MARTINEZ,13/11/1994,cahm1394@gmail.com,Sub. Ventas,Ventas
+663,SPP,MATRIZ,JORGE LUIS ,IZAGUIRRE LONGORIA,22/04/1968,jorge_izalon@hotmail.com ,Dirección General,ESTAFF DG
+638,VORDCAB,MATRIZ,ENRIQUE,JUAREZ AGUIRRE,15/07/1981,jaes21@hotmail.com,Dirección General,DG motos
+2543,VORDCAB,MATRIZ,ANA GABRIELA,LUCIDO CASTRO,24/07/1997,lucidogabriela@gmail.com,Sub. Ventas,Ventas
+46,FAXTON,MATRIZ,RAMIRO,LOPEZ CASTILLO,05/11/1989,ramirolopezc5@gmailcom,Sub. Administrativa,FAXTON 
+24,FAXTON,MATRIZ,JESSICA ANTONIA,LUNA DOMINGUEZ ,05/06/1995,jessicaluna0506@gmail.com,Sub. Administrativa,FAXTON 
+49,FAXTON,MATRIZ,FERNANDO,LUCAS MENDOZA,15/02/1980,fernandolucas.vordcab@hotmail.com,Sub. Administrativa,FAXTON 
+636,VORDCAB,MATRIZ,YAHIR,MARTINEZ CEBALLOS,25/02/1995,yahir_mc95@hotmail.com,Sub. Administrativa,Contabilidad
+639,VORDCAB,MATRIZ,DAVID,MARTINEZ ORDAZ,21/12/1986,david.macon1586@gmail.com,Sub. Finanzas y ventas,Tesorería 
+53,VORDCAB,MATRIZ,JUANA,MARTINEZ VASQUEZ,26/06/1981,juanchi.mtz@outlook.com,Dirección General,ESTAFF DG
+54,SPP,MATRIZ,DULCE MARIA DE FATIMA,MAYORGA VILLAFAÑA,31/12/1978,dulmaria@hotmail.com,Dirección General,ESTAFF DG
+3014,VORDCAB,MATRIZ,CARLOS,MELGAREJO GARCIA,20/05/1984,carlos.melgarejo@gmail.com,Sub. Ventas,Subdirector
+55,SPP,MATRIZ,RICARDO,MENDOZA CISNEROS,12/10/1969,rickymendoza838@gmail.com,Dirección General,Seguridad
+625,VORDCAB,MATRIZ,JOSE FIDEL,MENESES GUTIERREZ,11/04/1995,fidel-meneses95@hotmail.com,Sub. Administrativa,RH
+154,VORDCAB,MATRIZ,ITZELL,MUÑOZ OCHOA,15/09/1993,arii58@live.com.mx,Sub. Finanzas y ventas,Jurídico
+4034,SPP,MATRIZ,JESÚS,MUÑOZ SANDOVAL ,14/11/1990,jms1428.m@gmail.com,Sub. Administrativa,RH
+648,VORDCAB,MATRIZ,JOSE JUSTO,MUÑOZ SANDOVAL,06/08/1977,justomunoz114@gmail.com,Sub. Administrativa,RH
+151,SPP,MATRIZ,GUADALUPE,MURILLO SIGERO,16/12/1977,gmurillo77s@hotmail.com,Sub. Administrativa,Evaluación proveedores
+189,VORDCAB,MATRIZ,CIRINO,MURRIETA CALDERON,09/03/1988,cmc0988031@hotmail.com,Dirección General,RP
+200,VORDCAB,MATRIZ,EVER NOE,OLOARTE RIVERA,05/08/1985,ever_oloarte@hotmail.com,Dirección General,ESTAFF DG
+630,VORDCAB,MATRIZ,MARIANA,ORDOÑEZ ARANO,03/05/1995,mariana_arano@hotmail.com,Dirección General,ESTAFF DG
+59,SPP,MATRIZ,VICTOR FELIPE,ORDOÑEZ  DE LOS SANTOS,14/10/1968,victor.ordonez1410@gmail.com,Dirección General,Dirección general
+60,VORDCAB,MATRIZ,TONATIUH,ORDOÑEZ  ESCUDERO,16/09/1974,toe1974@hotmail.com,Sub. Ingeniería,Subdirector
+61,FAXTON,MATRIZ,HECTOR LUIS,ORDOÑEZ  VAZQUEZ,17/08/1974,kalena00@hotmail.com,Sub. Administrativa,FAXTON 
+658,SPP,MATRIZ,URIEL ALEJANDRO,ORTEGA CAMACHO,16/10/1988,uaortegac@gmail.com,Sub. Ingeniería,SUBIDT
+611,VORDCAB,MATRIZ,NAIRA CRISTINA,PEREIRA CARVALHO,08/12/1991,naira.capistranno21@gmail.com,Sub. Administrativa,Compras
+64,VORDCAB,MATRIZ,LAURA ANGELICA,PIÑERO RENDON,15/06/1984,laura.pinerorendon@gmail.com,Dirección General,Dirección general
+2487,VORDCAB,MATRIZ,REYNA YASMIN,PONCE VAZQUEZ,10/03/1983,ryponcev@gmail.com,Sub. Ventas,Ventas
+85,VORDCAB,MATRIZ,ERACILIA,RAMON FERNANDEZ,13/04/1980,eramon_fernandez@hotmail.com,Sub. Finanzas y ventas,Tesorería
+179,VORDCAB,MATRIZ,JESUS FRANCISCO,REYES BONILLA,17/12/1983,jesusfreyes@prodigy.net.mx,Sub. Ingeniería,SUBIDT
+3071,VORDCAB,MATRIZ,TAIMY,RODRIGUEZ AMAYA ,28/07/1969,tayrdg69@gmail.com,Dirección General,ESTAFF DG
+70,SPP,MATRIZ,JOSE DE JESUS,RODRIGUEZ SALAZAR,31/12/1970,jose_rdzs@live.com,Sub. Operaciones,Subdirector
+622,VORDCAB,MATRIZ,RICARDO,ROMERO GARCIA,07/09/1982,ricardorg7@hotmail.com,Sub. Administrativa,Activos
+71,SPP,MATRIZ,MARGARITA,RUIZ CRUZ,24/01/1970,magos.ruiz02@gmail.com,Sub. Administrativa,Sub. Administrativa
+653,VORDCAB,MATRIZ,PRIMITIVO,RUIZ RODRIGUEZ,10/06/1974,ruizrguez@hotmail.com,Sub. Finanzas y ventas,Tesorería 
+51,SPP,MATRIZ,DULCE PATRICIA,SALAS GARCIA,26/06/1983,carinositos_2007@hotmail.com,Dirección General,ESTAFF DG
+74,VORDCAB,MATRIZ,ELENA,SALAS REYES,06/03/1965,elenasarey@gmail.com,Dirección General,ESTAFF DG
+78,SPP,MATRIZ,HERIBERTO,TREJO RAMOS,16/03/1983,Trejo_0665@hotmail.com,Sub. Administrativa,Sub. Administrativa
+671,SPP,MATRIZ,JULIET ZAYURI,TORAL JIMENEZ,16/06/1992,julietz.toral@gmail.com,Sub. Administrativa,Compras
+605,VORDCAB,MATRIZ,DANIEL ERNESTO,UTRERA RODRIGUEZ,02/01/1985,dur_85@hotmail.com,Sub. Finanzas y ventas,Jurídico
+82,FAXTON,MATRIZ,JOSE ANTONIO,VELAZQUEZ ROMAN,13/06/1986,joseantonio.velasquezroman@hotmail.com,Sub. Administrativa,FAXTON 
+651,VORDCAB,MATRIZ,NAYELI,VELAZQUEZ VENANCIO,15/12/1989,nayevelnm@outlook.com,Sub. Administrativa,Evaluación proveedores
+2015,SPP,MATRIZ,MARCO ANTONIO,VICENTE VILLANUEVA,20/05/1981,marcovich2010@hotmail.com,Dirección General,Controles técnicos
+633,VORDCAB,MATRIZ,JOSE ALBERTO,VILLA QUIROZ,01/06/1997,josealbertovillaquiroz@gmail.com,Sub. Administrativa,Contabilidad 
+125,SPP,MATRIZ,ROGELIO,VILLAFAÑA GONZALEZ,22/05/1973,Rogelio.villafana@hotmail.com,Sub. Ingeniería,SUBIDT
+18,Sin Empresa,MATRIZ,GABRIELA ELENA,DE LEON GARCIA,23/06/1962,gdeleong@hotmail.com,Sub. Finanzas y ventas,Tesorería
+1319,SPP,MATRIZ,ENEDINA,PEREZ SANCHEZ,22/03/1987,enedina.ps1987@gmail.com,Dirección General,ESTAFF DG
+675,SPP,MATRIZ,LUCIANO ,ROBERT JIMENEZ,10/09/1979,lrobertjz@gmail.com,Sub. Administrativa,Sistemas

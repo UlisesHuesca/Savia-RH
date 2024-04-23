@@ -1,0 +1,4 @@
+numero_de_trabajador,registro_patronal,nss,curp,rfc,telefono,profesion,no_cedula,nivel,tipo_de_contrato,ultimo_contrato_vence,tipo_sangre,sexo,domicilio,estado_civil,fecha_planta_anterior,fecha_planta,regimen
+6670,F0356255102,NSS,Curp,RFC,NR,Trabajador,Cedula,4,Planta,02/02/2020,O+,Masculino,Domicilio,Soltero,01/01/2021,01/01/2021,Lunes a Sabado
+6671,F0356255102,NSS,Curp,RFC,NR,Trabajador,Cedula,4,Planta,02/02/2020,O+,Masculino,Domicilio,Soltero,01/01/2021,01/01/2021,Lunes a Viernes
+,,,,,,,,,,,,,,,,,

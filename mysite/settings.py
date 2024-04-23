@@ -64,7 +64,7 @@ MIDDLEWARE = [
     'simple_history.middleware.HistoryRequestMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
 
-    
+
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -103,29 +103,29 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #        'NAME': 'newdatabase',
 #    }
 #}
-#DATABASES = {
-#   'default': {
-#        'ENGINE': 'django.db.backends.mysql',
-#        'NAME': 'vicjosh$default',
-#        'USER': 'vicjosh',
-#        'PASSWORD': 'mimi2000',
-#        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
-#        'PORT': '',  # Deja este campo vacío
-#        'OPTIONS': {
-#            'charset': 'utf8mb4',
-#        },
-#    }
-#}
 DATABASES = {
-    'default': {
+   'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'final',
-        'USER': 'root',
-        'PASSWORD': '12345678',
-        'HOST': 'localhost',
-        'PORT': '',
+        'NAME': 'vicjosh$default',
+        'USER': 'vicjosh',
+        'PASSWORD': 'mimi2000',
+        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
+        'PORT': '',  # Deja este campo vacío
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.mysql',
+#        'NAME': 'final',
+#        'USER': 'root',
+#        'PASSWORD': '12345678',
+#        'HOST': 'localhost',
+#        'PORT': '',
+#    }
+#}
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 
