@@ -244,7 +244,7 @@ def Tabla_solicitudes_prenomina(request):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
         ahora = datetime.date.today()
-        #ahora = datetime.date.today() + 0
+        #ahora = datetime.date.today() + timedelta(days=10)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         empresa_faxton = Empresa.objects.get(empresa="Faxton")

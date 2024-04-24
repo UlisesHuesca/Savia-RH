@@ -4200,7 +4200,6 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
                         print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
                                                 
         else:#EL CALCULO LO HACE CORRECTO
-            print("AQUI HACE EL BRINCO A LA CATORCENA")
             print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LAS INCAPACIDADES")
             for incapacidad in incapacidades:
                 diferencia = incapacidad.fecha_fin - incapacidad.fecha
@@ -4212,6 +4211,9 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
                 if incapacidades > 3:
                     incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
                     print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
+                
+                incapacidades_anterior = 0
+                incapacidades_actual = incapacidades
     else: 
         incapacidades = 0
         print("NO TIENE INCAPACIDADES: ",incapacidades)
@@ -7429,7 +7431,6 @@ def Excel_estado_prenomina(prenominas, user_filter):
                     incapacidades_actual = dias_dos
                     
             else:#EL CALCULO LO HACE CORRECTO
-                print("AQUI HACE EL BRINCO A LA CATORCENA")
                 print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LAS INCAPACIDADES")
                 for incapacidad in incapacidades:
                     diferencia = incapacidad.fecha_fin - incapacidad.fecha
@@ -7441,6 +7442,10 @@ def Excel_estado_prenomina(prenominas, user_filter):
                     if incapacidades > 3:
                         incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
                         print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
+                
+                incapacidades_anterior = 0
+                incapacidades_actual = incapacidades
+                
         else: 
             incapacidades = 0
             print("NO TIENE INCAPACIDADES: ",incapacidades)
