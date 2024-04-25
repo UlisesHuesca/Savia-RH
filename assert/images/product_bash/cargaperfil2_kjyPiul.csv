@@ -1,0 +1,36 @@
+numero_de_trabajador,empresa,distrito,nombres,apellidos,fecha_nacimiento,correo_electronico,proyecto,subproyecto
+26,VORDCAB,VERACRUZ,HECTOR ERNESTO,AGUIRRE MENDEZ ,18/10/1992,hector_aguirre92@hotmail.com,Dirección General,Controles técnicos
+27,VORDCAB,VERACRUZ,LEONARDO JAVIER,ALEJOS DIAZ ,06/04/1974,leonardoalejos6@hotmail.com,Sub. Ingeniería,Sub. Ingeniería
+33,SPP,VERACRUZ,NORA LUZ,ANGELES RONQUILLO ,04/03/1969,angelesnoraluz@gmail.com,Fijos,Intendencia
+40,VORDCAB,VERACRUZ,HEBER,ANIMAS GARCIA ,07/07/1986,heb_rui10@hotmail.com,Sub. Administrativa,RH
+52,SPP,VERACRUZ,JESUS NOEL,BALDERAS SOTO ,24/12/1987,noel_balderas@hotmail.com,Sub. Operaciones,ITR
+53,VORDCAB,VERACRUZ,IVAN BRIAN,BAEZ  VAZQUEZ ,28/03/1977,brayanbaez688@gmail.com,Sub. Operaciones,Sub. Operaciones
+56,VORDCAB,VERACRUZ,FERNANDO,BRAVO HERRERA ,01/03/1981,xnando81@yahoo.com.mx,Sub. Operaciones,Sub. Operaciones
+59,SPP,VERACRUZ,ARTURO,CABRERA PEREZ ,15/03/1979,arset79@gmail.com,Sub. Administrativa,Almacen 
+60,VORDCAB,VERACRUZ,BEATRIZ,CAMARILLO LEON ,01/01/1978,leon_betty@hotmail.com,Sub. Administrativa,Tesorería
+61,VORDCAB,VERACRUZ, JOSE ROBERTO,CASTILLO GUEVARA,16/11/1984,robert_humd@hotmail.com,Dirección General,Seguridad
+63,VORDCAB,VERACRUZ,SANTOS ANTONIO,CASTILLO LUVIAN ,01/11/1979,luvian1979@hotmail.com,Dirección General,Seguridad
+64,VORDCAB,VERACRUZ,MARCO ANTONIO,CORTES HERNANDEZ ,25/04/1973,maonix@gmail.com,Sub. Operaciones,Superintendente Operativo
+65,SPP,VERACRUZ,CARLOS,CRUZ AQUINO ,07/12/1999,ccla7415@gmail.com,Sub. Administrativa,Auxiliar 
+68,VORDCAB,VERACRUZ,LUIS DANIEL ,GARCIA ANGHEVEN ,12/10/1995,luisdanielgarciaangheven@gmail.com,Sub. Operaciones,Tecnico Operador Llave H
+68,SPP,VERACRUZ,LUIS RICARDO,GOMEZ ORTIZ ,04/01/1999,luisr-go.or@outlook.com,Sub. Operaciones,Técnico 
+70,VORDCAB,VERACRUZ, ABEL ,GUDIÑO COVARRUBIAS,20/01/1966,abel_gudino@hotmail.com,Sub. Operaciones,Sub. Operaciones
+101,SPP,VERACRUZ,ALFREDO,GUTIERREZ GOMEZ ,20/04/1980,bioma_ac@hotmail.com,Sub. Operaciones,Técnico 
+1258,SPP,VERACRUZ,JOSE ARMANDO,JIMENEZ CASTRO ,27/03/1998,armandojc272@gmail.com,Sub. Operaciones,Técnico 
+2024,VORDCAB,VERACRUZ,GABRIEL,JIMENEZ DOMINGUEZ ,02/07/1983,gabriel.jimenezdominguez@outlook.com,Sub. Operaciones,Técnico 
+2025,SPP,VERACRUZ,PABLO,LORENZO VICENCIO ,27/10/1998,pablo2016lorenzo@gmail.com,Sub. Operaciones,Técnico 
+2026,SPP,VERACRUZ,BRENDA VERENICE,MAR REYES ,25/05/1993,verenice.sea@hotmail.com,Sub. Administrativa,Auxiliar 
+2037,VORDCAB,VERACRUZ,ALEXIS ,MENDOZA SUAREZ ,12/01/1996,alexis_petrolera@hotmail.com,Sub. Operaciones,Técnico 
+2067,SPP,VERACRUZ,PEDRO,MONTERROSA MARTINEZ ,04/03/2000,pedro_2000mts@outlook.com,Sub. Operaciones,Técnico 
+2077,SPP,VERACRUZ,YULISSA,NAVARRETE NAVARRETE ,12/07/1996,87yulint@gmail.com,Sub. Administrativa,Auxiliar 
+2229,VORDCAB,VERACRUZ,NURIA ROCIO,ORDOÑEZ MORALES ,11/08/1983,nr.ordonez@gmail.com,Sub. Ventas,Estimaciones
+2240,VORDCAB,VERACRUZ,SANTIAGO,PATRICIO RODRIGUEZ ,11/05/1992,santiago.patricio1325@gmail.com,Sub. Operaciones,Técnico 
+2379,SPP,VERACRUZ,IRIS ALEJANDRA,RAMOS GÓMEZ ,09/02/1985,cosaday@hotmail.com,Sub. Administrativa,Activos
+2407,VORDCAB,VERACRUZ,DANIEL,REYES CARREON ,24/09/1982,danielreyescarreon@gmail.com,Sub. Operaciones,Sub. Operaciones
+2422,SPP,VERACRUZ,KEVIN DANIEL,ROMERO NARVAEZ ,24/02/1998,kevindanielromeronarvaez63@gmail.com,Sub. Operaciones,Técnico 
+2424,SPP,VERACRUZ,HUMBERTO,ROMERO LUGO ,27/08/1989,betorulo01@gmail.com,Sub. Administrativa,Compras
+2444,VORDCAB,VERACRUZ,ERICK,TOLEDO TRINIDAD ,11/06/1991,erick22toledo@gmail.com,Sub. Operaciones,Técnico 
+3135,SPP,VERACRUZ,JOSE MAXIMINO,VAZQUEZ BRECHT ,27/02/1989,star_blackbrecht@hotmail.com,Sub. Administrativa,Supervisor Administrativo
+3189,SPP,VERACRUZ,ARTURO,VEGA RODRIGUEZ ,13/04/1976,vegaa1169@gmail.com,Sub. Operaciones,Técnico Operador de Tracto Camion
+3194,VORDCAB,VERACRUZ,SELENE,VILLANUEVA LUNA ,03/06/1989,aylin3_89@hotmail.com,Dirección General,Gerencia 
+4035,SPP,VERACRUZ,NAYELI ESMERALDA,ZAPATA MARTINEZ ,10/09/1995,nayelizapata10@outlook.com,Sub. Administrativa,Auxiliar 

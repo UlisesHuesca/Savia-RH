@@ -31,7 +31,7 @@ from proyecto.filters import CostoFilter
 from prenomina.models import Prenomina, Retardos, Castigos, Permiso_goce, Permiso_sin, Descanso, Incapacidades, Faltas, Comision, Domingo, Dia_extra
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
-import datetime 
+import datetime
 from datetime import timedelta, date
 
 
@@ -81,42 +81,42 @@ def asignarBonoCosto(solicitud):
     cantidad = []
     #la lista de los perfiles que recibiran los bonos
     lista_perfiles = []
-    
+
     #se guarda la fecha de la solicitud aprobada por el gerente
     aprobada = Solicitud.objects.get(id=solicitud)
     aprobada.fecha_autorizacion = timezone.now()
     aprobada.save()
-        
+
     #trae los empleados con sus respectivos bonos
     empleados = BonoSolicitado.objects.filter(solicitud_id = solicitud).values("trabajador_id","cantidad")
     porcentaje = SalarioDatos.objects.get(pk = 1)
-   
+
     for item in empleados:
         trabajador_id = item['trabajador_id']
         cantidad_obtenida = item['cantidad']
         lista_perfiles.append(trabajador_id)
         cantidad.append(cantidad_obtenida)
-            
-    #se asigna cada empleado con su respectivo bono        
+
+    #se asigna cada empleado con su respectivo bono
     for index,perfil in enumerate(lista_perfiles):
         costo = Costo.objects.get(status__perfil_id = perfil)
         costo.bono_total = costo.bono_total + cantidad[index]
         costo.save()
-        
-        #realizar calculo bono - costo 
+
+        #realizar calculo bono - costo
         costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
         costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(porcentaje.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
         costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
         costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
         costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
         costo.save()
-    
+
         print("bonos: ",costo.total_apoyosbonos_agregcomis)
         print("comision: ",costo.comision_complemeto_salario_bonos)
         print("costo total empresa: ",costo.total_costo_empresa)
         print("costo total empleado: ",costo.ingreso_mensual_neto_empleado)
-        
-    
+
+
         """
         costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
         costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
@@ -124,39 +124,39 @@ def asignarBonoCosto(solicitud):
         costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
         costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
         """
-        
-        
+
+
 @login_required(login_url='user-login')
 def autorizarSolicitud(request,solicitud):
     from datetime import datetime
-    if request.method == "POST": 
+    if request.method == "POST":
         autorizarSolicitudesUpdateForm = AutorizarSolicitudesUpdateForm(request.POST)
-                
+
         if autorizarSolicitudesUpdateForm.is_valid():
-            usuario = request.user  
+            usuario = request.user
             rol = UserDatos.objects.get(user_id = usuario.id)
-            
+
             autorizar = AutorizarSolicitudes.objects.get(solicitud_id = solicitud, tipo_perfil_id = rol.tipo_id)
-            
+
             print("BONOS: ",autorizar)
-            
+
             #verifica si la autorizacion del bono esta en la catorcena actual
             if autorizar is not None:
                 #estadoDato = autorizarSolicitudesUpdateForm.cleaned_data['estado']
                 estadoDato = 0
                 comentarioDato = autorizarSolicitudesUpdateForm.cleaned_data['comentario']
                 if 'aprobar' in request.POST:#aprobado
-                                                         
-                    if rol.tipo_id == 6:#superintendente -> control tecnico   
-                            
+
+                    if rol.tipo_id == 6:#superintendente -> control tecnico
+
                             #se guardan los datos de la autorizacion en el superintendente
                             autorizar.estado_id = 1 #aprobado
                             autorizar.comentario = comentarioDato
                             autorizar.save(update_fields=['estado_id', 'comentario'])
-                            
+
                             #se busca el perfil del control tecnico corresponsiente al distrito
                             rol = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=7).values('numero_de_trabajador').first()
-                            perfil_control_tecnico = Perfil.objects.filter(numero_de_trabajador = rol['numero_de_trabajador']).values('id').first() 
+                            perfil_control_tecnico = Perfil.objects.filter(numero_de_trabajador = rol['numero_de_trabajador']).values('id').first()
 
                             #buscar o crea la autorizacion para el control tecnico
                             control_tecnico, created = AutorizarSolicitudes.objects.get_or_create(
@@ -166,27 +166,27 @@ def autorizarSolicitud(request,solicitud):
                                 perfil_id = perfil_control_tecnico['id'],
                                 defaults={'estado_id': 3}  # Pendiente
                             )
-                            
+
                             #entra en el flujo de verifica o cambios
                             if autorizar.revisar and not created:
                                 control_tecnico.estado_id = 3
                                 control_tecnico.comentario = comentarioDato
                                 control_tecnico.save()
-                                
+
                             messages.success(request, "La solicitud se aprobó por el Superintendente, pasa a revisión a Control Técnico")
                             return redirect('listarBonosVarilleros')
-                        
+
                     elif rol.tipo_id == 7: #control tecnico -> gerente
                             #se guardan los datos de la autorizacion del control tecnico
                             autorizar.estado_id = 1#aprobado
                             autorizar.comentario = None
                             autorizar.save(update_fields=['estado_id', 'comentario'])
-                            
-                            
+
+
                             #se busca el perfil del gerente corresponsiente al distrito
                             rol = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=8).values('numero_de_trabajador').first()
-                            perfil_gerente = Perfil.objects.filter(numero_de_trabajador = rol['numero_de_trabajador']).values('id').first() 
-                            
+                            perfil_gerente = Perfil.objects.filter(numero_de_trabajador = rol['numero_de_trabajador']).values('id').first()
+
                             #buscar o crea la autorizacion para el gerente
                             gerente, created = AutorizarSolicitudes.objects.get_or_create(
                                 solicitud_id=solicitud,
@@ -195,56 +195,56 @@ def autorizarSolicitud(request,solicitud):
                                 perfil_id = perfil_gerente['id'],
                                 defaults={'estado_id': 3}  # Pendiente
                             )
-                            
+
                             #entra en el flujo de verifica o cambios
                             if autorizar.revisar and not created:
                                 gerente.estado_id = 3
                                 gerente.save()
-                                
+
                             messages.success(request, "La solicitud se aprobó por Control Técnico, pasa a revisión al Gerente")
                             return redirect('listarBonosVarilleros')
                     elif rol.tipo_id == 8:# gerente
                             #autorizar - asignar el estado de la solicitud
                             autorizar.estado_id = 1
                             autorizar.comentario = comentarioDato
-                            autorizar.save() 
-                                                        
+                            autorizar.save()
+
                             #IMPLEMENTAR COSTO
-                            asignarBonoCosto(solicitud) 
-                            
+                            asignarBonoCosto(solicitud)
+
                             messages.success(request, "La solicitud se aprobó por el Gerente")
                             return redirect('listarBonosVarilleros')
-                        
-                    
-                elif 'rechazar' in request.POST :#rechazado 
+
+
+                elif 'rechazar' in request.POST :#rechazado
                     #autorizar - asignar el estado de la solicitud
                     autorizar.estado_id = 2#rechazado
                     autorizar.comentario = comentarioDato
-                    autorizar.save()  
-                    
+                    autorizar.save()
+
                     messages.error(request, "La solicitud fue rechazada")
                     return redirect('listarBonosVarilleros')
-                    
+
                 elif 'cambios': #revisar
                     autorizar.estado_id = 4
                     autorizar.comentario = comentarioDato
                     autorizar.revisar = True
                     autorizar.save()
-                            
+
                     messages.success(request, "El supervisor debe realizar cambios en la solicitud emitida")
                     return redirect('listarBonosVarilleros')
                     #return redirect('verDetalleSolicitud', solicitud_id=solicitud)
             else:
                 messages.error(request, "El bono no esta dentro de la fecha de la catorcena actual")
                 return redirect('verDetalleSolicitud',solicitud)
-            
+
 #PRENOMINA
 @login_required(login_url='user-login')
 def Tabla_solicitudes_prenomina(request):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
         ahora = datetime.date.today()
-        #ahora = datetime.date.today() + 0
+        #ahora = datetime.date.today() + timedelta(days=10)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         empresa_faxton = Empresa.objects.get(empresa="Faxton")
@@ -268,7 +268,7 @@ def Tabla_solicitudes_prenomina(request):
             elif ct == rh:
                 mensaje_gerencia = "Todas revisadas por RH"
         elif user_filter.tipo.nombre ==  "Gerencia":  #2do perfil
-            prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Control Tecnico",fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).distinct()    
+            prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Control Tecnico",fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).distinct()
             rh = prenominas = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena
             rh = rh.count()
             ct = prenominas_verificadas.count()
@@ -284,10 +284,10 @@ def Tabla_solicitudes_prenomina(request):
         for prenomina in prenominas:
             ultima_autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina).order_by('-updated_at').first()
             ultima_rechazada = AutorizarPrenomina.objects.filter(prenomina=prenomina, estado__tipo="Rechazado").last()
-            if user_filter.tipo.nombre ==  "Control Tecnico": 
+            if user_filter.tipo.nombre ==  "Control Tecnico":
                 valor = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
-    
-            elif user_filter.tipo.nombre ==  "Gerencia": 
+
+            elif user_filter.tipo.nombre ==  "Gerencia":
                 valor = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
 
             if valor is not None:
@@ -297,7 +297,7 @@ def Tabla_solicitudes_prenomina(request):
             prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
         if request.method =='POST' and 'Excel' in request.POST:
             return Excel_estado_prenomina(prenominas, user_filter)
-        
+
         if request.method =='POST' and 'Autorizar' in request.POST:
             if user_filter.tipo.nombre ==  "Control Tecnico":
                 prenominas_filtradas = [prenom for prenom in prenominas if prenom.estado_general == 'Controles técnicos pendiente']
@@ -307,7 +307,7 @@ def Tabla_solicitudes_prenomina(request):
                 else:
                     # Si no hay prenominas que cumplan la condición, manejar según sea necesario
                     messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
-            if user_filter.tipo.nombre ==  "Gerencia": 
+            if user_filter.tipo.nombre ==  "Gerencia":
                 prenominas_filtradas = [prenom for prenom in prenominas if prenom.estado_general == 'Gerente pendiente']
                 if prenominas_filtradas:
                     # Llamar a la función Autorizar_gerencia con las prenominas filtradas
@@ -376,7 +376,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
 
         fechas_con_festivos = [festivo.dia_festivo for festivo in festivos]
         fechas_con_economicos = [economico.fecha for economico in economicos]
-        
+
         # todas las fechas de la catorcena actual
         delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
         dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
@@ -448,16 +448,16 @@ def Prenomina_Solicitud_Revisar(request, pk):
             'fechas_con_etiquetas': fechas_con_etiquetas,
             }
 
-        return render(request, 'revisar/Prenomina_solicitud_revisar.html',context)
+        return render(request, 'revisar/Prenomina_Solicitud_Revisar.html',context)
     else:
         return render(request, 'revisar/403.html')
-        
+
 
 def prenomina_solicitudes_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     ahora = datetime.date.today()
     #ahora = datetime.date.today() + timedelta(days=10)
-    
+
     costo = Costo.objects.get(id=pk)
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
     prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
@@ -470,7 +470,7 @@ def prenomina_solicitudes_revisar_ajax(request, pk):
     #obtener factores de días asociados a cada prenomina
     prenomina.retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
     prenomina.castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-    prenomina.permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) 
+    prenomina.permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
     prenomina.permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
     prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
     prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
@@ -504,7 +504,7 @@ def prenomina_solicitudes_revisar_ajax(request, pk):
                             else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
                             else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
                             else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
-                            
+
                             else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
                             #else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
                             else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
@@ -515,7 +515,7 @@ def prenomina_solicitudes_revisar_ajax(request, pk):
                             else (fecha, "festivo", "") if fecha in fechas_con_festivos
                             else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
                             else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
-    
+
     response_data = {
         'fechas_con_etiquetas': fechas_con_etiquetas,
         'autorizacion': {
@@ -560,13 +560,13 @@ def determinar_estado_general(ultima_autorizacion):
 
     if tipo_perfil == 'control tecnico' and estado_tipo == 'aprobado':
         return 'Gerente pendiente'
-    
+
     if tipo_perfil == 'gerencia' and estado_tipo == 'aprobado':
         return 'Gerente aprobado (Prenomina aprobada)'
 
     if tipo_perfil == 'control tecnico' and estado_tipo == 'rechazado':
         return 'RH pendiente (rechazado por Controles técnicos)'
-    
+
     if tipo_perfil == 'gerencia' and estado_tipo == 'rechazado':
         return 'RH pendiente (rechazado por Gerencia)'
 
@@ -576,7 +576,7 @@ def Autorizar_general(prenominas, user_filter,request):
     nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
     aprobado = Estado.objects.get(tipo="aprobado")
     for prenomina in prenominas:
-        revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo) #Checa si existe autorización de su perfil y si no lo crea 
+        revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo) #Checa si existe autorización de su perfil y si no lo crea
         revisado.estado = Estado.objects.get(tipo="aprobado")
         nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
         revisado.perfil = nombre
@@ -1072,6 +1072,6 @@ def PdfFormatoVacaciones(request, solicitud):
     c.showPage()
     buf.seek(0)
     return FileResponse(buf, as_attachment=True, filename='Formato_Vacaciones.pdf')
-            
-            
+
+
 

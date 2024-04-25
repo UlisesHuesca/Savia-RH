@@ -1,0 +1,9 @@
+numero_de_trabajador,empresa,distrito,nombres,apellidos,fecha_nacimiento,correo_electronico,proyecto,subproyecto
+1,SPP,VILLAHERMOSA,MAURO DANIEL,VARGAS FELICIANO ,06/06/1987,mauro_vaf@hotmail.com,Sub. Administrativa,Auxiliar 
+59,VORDCAB,VILLAHERMOSA,NAHUN,GONZALEZ AMBROS ,03/08/1977,,Sub. Administrativa,Activos
+61,VORDCAB,VILLAHERMOSA,FREDY,ALVAREZ HEREDIA ,16/07/1979,alvarhedy@hotmail.com,Sub. Operaciones,Técnico 
+70,VORDCAB,VILLAHERMOSA,DIANA LAURA,RODRIGUEZ VALENZUELA ,28/02/1995,dianarvalenzuela@hotmail.com,Sub. Administrativa,Compras
+135,SPP,VILLAHERMOSA,ABIMAEL,ALMEIDA PEREZ ,10/11/1993,,Sub. Operaciones,Técnico 
+149,SPP,VILLAHERMOSA,JOSUE JESEM,ALMEIDA PEREZ ,20/11/1999,,Sub. Operaciones,Técnico 
+154,SPP,VILLAHERMOSA,KAREN PATRICIA,CONCEPCION LÓPEZ ,20/10/1996,karen.patyta@gmail.com,Sub. Administrativa,RH
+,,,,,,,,

@@ -1005,6 +1005,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
             numero_catorcenas_incapacidades = catorcenas.count()
             print("NUMERO DE CATORCENAS INCAPACIDADES", numero_catorcenas_incapacidades)
             
+            #Pertenece a mas de una catorcena
             if numero_catorcenas_incapacidades > 1:
                 print("PERTENECE A MÁS CATORCENAS")    
                 #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
@@ -1054,8 +1055,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
                             incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
                             print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
                                                   
-            else:#EL CALCULO LO HACE CORRECTO
-                print("AQUI HACE EL BRINCO A LA CATORCENA")
+            else:#Pertenece a solo una catorcena
                 print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LAS INCAPACIDADES")
                 for incapacidad in incapacidades:
                     diferencia = incapacidad.fecha_fin - incapacidad.fecha
@@ -1067,6 +1067,10 @@ def Excel_estado_prenomina(prenominas, user_filter):
                     if incapacidades > 3:
                         incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
                         print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
+                
+                incapacidades_anterior = 0
+                incapacidades_actual = incapacidades
+                
         else: 
             incapacidades = 0
             print("NO TIENE INCAPACIDADES: ",incapacidades)

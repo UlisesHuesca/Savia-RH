@@ -64,7 +64,7 @@ MIDDLEWARE = [
     'simple_history.middleware.HistoryRequestMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
 
-    
+
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -106,7 +106,7 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #DATABASES = {
 #   'default': {
 #        'ENGINE': 'django.db.backends.mysql',
-#        'NAME': 'vicjosh$default',
+#       'NAME': 'vicjosh$default',
 #        'USER': 'vicjosh',
 #        'PASSWORD': 'mimi2000',
 #        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
@@ -124,7 +124,7 @@ DATABASES = {
         'PASSWORD': '12345678',
         'HOST': 'localhost',
         'PORT': '',
-    }
+   }
 }
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

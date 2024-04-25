@@ -1,0 +1,66 @@
+numero_de_trabajador,empresa,distrito,nombres,apellidos,fecha_nacimiento,correo_electronico,proyecto,subproyecto
+3065,VORDCAB,VILLAHERMOSA,JULIO CESAR,ZEPEDA JIMENEZ ,30/07/1985,julio.zepeda@grupovordcab.com,Sub. Operaciones,Sub. Operaciones
+3049,VORDCAB,VILLAHERMOSA,DANIEL ARNOLDO,MESA RIVERA ,12/12/1985,damesa_17@hotmail.com,Dirección General,Seguridad
+3109,VORDCAB,VILLAHERMOSA,JESUS ALFREDO,MELO ZAVALA ,24/12/1980,jesusalfredo80@hotmail.com,Dirección General,Gerencia 
+1085,VORDCAB,VILLAHERMOSA,RICARDO DE JESUS,MARTINEZ DELGADO ,07/12/1980,rjmtzd@gmail.com,Sub. Ingeniería,SUBIDT
+642,SPP,VILLAHERMOSA,EDUARDO EVARISTO,HERNANDEZ TORRES,11/03/1989,lalo_hdeez@hotmail.com,Sub. Administrativa,RH
+3102,VORDCAB,VILLAHERMOSA,JORGE SALVADOR,GONZALEZ LOPEZ ,07/07/1985,jorge_sgl85@hotmail.com,Sub. Operaciones,Sub. Operaciones
+3095,SPP,VILLAHERMOSA,JUAN JOSE,PRIEGO SANCHEZ ,08/04/1987,juanpriego@gmail.com,Dirección General,ESTAFF DG
+3097,VORDCAB,VILLAHERMOSA,BARTOLOME,RUIZ ORTA ,18/08/1961,bartolome.ruiz.orta@gmail.com,Sub. Operaciones,Técnico 
+3004,VORDCAB,VILLAHERMOSA,OSCAR,GIL DE ARANA SILVA ,16/02/1963,ogasvdc@gmail.com,Sub. Administrativa,Subdirector
+129,SPP,VILLAHERMOSA,ANGEL CAMILO,MIRANDA AMADOR ,02/08/1990,acma_miranda09@hotmail.com,Dirección General,Controles técnicos
+198,VORDCAB,VILLAHERMOSA,ASAEL,CARDEÑA GOMEZ ,27/04/1993,asael_127@hotmail.com,Sub. Finanzas y ventas,Tesorería
+3043,VORDCAB,VILLAHERMOSA,JOSE,PEREZ REYES ,09/08/1975,jose_1975_09@hotmail.com,Sub. Operaciones,Técnico 
+143,SPP,VILLAHERMOSA,FRANKLIN GABRIEL,ALEJO CAMPOS ,02/05/1997,alejocamposgabriel@gmail.com,Sub. Operaciones,Técnico 
+139,SPP,VILLAHERMOSA,IRIS DEL CARMEN,BAUTISTA GORDILLO ,06/05/1984,NR,Fijos,Intendencia
+106,SPP,VILLAHERMOSA,ROGELIO,DIAZ ROSAS ,18/10/1990,zr118rogelio@gmail.com,Sub. Operaciones,Técnico 
+157,SPP,VILLAHERMOSA,EFREN,DOMINGUEZ ANGULO ,13/01/1991,efren.dominguez.a91@gmail.com,Sub. Administrativa,Activos
+150,SPP,VILLAHERMOSA,ANTONIO,GARCIA AQUINO ,28/08/1999,NR,Sub. Operaciones,Técnico 
+153,SPP,VILLAHERMOSA,LUIS FERMIN,GARCIA OSORIO ,07/07/1996,luis_ferming96@gmail.com,Sub. Operaciones,Técnico 
+142,SPP,VILLAHERMOSA,MIGUEL ANGEL,GARCIA PEREZ ,01/10/2002,ag249427@gmail.com,Sub. Operaciones,Técnico 
+144,SPP,VILLAHERMOSA,JONATAN,GOMEZ BAEZA ,27/05/1983,jonathan_900@hotmail.com,Sub. Operaciones,Técnico 
+114,SPP,VILLAHERMOSA,PATRICIO,GORDILLO JUAREZ ,08/05/1991,NR,Sub. Operaciones,Técnico 
+148,SPP,VILLAHERMOSA,JAVIER,HERNANDEZ RUIZ ,19/08/1994,hdezruizjavier@gmail.com,Sub. Operaciones,Técnico 
+3040,VORDCAB,VILLAHERMOSA,GLORIA ELOISA,APARICIO ORDOÑEZ ,02/11/1958,geloisa2014@outlook.com,Fijos,Intendencia
+130,SPP,VILLAHERMOSA,DIEGO OSVALDO,HERNANDEZ SANCHEZ ,15/02/1999,hdiegoosvaldo1@gmail.com,Sub. Operaciones,Técnico 
+134,SPP,VILLAHERMOSA,YOTZNY DEL CARMEN,LOPEZ MAGAÑA ,10/01/2000,yotzany.lopez.00@gmail.com,Sub. Administrativa,Auxiliar 
+116,SPP,VILLAHERMOSA,DENNIS GERARDO,MARIN DIONICIO ,12/05/2001,marindioniciod@gmail.com,Sub. Operaciones,Técnico 
+141,SPP,VILLAHERMOSA,MARIA GUADALUPE,MARQUEZ FAJARDO ,20/02/1996,lupitamarquezfajardo@gmail.com,Sub. Administrativa,Auxiliar 
+109,SPP,VILLAHERMOSA,JORGE,PEREZ ALVAREZ ,07/10/1988,jp6739027@gmail.com,Sub. Operaciones,Auxiliar 
+136,SPP,VILLAHERMOSA,SEBASTIAN,PEREZ REYES ,11/10/1999,sebastian.perezreyesmx@gmail.com,Sub. Operaciones,Técnico 
+155,SPP,VILLAHERMOSA,MAGIA GUADALUPE,PINTADO CORONEL ,20/12/1998,magape.pintadocoronel@gmail.com,Sub. Administrativa,Auxiliar 
+95,VORDCAB,VILLAHERMOSA,LINDA CRISTEL,MAYO MARTINEZ ,27/07/1993,lindammtz@outlook.com,Sub. Administrativa,Auxiliar 
+68,VORDCAB,VILLAHERMOSA,DANIEL,TORRES DE LA O ,01/12/1987,pabushante@gmail.com,Sub. Operaciones,Técnico 
+120,SPP,VILLAHERMOSA,ALBERTO,RAMOS LOPEZ ,08/08/1989,NR,Sub. Operaciones,Técnico 
+76,VORDCAB,VILLAHERMOSA,FELIPE,GARCIA DE LOS SANTOS ,17/02/1992,felipegarciadelossantos@gmail.com,Sub. Operaciones,Técnico 
+81,VORDCAB,VILLAHERMOSA,BEATRIZ,OSORIO GARCIA ,21/10/1980,beatrizosorio1980@outlook.com,Fijos,Intendencia
+99,VORDCAB,VILLAHERMOSA,JOSE FRANCISCO,COLLADO JUAREZ ,22/06/1993,colladojuarezfrancisco@hotmail.com,Dirección General,Seguridad
+131,SPP,VILLAHERMOSA,ANABEL,SANCHEZ HERNANDEZ ,27/11/1992,ash_2711@hotmail.com,Sub. Administrativa,Auxiliar 
+50,VORDCAB,VILLAHERMOSA,ANDRES MANUEL,GUTIERREZ GONZALEZ ,30/11/1990,andres_gugo@outlook.com,Fijos,Gastos Mtto Oficina
+440,VORDCAB,VILLAHERMOSA,MARCOS,ALONSO GARCIA ,09/11/1997,marcos09pechoche20@gmail.com,Sub. Operaciones,Técnico 
+39,VORDCAB,VILLAHERMOSA,LEONEL,MORENO REYES,29/12/1987,leonelmoreno291287@gmail.com,Sub. Operaciones,Técnico 
+113,SPP,VILLAHERMOSA,JESUS ANTONIO,SUAREZ RAMOS ,15/05/1991,NR,Sub. Operaciones,Técnico 
+3190,VORDCAB,VILLAHERMOSA,INOCENTE ,CORDOVA CARRILLO ,28/12/1992,carrillocordova17@gmail.com,Sub. Administrativa,Almacén 
+3184,VORDCAB,VILLAHERMOSA,EZEQUIEL,LARA GUZMAN ,10/07/1986,eze_lara10@hotmail.com,Sub. Ingeniería,Telemetría
+3146,VORDCAB,VILLAHERMOSA,ANGEL ROBERTO ,MONTIEL TORRES ,10/12/1985,robertomontiel@outlook.com,Dirección General,NR
+3130,VORDCAB,VILLAHERMOSA,LUIS ENRIQUE,LOPEZ MARTINEZ ,26/05/1982,enrique_lopezmartinez@hotmail.com,Sub. Operaciones,Técnico 
+3114,VORDCAB,VILLAHERMOSA,FRANCISCO JAVIER,GALICIA MAR ,02/09/1970,galiciavdc23@hotmail.com,Sub. Operaciones,Técnico 
+3113,VORDCAB,VILLAHERMOSA,MIGUEL ALEJANDRO,CHAVEZ RAMIREZ ,27/09/1987,alejandro_8709@hotmail.com,Sub. Operaciones,Sub. Operaciones
+3107,VORDCAB,VILLAHERMOSA,JULIO GABRIEL,GOMEZ RICO ,12/04/1978,jggomezrico@gmail.com,Sub. Operaciones,Sub. Operaciones
+3099,VORDCAB,VILLAHERMOSA,DAMASO ,ORBE SOLIS ,12/12/1956,orbesolis@hotmail.com,Dirección General,Seguridad
+1043,SPP,VILLAHERMOSA,YANETH DEL CARMEN,VALIER GUZMAN ,08/06/1994,car_linda84@hotmail.com,Sub. Administrativa,Compras
+3093,VORDCAB,VILLAHERMOSA,CARLOS MARIO,HERNANDEZ MAY ,09/10/1979,mario.soldado23@hotmail.com,Sub. Operaciones,Técnico 
+3080,VORDCAB,VILLAHERMOSA,SERGIO LUIS,MORENO REYES ,08/10/1993,sergioluis.08@hotmail.com,Sub. Operaciones,Técnico 
+3072,VORDCAB,VILLAHERMOSA,DAMIAN,LOPEZ HERNANDEZ ,08/05/1979,damloph@hotmail.com,Sub. Ingeniería,Telemetría
+3066,VORDCAB,VILLAHERMOSA,DARWIN,DOMINGUEZ DE LA CRUZ ,19/06/1982,darw1982@hotmail.com,Sub. Administrativa,Estimaciones 
+3054,VORDCAB,VILLAHERMOSA,RICARDO,HERNANDEZ RODRIGUEZ ,20/08/1978,rikardohr255@hotmail.com,Sub. Administrativa,Auxiliar 
+1031,VORDCAB,VILLAHERMOSA,ALVARO RAMON,CASTRUITA POSADAS ,11/08/1987,alvarocastruita@hotmail.com,Sub. Operaciones,ITR
+3018,VORDCAB,VILLAHERMOSA,LUIS MIGUEL,SHILON LOPEZ ,26/07/1994,lui_shilon26@hotmail.com,Sub. Operaciones,Técnico 
+3010,VORDCAB,VILLAHERMOSA,OSCAR ALBERTO,APARICIO ORDOÑEZ ,21/02/1956,oscarvdc1@hotmail.com,Sub. Operaciones,Técnico 
+2046,VORDCAB,VILLAHERMOSA,ABIMAEL,FUENTES TENORIO ,12/01/1980,abimael.tenorio.34a@gmail.com,Sub. Operaciones,Técnico 
+1088,VORDCAB,VILLAHERMOSA,FAUSTINO,MASCAREÑAS HERNANDEZ,15/02/1978,luis.fj@outlook.es,Sub. Operaciones,Técnico 
+94,VORDCAB,VILLAHERMOSA,CESAR AUGUSTO,RAMOS SANCHEZ ,06/11/1996,cesarramos9611@gmail.com,Dirección General,Seguridad
+3148,VORDCAB,VILLAHERMOSA,NERY JOHAN,RAMIREZ TORRES ,21/01/1987,neryramirez720@gmail.com,Sub. Operaciones,Técnico 
+156,SPP,VILLAHERMOSA,CINDY CAROLINA,VELAZQUEZ ESCAYOLA ,02/01/1993,cindy.carolina02@outlook.es,Sub. Administrativa,Almacén 
+145,SPP,VILLAHERMOSA,JANNER AARON ,VINAGRE ZANTELLA ,01/08/1999,aaronvizen_01@hotmail.com,Sub. Operaciones,Técnico 
+158,SPP,VILLAHERMOSA,GUISELL RUBI,ZACARIA MARTINEZ ,03/07/1996,guisellrubizamar@gmail.com,Sub. Administrativa,Auxiliar 
