@@ -3853,8 +3853,7 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
 
     #datos para obtener los calculos de la prenomina dependiendo el empleado
     salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
-    
-    salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
+    salario = Decimal(prenomina.empleado.status.costo.sueldo_diario)
     neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
     apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
     infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
@@ -3904,7 +3903,8 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
     #datos para obtener los calculos de la prenomina dependiendo el empleado
     salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
     
-    salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
+    #salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
+    salario = Decimal(prenomina.empleado.status.costo.sueldo_diario)
     neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
     apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
     infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
@@ -4249,7 +4249,7 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
     
     pago_doble = 0  
     if dia_extra > 0:
-        pago_doble = Decimal(dia_extra * salario)
+        pago_doble = Decimal(dia_extra * (salario * 2))
         
                         
     #calculo de la prenomina - regla de tres   
@@ -7134,7 +7134,8 @@ def Excel_estado_prenomina(prenominas, user_filter):
         #datos para obtener los calculos de la prenomina dependiendo el empleado
         salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
         
-        salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
+        #salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
+        salario = Decimal(prenomina.empleado.status.costo.sueldo_diario)
         neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
         apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
         infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
@@ -7481,7 +7482,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
         
         pago_doble = 0  
         if dia_extra > 0:
-            pago_doble = Decimal(dia_extra * salario)
+            pago_doble = Decimal(dia_extra * (salario * 2))
             
                             
         #calculo de la prenomina - regla de tres   

@@ -683,7 +683,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
     dato_style.font = Font(name="Arial Narrow", size = 11)
         
     columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce sueldo',
-               'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Economicos','Vacaciones','Salario Cartocenal','Salario Catorcenal',
+               'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Economicos','Vacaciones','Salario Cartocenal',
                'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','Fonacot','Total deducciones','Neto a pagar en nomina']
 
     for col_num in range(len(columns)):
@@ -752,10 +752,11 @@ def Excel_estado_prenomina(prenominas, user_filter):
             G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
         
         #datos para obtener los calculos de la prenomina dependiendo el empleado
-        salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
+        #salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
         
-        salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
-        neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
+        #salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
+        salario = Decimal(prenomina.empleado.status.costo.sueldo_diario)
+        #neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
         apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
         infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
         fonacot = prenomina.empleado.status.costo.fonacot 
@@ -794,7 +795,6 @@ def Excel_estado_prenomina(prenominas, user_filter):
         print("fonacot", prestamo_fonacot)
         
         print(prenomina.empleado)
-        print("neto catorcenal: ",  neto_catorcenal)
         print("salario: ",salario)
         
         #contar no. de incidencias 
@@ -1106,7 +1106,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
         
         pago_doble = 0  
         if dia_extra > 0:
-            pago_doble = Decimal(dia_extra * salario)
+            pago_doble = Decimal(dia_extra * (salario * 2))
         
         incapacidad = str("")   
                             
@@ -1201,7 +1201,6 @@ def Excel_estado_prenomina(prenominas, user_filter):
             festivos,
             economicos,
             cantidad_dias_vacacion,
-            salario_catorcenal_costo,
             salario_catorcenal,
             apoyo_pasajes,
             total_bonos,
@@ -1213,7 +1212,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
         )
         rows.append(row)
         
-        sub_salario_catorcenal_costo = sub_salario_catorcenal_costo + salario_catorcenal_costo
+        #sub_salario_catorcenal_costo = sub_salario_catorcenal_costo + salario_catorcenal_costo
         sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
         sub_apoyo_pasajes = sub_apoyo_pasajes + apoyo_pasajes
         sub_total_bonos = sub_total_bonos + total_bonos
@@ -1254,7 +1253,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
     
     
     add_last_row = ['Total','','','','','','','','','','','','','','','','','','','','','','',
-                    sub_salario_catorcenal_costo,
+                    #sub_salario_catorcenal_costo,
                     sub_salario_catorcenal,
                     sub_apoyo_pasajes,
                     sub_total_bonos,
