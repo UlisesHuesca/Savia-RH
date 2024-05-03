@@ -333,6 +333,7 @@ class Variables_imss_patronal(models.Model):
     iv_patron = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Invalidez y vida
     iv_obrero = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0)
     gps_patron = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) #Guarderias y prestaciones sociales
+    cav_patron = models.DecimalField(max_digits=10, decimal_places=4,null=True, default=0) # Cesantía en edad avanzada y vejez 
 
     def __str__(self):
         return f'pd_patron {self.pd_patron}, gmp_patron: {self.gmp_patron}, iv_patron: {self.iv_patron}, gps_patron: {self.gps_patron}'
