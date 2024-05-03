@@ -125,19 +125,20 @@ def Tabla_prenomina(request):
     else:
             return render(request, 'revisar/403.html')
 
-@login_required(login_url='user-login')
+#@login_required(login_url='user-login')
 def Autorizar_general(prenominas, user_filter,request):
-    nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
-    aprobado = Estado.objects.get(tipo="aprobado")
-    for prenomina in prenominas:
-        revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo) #Checa si existe autorización de su perfil y si no lo crea 
-        revisado.estado = Estado.objects.get(tipo="aprobado")
+    if request.user.is_authenticated:
         nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
-        revisado.perfil = nombre
-        revisado.comentario = 'Aprobación general'
-        revisado.save()
-        messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
-    return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
+        aprobado = Estado.objects.get(tipo="aprobado")
+        for prenomina in prenominas:
+            revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo) #Checa si existe autorización de su perfil y si no lo crea 
+            revisado.estado = Estado.objects.get(tipo="aprobado")
+            nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
+            revisado.perfil = nombre
+            revisado.comentario = 'Aprobación general'
+            revisado.save()
+            messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
+        return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
 
 @login_required(login_url='user-login')
 def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre):
@@ -646,7 +647,33 @@ def determinar_estado_general(ultima_autorizacion):
 
     return 'Estado no reconocido'
 
-@login_required(login_url='user-login')
+def calcular_cuotas_imss(sdi_imss):
+    #Se importan los modelos a usar
+    from proyecto.models import Variables_imss_patronal
+    from proyecto.models import SalarioDatos
+    variables_patronal = Variables_imss_patronal.objects.get()
+    salario_datos = SalarioDatos.objects.get()
+    
+    #multiplica el sdi * el % de cuatoas / el numero de dias de la catorcena
+    invalidez_vida = sdi_imss * Decimal(variables_patronal.iv_obrero / 100) * 14
+    cesantia_vejez = sdi_imss * Decimal(variables_patronal.cav_patron/100) * 14
+    
+    #obtener el salario cotizacion mensual
+    salario_cot_men = sdi_imss * Decimal(30.4)
+    gastos_medicos = sdi_imss * Decimal(variables_patronal.gmp_obrero/100) * 14
+    en_dinero = sdi_imss * Decimal(variables_patronal.pd_obrero/100) * 14 
+    
+    #calcular cuota fija por cada trabajador hasta por 3 UMAs
+    cuota_fija_umas = salario_datos.UMA * Decimal(30.4) * 3
+    diferencia_sbc_umas = salario_cot_men - cuota_fija_umas
+    cuota_fija = (diferencia_sbc_umas * Decimal(variables_patronal.cf_obrero / 100) / Decimal(30.4)) * 14
+    enfermedades_maternidad = gastos_medicos + en_dinero + cuota_fija
+    
+    #La suma del calculo de cada resultado    
+    calculo_imss = invalidez_vida + cesantia_vejez + enfermedades_maternidad
+    
+    return calculo_imss
+
 def Excel_estado_prenomina(prenominas, user_filter):
     from datetime import datetime
     
@@ -686,7 +713,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
         
     columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce sueldo',
                'Permiso sin goce','Descansos','Incapacidades','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Economicos','Vacaciones','Salario Cartocenal',
-               'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','Fonacot','Total deducciones','Neto a pagar en nomina']
+               'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','IMSS','Fonacot','ISR Retenido','Total deducciones','Neto a pagar en nomina']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
@@ -723,6 +750,8 @@ def Excel_estado_prenomina(prenominas, user_filter):
     sub_total_bonos = Decimal(0.00)
     sub_total_percepciones = Decimal(0.00)
     sub_prestamo_infonavit = Decimal(0.00)
+    sub_calculo_isr = Decimal(0.00)
+    sub_calculo_imss = Decimal(0.00)
     sub_prestamo_fonacot = Decimal(0.00)
     sub_total_deducciones = Decimal(0.00)
     sub_pagar_nomina = Decimal(0.00)
@@ -762,6 +791,12 @@ def Excel_estado_prenomina(prenominas, user_filter):
         apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
         infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
         fonacot = prenomina.empleado.status.costo.fonacot 
+        isr = prenomina.empleado.status.costo.isr
+        sdi_imss = prenomina.empleado.status.costo.sdi_imss
+        #imss = prenomina.empleado.status.costo.imms_obrero_patronal
+        
+        #realiza el calculo de las cuotas imss
+        calculo_imss = calcular_cuotas_imss(sdi_imss)
         
         #Fecha para obtener los bonos agregando la hora y la fecha de acuerdo a la catorcena
         fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
@@ -772,8 +807,6 @@ def Excel_estado_prenomina(prenominas, user_filter):
             solicitud__fecha_autorizacion__isnull=False,
             solicitud__fecha_autorizacion__range=(fecha_inicial, fecha_final)
         ).aggregate(total=Sum('cantidad'))['total'] or 0
-
-        print("Total Bonos:", total_bonos)
            
         #calculo del infonavit
         if infonavit == 0:
@@ -781,6 +814,12 @@ def Excel_estado_prenomina(prenominas, user_filter):
         else:
             prestamo_infonavit = Decimal((infonavit / Decimal(30.4) ) * 14 )
        
+        #calculo del ISR
+        if isr == 0:
+            calculo_isr = Decimal(0.00)
+        else:
+            calculo_isr = Decimal((isr / Decimal(30.4)) *14 )
+                            
         #calculo del fonacot
         if fonacot == 0:
             prestamo_fonacot = Decimal(0.00)
@@ -795,6 +834,8 @@ def Excel_estado_prenomina(prenominas, user_filter):
             
         print("infonavit", prestamo_infonavit)
         print("fonacot", prestamo_fonacot)
+        print("ISR", calculo_isr)
+        print("IMSS", calculo_imss)
         
         print(prenomina.empleado)
         print("salario: ",salario)
@@ -1133,7 +1174,8 @@ def Excel_estado_prenomina(prenominas, user_filter):
         print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
         
         total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos
-        total_deducciones = prestamo_infonavit + prestamo_fonacot
+        #¿aqui deberia ir el IMSS y el ISR en total deducciones?
+        total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
         pagar_nomina = total_percepciones - total_deducciones
         
         if retardos == 0: 
@@ -1208,7 +1250,9 @@ def Excel_estado_prenomina(prenominas, user_filter):
             total_bonos,
             total_percepciones,
             prestamo_infonavit,
+            calculo_imss,
             prestamo_fonacot,
+            calculo_isr,
             total_deducciones,
             pagar_nomina,
         )
@@ -1220,7 +1264,9 @@ def Excel_estado_prenomina(prenominas, user_filter):
         sub_total_bonos = sub_total_bonos + total_bonos
         sub_total_percepciones = sub_total_percepciones + total_percepciones
         sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
+        sub_calculo_imss = sub_calculo_imss + calculo_imss
         sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
+        sub_calculo_isr = sub_calculo_isr + calculo_isr
         sub_total_deducciones = sub_total_deducciones + total_deducciones
         sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
         
@@ -1261,7 +1307,9 @@ def Excel_estado_prenomina(prenominas, user_filter):
                     sub_total_bonos,
                     sub_total_percepciones,
                     sub_prestamo_infonavit,
+                    sub_calculo_imss,
                     sub_prestamo_fonacot,
+                    sub_calculo_isr,
                     sub_total_deducciones,
                     sub_pagar_nomina
                     ]
