@@ -271,6 +271,7 @@ def Perfil_vista_baja(request):
 
     return render(request, 'proyecto/Perfiles_baja.html',context)
 
+@login_required(login_url='user-login')
 def FormularioPerfil(request):
     user_filter = UserDatos.objects.get(user=request.user)
     empleado,created=Perfil.objects.get_or_create(complete=False)
@@ -2263,7 +2264,7 @@ def HistoryCosto(request, pk):
 
     return render(request, 'proyecto/Costo_history.html',context)
 
-
+@login_required(login_url='user-login')
 def convert_excel_costo(costos):    
     response = HttpResponse(content_type="application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today()) + '.xlsx'
@@ -2347,6 +2348,7 @@ def convert_excel_costo(costos):
 
     return response
 
+@login_required(login_url='user-login')
 def convert_excel_costo_anterior(costos):
     #Fecha del reporte mensual
     from django.utils import formats
@@ -2438,7 +2440,7 @@ def convert_excel_costo_anterior(costos):
 
     return response
 
-
+@login_required(login_url='user-login')
 def convert_excel_bancarios(bancarios):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_datos_bancarios_' + str(datetime.date.today())+'.xlsx'
@@ -2508,6 +2510,7 @@ def convert_excel_bancarios(bancarios):
 
     return(response)
 
+@login_required(login_url='user-login')
 def convert_excel_bonos(bonos):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_bonos_' + str(datetime.date.today())+'.xlsx'
@@ -2583,6 +2586,7 @@ def convert_excel_bonos(bonos):
 
     return(response)
 
+@login_required(login_url='user-login')
 def convert_excel_vacaciones(descansos):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_vacaciones_' + str(datetime.date.today())+'.xlsx'
@@ -2672,6 +2676,7 @@ def convert_excel_vacaciones(descansos):
 
     return(response)
 
+@login_required(login_url='user-login')
 def convert_excel_uniformes(ropas):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_uniformes_' + str(datetime.date.today())+'.xlsx'
@@ -2748,6 +2753,7 @@ def convert_excel_uniformes(ropas):
 
     return(response)
 
+@login_required(login_url='user-login')
 def convert_excel_economicos(economicos,economicoss):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_días_economicos_' + str(datetime.date.today())+'.xlsx'
@@ -2823,6 +2829,7 @@ def convert_excel_economicos(economicos,economicoss):
 
     return(response)
 
+@login_required(login_url='user-login')
 def convert_excel_perfil(perfiles):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_empleados_' + str(datetime.date.today())+'.xlsx'
@@ -2900,6 +2907,7 @@ def convert_excel_perfil(perfiles):
 
     return(response)
 
+@login_required(login_url='user-login')
 def convert_excel_perfil_baja(perfiles):
     #datos_baja = Datos_baja.objects.filter(perfil__in=perfiles).order_by("perfil__numero_de_trabajador")
     response= HttpResponse(content_type = "application/ms-excel")
@@ -2983,6 +2991,7 @@ def convert_excel_perfil_baja(perfiles):
 
     return(response)
 
+@login_required(login_url='user-login')
 def convert_excel_status(status):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_empleados_status_' + str(datetime.date.today())+'.xlsx'
@@ -3525,6 +3534,7 @@ def upload_batch_bonos(request): #Bonos en la tabla de bancarios
 
     return render(request,'proyecto/upload_batch_bonos.html', context) #tabla de bancarios esta el view del batch
 
+@login_required(login_url='user-login')
 def reporte_pdf_uniformes(uniformes, pk):
     orden = Uniformes.objects.get(id=pk)
     uniformes = Uniforme.objects.filter(orden__id=pk)
@@ -3664,6 +3674,7 @@ def reporte_pdf_uniformes(uniformes, pk):
 
     return FileResponse(buf, as_attachment=True, filename='Uniforme_reporte.pdf')
 
+@login_required(login_url='user-login')
 def reporte_pdf_costo_detalles(costo):
     now = datetime.date.today()
     fecha = str(now)
@@ -3825,6 +3836,7 @@ def reporte_pdf_costo_detalles(costo):
 
     return FileResponse(buf, as_attachment=True, filename='CostoDetalle.pdf')
 
+@login_required(login_url='user-login')
 def reporte_pdf_costo_incidencias(costo,bonototal):
     costo = Costo.objects.get(id = costo.id)
     now = datetime.date.today()
@@ -4452,6 +4464,7 @@ def reporte_pdf_costo_incidencias(costo,bonototal):
 
     return FileResponse(buf, as_attachment=True, filename='Costo_Incidencias.pdf')
 
+@login_required(login_url='user-login')
 def reporte_pdf_economico_detalles(economicos,empleado):
     now = datetime.date.today()
     fecha = str(now)
@@ -4899,6 +4912,7 @@ def solicitud_vacacion_verificar(request, pk):
 
     return render(request,'proyecto/solicitud_vacaciones_update.html',context)
 
+@login_required(login_url='user-login')
 def PdfFormatoVacaciones(request, pk):
     solicitud= Solicitud_vacaciones.objects.get(id=pk)
     inicio = solicitud.fecha_inicio
@@ -5430,6 +5444,7 @@ def solicitud_economico_verificar(request, pk):
     
     return render(request,'proyecto/solicitud_economicos_update.html',context)
 
+@login_required(login_url='user-login')
 def PdfFormatoEconomicos(request, pk):
     solicitud= Solicitud_economicos.objects.get(id=pk)
     #jefe_inmediato = Perfil.objects.get(pk = solicitud.perfil_id) 
@@ -5591,9 +5606,8 @@ def PdfFormatoEconomicos(request, pk):
     return FileResponse(buf, as_attachment=True, filename='Formato_Economico.pdf')
 
     #Reportes generales
+@login_required(login_url='user-login')
 def excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,):
-
-
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
@@ -5713,6 +5727,7 @@ def excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economi
 
     return(response)
 
+@login_required(login_url='user-login')
 def reporte_pdf_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,):
     #Configuration of the PDF object
     buf = io.BytesIO()
@@ -5856,6 +5871,7 @@ def reporte_pdf_general(perfil,status,bancarios,costo,bonos,vacaciones,economico
 
     return FileResponse(buf, as_attachment=True, filename='Reporte_general.pdf')
 
+@login_required(login_url='user-login')
 def excel_reporte_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,):
     hombres = statuss.filter(sexo__sexo = 'Masculino')
     hombres = hombres.count()
@@ -5975,6 +5991,7 @@ def excel_reporte_puestos():
 
     return(response)
 """
+@login_required(login_url='user-login')
 def reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,):
     #Configuration of the PDF object
     buf = io.BytesIO()
@@ -6118,6 +6135,7 @@ def reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,cost
 
     return FileResponse(buf, as_attachment=True, filename='Reporte_'+distrito_seleccionado+'.pdf')
 
+@login_required(login_url='user-login')
 def Tabla_solicitud_vacaciones(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
@@ -6165,6 +6183,7 @@ def Tabla_solicitud_vacaciones(request):
 
     return render(request, 'proyecto/Solicitudes_vacaciones_tabla.html',context)
 
+@login_required(login_url='user-login')
 def Tabla_solicitud_economicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
@@ -7021,6 +7040,7 @@ def TablaPrenominas(request):
 
     return render(request, 'proyecto/PrenominaTabla.html',context)
 
+@login_required(login_url='user-login')
 def Excel_estado_prenomina(prenominas, user_filter):
     from datetime import datetime
     from prenomina.models import Castigos,Permiso_goce,Permiso_sin,Incapacidades
@@ -7788,7 +7808,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
 
     return(response)
 """
-
+@login_required(login_url='user-login')
 def determinar_estado_general(ultima_autorizacion):
     if ultima_autorizacion is None:
         return "Sin autorizaciones"

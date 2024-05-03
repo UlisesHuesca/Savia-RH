@@ -621,6 +621,7 @@ def PrenominaRevisar(request, pk):
     else:
         return render(request, 'revisar/403.html')
 
+@login_required(login_url='user-login')
 def determinar_estado_general(ultima_autorizacion):
     if ultima_autorizacion is None:
         return "Sin autorizaciones"
@@ -645,6 +646,7 @@ def determinar_estado_general(ultima_autorizacion):
 
     return 'Estado no reconocido'
 
+@login_required(login_url='user-login')
 def Excel_estado_prenomina(prenominas, user_filter):
     from datetime import datetime
     
@@ -1281,6 +1283,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
 
     return(response)
 
+@login_required(login_url='user-login')
 def PdfFormatoEconomicos(request, solicitud):
     solicitud= Solicitud_economicos.objects.get(id=solicitud.id)
     now = date.today()
@@ -1425,6 +1428,7 @@ def PdfFormatoEconomicos(request, solicitud):
 
     return FileResponse(buf, as_attachment=True, filename='Formato_Economico.pdf')
 
+@login_required(login_url='user-login')
 def PdfFormatoVacaciones(request, solicitud):
     solicitud= Solicitud_vacaciones.objects.get(id=solicitud.id)
     inicio = solicitud.fecha_inicio
