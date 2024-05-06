@@ -65,7 +65,7 @@
                             <th>Estado actual</th>
                             <th>Comentario</th>
                             <th>Estado</th>
-                            <th>Archivo</th>
+                            <th>Soporte</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,10 +100,12 @@
                                 <td>
                                     {% if archivo %}
                                        
-                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> {{archivo}} </p>
+                                        <p><a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> 
+                                            <small class="text-muted"> {{archivo}} </small>
+                                        </p>
                                     
                                     {% else %}
-                                        Sin archivo
+                                        Sin soporte
                                     {% endif %}
                                 </td>
                             </tr>

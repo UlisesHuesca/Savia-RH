@@ -45,6 +45,7 @@ class Castigos(models.Model):
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
     comentario = models.CharField(max_length=100,null=True, blank=True)
+    url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
     editado = models.CharField(max_length=100,blank=True)
 
     def __str__(self):

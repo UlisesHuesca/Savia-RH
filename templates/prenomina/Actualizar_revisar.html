@@ -59,7 +59,15 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                             </div>
                             <div class="modal-body">
-
+                                <label>Incidencias</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incapacidadesform.incidencias class="form-control"%}
+                                </div>
+                                
+                                {% comment %}
+                                    
+                              
+                                    
                                 <div class="input-group mb-3">
                                     <select id="incidencias" name="incidencias" class="form-control mb-2">
                                         <option selected disabled>------------</option>
@@ -69,6 +77,7 @@
                                         <option value="4">Permisos sin goce</option>
                                     </select>
                                 </div>
+                                {% endcomment %}
 
                                 <label>Fecha Inicio</label>
                                 <div class="input-group mb-3">
@@ -123,7 +132,7 @@
                             <th>Estado actual</th>
                             <th>Comentario</th>
                             <th>Cambiar Estado</th>
-                            <th>Subir Archivo</th> <!-- Nueva columna -->
+                            <th>Subir Soporte</th> <!-- Nueva columna -->
                         </tr>
                     </thead>
                     <tbody>
@@ -167,8 +176,8 @@
                                         <option value="asistencia" {% if etiqueta == "asistencia" %}selected{% endif %}>Asistencia</option>
                                         <option value="retardo" {% if etiqueta == "retardo" %}selected{% endif %}>Retardo</option>
                                         <option disabled value="castigo" {% if etiqueta == "castigo" %}selected{% endif %}>Castigo</option>
-                                        <option disabled value="permiso_goce" {% if etiqueta == "permiso_goce" %}selected{% endif %}>Permiso con goce de sueldo</option>
-                                        <option disabled value="permiso_sin" {% if etiqueta == "permiso_sin" %}selected{% endif %}>Permiso sin goce de sueldo</option>
+                                        <option disabled value="permiso con goce de sueldo" {% if etiqueta == "permiso con goce de sueldo" %}selected{% endif %}>Permiso con goce de sueldo</option>
+                                        <option disabled value="permiso sin goce de sueldo" {% if etiqueta == "permiso sin goce de sueldo" %}selected{% endif %}>Permiso sin goce de sueldo</option>
                                         <option value="descanso" {% if etiqueta == "descanso" %}selected{% endif %}>Descanso</option>
                                         <option disabled value="incapacidades" {% if etiqueta == "incapacidades" %}selected{% endif %}>Incapacidades</option>
                                         <option value="faltas" {% if etiqueta == "faltas" %}selected{% endif %}>Faltas</option>
@@ -182,10 +191,12 @@
                                 <td> <!-- Nueva columna para subir archivos -->
                                     <div class="custom-file">
                                         <input type="file" class="custom-file-input form-control-sm" id="archivo_{{ fecha|date:'Y-m-d' }}" name="archivo_{{ fecha|date:'Y-m-d' }}">
-                                        <label class="custom-file-label" for="archivo_{{ fecha|date:'Y-m-d' }}">{{ archivo.name|default:'Seleccionar archivo' }}</label>
+                                        <label class="custom-file-label" for="archivo_{{ fecha|date:'Y-m-d' }}">{{ archivo.name|default:'Seleccionar soporte' }}</label>
                                     </div>
                                     {% if archivo %}
-                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> {{archivo}} </p>
+                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> 
+                                            <small class="text-muted"> {{archivo}} </small>
+                                        </p>
                                     
                                     {% endif %}
                                 </td>
@@ -219,7 +230,7 @@
                 var fileInput = $(this).find('.custom-file-input');
 
                 // Valores que habilitarán el input de archivo
-                var enabledValues = ["permiso_goce", "permiso_sin", "incapacidades", "comision", "extra"];
+                var enabledValues = ["permiso_goce", "permiso_sin", "incapacidades", "comision", "extra","castigo"];
 
                 // Valores adicionales que deshabilitarán el input de archivo
                 var disabledValues = ["vacaciones", "economico"];
@@ -244,36 +255,6 @@
         });
     });
 </script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var incidenciasForm = document.getElementById('incidencias-form')
-
-        var seleccionarIncidencia = document.getElementById('incidencias');
-
-        // Añadir un listener para el evento change en el select
-        seleccionarIncidencia.addEventListener('change', function() {
-            // Obtener el valor seleccionado
-            var seleccionado = seleccionarIncidencia.value;
-            var showSoporte = document.getElementById('show-soporte')
-
-            //cuando se selecciona se oculta para no subir archivos
-            if (seleccionado === '2'){
-                incidenciasForm.setAttribute('novalidate', '');
-                showSoporte.style.display = 'none'
-            }else{
-                incidenciasForm.removeAttribute('novalidate', '');
-                showSoporte.removeAttribute('style');
-                console.log(seleccionado)
-            }
-           
-        });
-    });
-</script>
-
-
-
-
 
 {% endblock %}
 </body>

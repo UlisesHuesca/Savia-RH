@@ -146,21 +146,18 @@ def Autorizar_general(request,prenominas, user_filter):
 
 @login_required(login_url='user-login')
 def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre):
-                
-            #error
+            
+            url = request.FILES['url']
+            
             if incidencia == '1':
                 evento_model = Incapacidades
-                url = request.FILES['url']
             elif incidencia == '2':
                 evento_model = Castigos
-                url = None
             elif incidencia == '3':
                 evento_model = Permiso_goce
-                url = request.FILES['url']
             elif incidencia == '4':
                 evento_model = Permiso_sin
-                url = request.FILES['url']
-                        
+                
             if evento_model:
                 if url:
                     obj, created = evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
@@ -192,157 +189,127 @@ def programar_incidencias(request,pk):
         
         #Empleado
         costo = Costo.objects.get(id=pk)
-        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) 
-        print("EMPLEADO ",prenomina.empleado)                    
-        incidencia = request.POST.get('incidencias')
-        fecha_incio = request.POST['fecha']
-        fecha_fin = request.POST['fecha_fin']
-        comentario = request.POST['comentario']
-
-        #VALIDACIONES
-        if fecha_incio > fecha_fin:
-            print("La fecha de inicio es posterior a la fecha final.")
-            messages.error(request, 'La fecha de inicio debe ser menor a la fecha final')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
         
-        if not incidencia:
-            messages.error(request, 'Debes seleccionar una incidencia')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        #Se trae el formulario de las incapacidades para ser validado
+        form_incidencias = IncapacidadesForm(request.POST, request.FILES)
         
-        if datetime.datetime.strptime(fecha_incio, '%Y-%m-%d').date() < catorcena_actual.fecha_inicial:
-            messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        
-        vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[fecha_incio, fecha_fin]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[fecha_incio, fecha_fin]))
-        if vacaciones.exists():
-            messages.error(request, 'Ya existen vacaciones dentro del rango de fechas especificado')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        
-        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[fecha_incio, fecha_fin])
-        if economicos.exists():            
-            messages.error(request, 'Ya existen economicos dentro del rango de fechas especificado')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        
-        festivos = TablaFestivos.objects.filter(dia_festivo__range=[fecha_incio, fecha_fin])
-        if festivos.exists():
-            messages.error(request, 'Ya existen festivos dentro del rango de fechas especificado')
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
-        
-        #VALIDAR INCIDENCIAS - EDITAR UNA INCIDENCIA QUE ESTE DENTRO DEL RANGO DE LA CAT Y VERIFICAR QUE EXISTA EN LA CAT ANTERIOIR
-        incapacidades = Incapacidades.objects.filter(
-            prenomina__empleado_id=prenomina.empleado.id,
-            fecha__lte=fecha_fin,  # La fecha de inicio de la incapacidad debe ser menor o igual a la fecha fin del rango proporcionado
-            fecha_fin__gte=fecha_incio,   # La fecha fin de la incapacidad debe ser mayor o igual a la fecha inicio del rango proporcionado
-        )
-        
-        castigos = Castigos.objects.filter(
-            prenomina__empleado_id=prenomina.empleado.id,
-            fecha__lte=fecha_fin,
-            fecha_fin__gte=fecha_incio,
-        )
-        
-        permisos_goce = Permiso_goce.objects.filter(
-            prenomina__empleado_id=prenomina.empleado.id,
-            fecha__lte=fecha_fin,
-            fecha_fin__gte=fecha_incio,
-        )
-        
-        permisos_sin = Permiso_sin.objects.filter(
-            prenomina__empleado_id=prenomina.empleado.id,
-            fecha__lte=fecha_fin,
-            fecha_fin__gte=fecha_incio,
-        )
-                       
-        if incapacidades.exists():
-            for inca in incapacidades:
-                #print(inca)
-                print("Fecha", inca.fecha)
-                print("Fecha fin", inca.fecha_fin)
+        if form_incidencias.is_valid():
+            incidencia = form_incidencias.cleaned_data.get('incidencias')
+            fecha_incio = form_incidencias.cleaned_data['fecha']
+            fecha_fin = form_incidencias.cleaned_data['fecha_fin']
+            comentario = form_incidencias.cleaned_data['comentario']
+            archivo = form_incidencias.cleaned_data['url']       
             
-            if inca.fecha < catorcena_actual.fecha_inicial:
-                print("No se puede generar")
-                messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
-            else:
-                #se elimina el soporte asociado
-                soporte = incapacidades.first()
-                os.remove(soporte.url.path)
-                #se elima la incapacidad de la BD
-                incapacidades.delete()
-                print("Se puede generar")
-                #capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        #else:
-        #    print("Aqui no existe el rango de fechas dado - se puede agregar")  
-        #    capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        
-        
-        if castigos.exists():
-            for castigo in castigos:
-                #print(inca)
-                print("Fecha", castigo.fecha)
-                print("Fecha fin", castigo.fecha_fin)
+            #VALIDACIONES
+            if fecha_incio > fecha_fin:
+                print("La fecha de inicio es posterior a la fecha final.")
+                messages.error(request, 'La fecha de inicio debe ser menor a la fecha final')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
             
-            if castigo.fecha < catorcena_actual.fecha_inicial:
-                print("No se puede generar")
-                messages.error(request, 'Ya existen castigos de la catorcena anterior')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
-            else:
-                #se elimina el soporte asociado
-                castigos.delete()
-                print("Se puede generar")
-                #capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        #else:
-        #    print("Aqui no existe el rango de fechas dado - se puede agregar")  
-        #    capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        
-        if permisos_goce.exists():
-            for permiso_goce in permisos_goce:
-                #print(inca)
-                print("Fecha", permiso_goce.fecha)
-                print("Fecha fin", permiso_goce.fecha_fin)
+            if not incidencia:
+                messages.error(request, 'Debes seleccionar una incidencia')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
             
-            if permiso_goce.fecha < catorcena_actual.fecha_inicial:
-                print("No se puede generar")
-                messages.error(request, 'Ya existen permisos con goce de sueldo de la catorcena anterior')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
-            else:
-                #se elimina el soporte asociado
-                #se elimina el soporte asociado
-                soporte = permisos_goce.first()
-                os.remove(soporte.url.path)
-                #se elima la incapacidad de la BD
-                permisos_goce.delete()
-                print("Se puede generar")
-                #capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        #else:
-        #    print("Aqui no existe el rango de fechas dado - se puede agregar")  
-        #    capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)    
-        
-        if permisos_sin.exists():
-            for permiso_sin in permisos_sin:
-                #print(inca)
-                print("Fecha", permiso_sin.fecha)
-                print("Fecha fin", permiso_sin.fecha_fin)
+            if datetime.datetime.strptime(fecha_incio, '%Y-%m-%d').date() < catorcena_actual.fecha_inicial:
+                messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
             
-            if permiso_sin.fecha < catorcena_actual.fecha_inicial:
-                print("No se puede generar")
-                messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))    
-            else:
-                #se elimina el soporte asociado
-                soporte = permisos_sin.first()
-                os.remove(soporte.url.path)
-                #se elima la incapacidad de la BD
-                permisos_sin.delete()
-                print("Se puede generar")
-                #capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        #else:
-        #    print("Aqui no existe el rango de fechas dado - se puede agregar")  
-        #    capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+            vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[fecha_incio, fecha_fin]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[fecha_incio, fecha_fin]))
+            if vacaciones.exists():
+                messages.error(request, 'Ya existen vacaciones dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[fecha_incio, fecha_fin])
+            if economicos.exists():            
+                messages.error(request, 'Ya existen economicos dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            festivos = TablaFestivos.objects.filter(dia_festivo__range=[fecha_incio, fecha_fin])
+            if festivos.exists():
+                messages.error(request, 'Ya existen festivos dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
+            
+            #VALIDAR INCIDENCIAS - EDITAR UNA INCIDENCIA QUE ESTE DENTRO DEL RANGO DE LA CAT Y VERIFICAR QUE EXISTA EN LA CAT ANTERIOIR
+            incapacidades = Incapacidades.objects.filter(
+                prenomina__empleado_id=prenomina.empleado.id,
+                fecha__lte=fecha_fin,  # La fecha de inicio de la incapacidad debe ser menor o igual a la fecha fin del rango proporcionado
+                fecha_fin__gte=fecha_incio,   # La fecha fin de la incapacidad debe ser mayor o igual a la fecha inicio del rango proporcionado
+            )
+            
+            castigos = Castigos.objects.filter(
+                prenomina__empleado_id=prenomina.empleado.id,
+                fecha__lte=fecha_fin,
+                fecha_fin__gte=fecha_incio,
+            )
+            
+            permisos_goce = Permiso_goce.objects.filter(
+                prenomina__empleado_id=prenomina.empleado.id,
+                fecha__lte=fecha_fin,
+                fecha_fin__gte=fecha_incio,
+            )
+            
+            permisos_sin = Permiso_sin.objects.filter(
+                prenomina__empleado_id=prenomina.empleado.id,
+                fecha__lte=fecha_fin,
+                fecha_fin__gte=fecha_incio,
+            )
+            
+            #elimina una incapacidad y es remplazada por otra en caso que sea de la misma catorcena
+            if incapacidades.exists():
+                if incapacidades.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
+                    messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
+                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
+                else:
+                    #se elimina el soporte asociado
+                    soporte = incapacidades.first()
+                    os.remove(soporte.url.path)
+                    #se elima la incapacidad de la BD
+                    incapacidades.delete()
+                    
+            if castigos.exists():
+                if castigos.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
+                    messages.error(request, 'Ya existen castigos de la catorcena anterior')
+                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
+                else:
+                    # Se elimina el soporte asociado
+                    soporte = castigos.first()
+                    os.remove(soporte.url.path)
+                    # Se elimina el castigo de la BD
+                    castigos.delete()
+            
+            if permisos_goce.exists():
+                if permisos_goce.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
+                    messages.error(request, 'Ya existen permisos de goce de sueldo de la catorcena anterior')
+                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
+                else:
+                    # Se elimina el soporte asociado
+                    soporte = permisos_goce.first()
+                    os.remove(soporte.url.path)
+                    # Se elimina el permiso de goce de la BD
+                    permisos_goce.delete()
+            
+            if permisos_sin.exists():
+                if permisos_sin.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
+                    messages.error(request, 'Ya existen permisos sin goce de sueldo de la catorcena anterior')
+                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
+                else:
+                    # Se elimina el soporte asociado
+                    soporte = permisos_sin.first()
+                    os.remove(soporte.url.path)
+                    # Se elimina el permiso sin goce de la BD
+                    permisos_sin.delete()        
+            
+            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
-        capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-    
+        else:
+            for field, errors in form_incidencias.errors.items():
+                for error in errors:
+                    messages.error(request,error)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+                    
+            
 
 @login_required(login_url='user-login')
 def prenomina_revisar_ajax(request, pk):
@@ -397,8 +364,8 @@ def prenomina_revisar_ajax(request, pk):
     #lista de tuplas con la fecha y su etiqueta
     fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
                             else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
-                            else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
-                            else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
+                            else (fecha, "permiso con goce de sueldo", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
+                            else (fecha, "permiso sin goce de sueldo", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
                             else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
                             
                             else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
@@ -406,7 +373,7 @@ def prenomina_revisar_ajax(request, pk):
                             else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
                             else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario if fecha in fechas_con_comision else "") if fecha in fechas_con_comision
                             else (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
-                            else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario if fecha in fechas_con_extra else "") if fecha in fechas_con_extra
+                            else (fecha, "día de descanso laborado", prenomina.extra.filter(fecha=fecha).first().comentario if fecha in fechas_con_extra else "") if fecha in fechas_con_extra
                             else (fecha, "economico", "") if fecha in fechas_con_economicos
                             else (fecha, "festivo", "") if fecha in fechas_con_festivos
                             else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
@@ -472,6 +439,7 @@ def PrenominaRevisar(request, pk):
         prenomina.permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
         #prenomina.permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.permiso_sin = Permiso_sin.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        #prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
@@ -485,7 +453,7 @@ def PrenominaRevisar(request, pk):
         #fechas_con_castigos = [castigo.fecha for castigo in prenomina.castigos]
         #fechas_con_permiso_goce = [permiso_goc.fecha for permiso_goc in prenomina.permiso_goce]
         #fechas_con_permiso_sin = [permiso_si.fecha for permiso_si in prenomina.permiso_sin]
-        #fechas_con_descanso = [descans.fecha for descans in prenomina.descanso]
+        fechas_con_descanso = [descans.fecha for descans in prenomina.descanso]
         #fechas_con_incapacidades = [incapacidade.fecha for incapacidade in prenomina.incapacidades]
         fechas_con_faltas = [falta.fecha for falta in prenomina.faltas]
         fechas_con_comision = [comisio.fecha for comisio in prenomina.comision]
@@ -501,12 +469,13 @@ def PrenominaRevisar(request, pk):
         #lista de tuplas con la fecha y su etiqueta
         fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
                                 #else (fecha, "castigo", prenomina.castigos.filter(fecha=fecha).first().comentario if fecha in fechas_con_castigos else "") if fecha in fechas_con_castigos
-                                else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
+                                else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
                                 #else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha=fecha).first().comentario, prenomina.permiso_goce.filter(fecha=fecha).first().url if fecha in fechas_con_permiso_goce and prenomina.permiso_goce.filter(fecha=fecha).first().url else "") if fecha in fechas_con_permiso_goce
-                                else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
+                                else (fecha, "permiso con goce de sueldo", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
                                 #else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha=fecha).first().comentario, prenomina.permiso_sin.filter(fecha=fecha).first().url if fecha in fechas_con_permiso_sin and prenomina.permiso_sin.filter(fecha=fecha).first().url else "") if fecha in fechas_con_permiso_sin
-                                else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
+                                else (fecha, "permiso sin goce de sueldo", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
                                 #else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha=fecha).first().comentario, prenomina.incapacidades.filter(fecha=fecha).first().url if fecha in fechas_con_incapacidades and prenomina.incapacidades.filter(fecha=fecha).first().url else "") if fecha in fechas_con_incapacidades
+                                else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
                                 else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
                                 else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
                                 else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario, prenomina.comision.filter(fecha=fecha).first().url if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().url else "") if fecha in fechas_con_comision
