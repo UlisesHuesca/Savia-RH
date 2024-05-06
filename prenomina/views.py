@@ -56,6 +56,8 @@ from esquema.models import BonoSolicitado
 from django.db.models import Sum
 
 from .forms import IncapacidadesForm
+from proyecto.models import Variables_imss_patronal
+from proyecto.models import SalarioDatos
 # Create your views here.
 
 @login_required(login_url='user-login')
@@ -103,12 +105,12 @@ def Tabla_prenomina(request):
                 prenominas_filtradas = [prenom for prenom in prenominas if prenom.estado_general == 'RH pendiente (rechazado por Controles técnicos)' or prenom.estado_general == 'RH pendiente (rechazado por Gerencia)' or prenom.estado_general == 'Sin autorizaciones']
                 if prenominas_filtradas:
                     # Llamar a la función Autorizar_gerencia con las prenominas filtradas
-                    return Autorizar_general(prenominas_filtradas, user_filter,request)
+                    return Autorizar_general(request,prenominas_filtradas, user_filter)
                 else:
                     # Si no hay prenominas que cumplan la condición, manejar según sea necesario
                     messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
         if request.method =='POST' and 'Excel' in request.POST:
-            return Excel_estado_prenomina(prenominas, user_filter)
+            return Excel_estado_prenomina(request,prenominas, user_filter)
         if request.method =='POST' and 'Excel2' in request.POST:
             return Excel_estado_prenomina_formato(prenominas, user_filter)
         
@@ -127,8 +129,8 @@ def Tabla_prenomina(request):
     else:
             return render(request, 'revisar/403.html')
 
-#@login_required(login_url='user-login')
-def Autorizar_general(prenominas, user_filter,request):
+@login_required(login_url='user-login')
+def Autorizar_general(request,prenominas, user_filter):
     if request.user.is_authenticated:
         nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
         aprobado = Estado.objects.get(tipo="aprobado")
@@ -649,11 +651,8 @@ def determinar_estado_general(ultima_autorizacion):
 
     return 'Estado no reconocido'
 
-@login_required(login_url='user-login')
 def calcular_cuotas_imss(sdi_imss):
     #Se importan los modelos a usar
-    from proyecto.models import Variables_imss_patronal
-    from proyecto.models import SalarioDatos
     variables_patronal = Variables_imss_patronal.objects.get()
     salario_datos = SalarioDatos.objects.get()
     
@@ -677,8 +676,34 @@ def calcular_cuotas_imss(sdi_imss):
     
     return calculo_imss
 
-#@login_required(login_url='user-login')
-def Excel_estado_prenomina(prenominas, user_filter):
+def calcular_isr(salario):
+    from proyecto.models import DatosISR
+    
+    salario_datos = SalarioDatos.objects.get()
+    
+    #multiplicar el salario por 30.4
+    salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
+    
+    #llamar la tabla de IRS
+    tabla_irs = DatosISR.objects.all()
+    
+    #obtener el valor aproximado hacia abajo para obtener las variables
+    for datos_irs in tabla_irs:
+        if salario_catorcenal >= datos_irs.liminf:
+            limite_inferior = datos_irs.liminf
+            porcentaje = datos_irs.excedente
+            cuota_fija = datos_irs.cuota
+            
+    #realizar el calculo
+    isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
+    
+    isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
+     
+    return isr_catorcenal
+
+
+@login_required(login_url='user-login')
+def Excel_estado_prenomina(request,prenominas, user_filter):
     from datetime import datetime
     
     response= HttpResponse(content_type = "application/ms-excel")
@@ -802,6 +827,9 @@ def Excel_estado_prenomina(prenominas, user_filter):
         #realiza el calculo de las cuotas imss
         calculo_imss = calcular_cuotas_imss(sdi_imss)
         
+        #realiza el calculo del ISR
+        calculo_isr = calcular_isr(salario)
+        
         #Fecha para obtener los bonos agregando la hora y la fecha de acuerdo a la catorcena
         fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
         fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
@@ -817,13 +845,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
             prestamo_infonavit = Decimal(0.00)
         else:
             prestamo_infonavit = Decimal((infonavit / Decimal(30.4) ) * 14 )
-       
-        #calculo del ISR
-        if isr == 0:
-            calculo_isr = Decimal(0.00)
-        else:
-            calculo_isr = Decimal((isr / Decimal(30.4)) *14 )
-                            
+                                        
         #calculo del fonacot
         if fonacot == 0:
             prestamo_fonacot = Decimal(0.00)
