@@ -41,15 +41,72 @@
 <div class="container card card-body">
     <div class="columns is-mobile">
         <div class="column is-half is-offset-one-quarter">
-            <div class="d-flex justify-content-between mb-1">
-                <h4 class="title is-size-2">Prenomina del empleado</h4>
+            <h4 class="title is-size-2">Prenomina del empleado</h4>
+            <div class="d-flex justify-content-end my-0">
                 <!-- Button trigger modal -->
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-                    Programar Incidencias
+                <button type="button" class="btn btn-primary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#incapacidades-modal">
+                    Incapacidades
                 </button>
-                
-                <!-- Modal -->
-                <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                <!-- Modal programar INCAPACIDADES - 3 TIPOS -->
+                <div class="modal fade" id="incapacidades-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <form action="{% url 'programar_incapacidades' costo.id %}" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Incapacidades</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <label>Tipo de incapacidad</label>
+                                    <div class="input-group mb-3">
+                                        {% render_field incapacidadestipoform.tipo class="form-control"%}
+                                    </div>
+
+                                    <label>Subsecuente</label>
+                                    <div class="input-group mb-3 form-check form-switch">
+                                        {% render_field incapacidadestipoform.subsecuente type="checkbox" class="form-check-input" role="switch" %}
+                                    </div>
+
+                                    <label>Fecha Inicio</label>
+                                    <div class="input-group mb-3">
+                                        {% render_field incapacidadestipoform.fecha type="date" class="form-control"%}
+                                    </div>
+    
+                                    <label>Fecha Final</label>
+                                    <div class="input-group mb-3">
+                                        {% render_field incapacidadestipoform.fecha_fin type="date" class="form-control"%}
+                                    </div>
+    
+                                   
+                                    <label>Comentario</label>
+                                    <div class="input-group mb-3">
+                                        {% render_field incapacidadestipoform.comentario type="comentario" class="form-control"%}
+                                    </div>
+    
+                                    <label>Soporte</label>
+                                    <div class="input-group mb-3" id="show-soporte">
+                                        {% render_field incapacidadestipoform.url type="file" class="form-control" accept=".png, .jpg, .jpeg, .pdf" %}
+                                    </div>
+    
+                                </div>
+                                <div class="modal-footer d-flex justify-content-between">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" name="btn_incapacidades" class="btn btn-primary">Guardar</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+
+                <!-- Button trigger modal -->
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#programar-incidencias">
+                    Incidencias
+                </button>
+
+                <!-- Modal programar INDIDENCIAS-->
+                <div class="modal fade" id="programar-incidencias" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
                     <div class="modal-dialog">
                     <form action="{% url 'programar_incidencias' costo.id %}" method="post" enctype="multipart/form-data" id="incidencias-form">
                         {% csrf_token %}

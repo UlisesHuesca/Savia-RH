@@ -1,16 +1,16 @@
 from django import forms
-from .models import Incapacidades
+from .models import Incapacidades, Tipo_incapacidad
+from esquema.models import Puesto
 
 class IncapacidadesForm(forms.ModelForm):
     #Se define un choiceField para seleccionar 
     opciones = (
         (None, 'Selecciona una opción'),
-        (1, 'Incapacidades'),
         (2, 'Castigos'),
         (3, 'Permisos con goce'),
         (4, 'Permisos sin goce'),
     )
-
+    
     # Define el campo de selección utilizando ChoiceField
     incidencias = forms.ChoiceField(choices=opciones)
     
@@ -18,3 +18,15 @@ class IncapacidadesForm(forms.ModelForm):
         model = Incapacidades
         fields = ['fecha','fecha_fin','comentario','url']
 
+class IncapacidadesTipoForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tipo'].queryset = Tipo_incapacidad.objects.all()
+        
+    class Meta:
+        model = Incapacidades
+        fields = ['tipo','subsecuente','fecha','fecha_fin','comentario','url']
+        
+    
+    
+    
