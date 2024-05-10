@@ -789,3 +789,8 @@ def convert_excel_bonos_aprobados(bonos,catorcena,total_monto,cantidad_bonos_apr
     wb.save(response)
     
     return(response)
+
+@login_required(login_url='user-login')
+def tabuladorBonos(request):
+    
+     return render(request, 'esquema/crear_bonos/tabulador_bonos.html')
