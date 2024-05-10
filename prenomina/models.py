@@ -21,8 +21,8 @@ class Prenomina(models.Model):
 
 def validar_size(value):
     filesize = value.size
-    #if filesize >  5 * 2048 * 2048:  # 10 MB
-    if filesize >  5 * 512 * 512:  # 2.5 MB
+    if filesize >  5 * 2048 * 2048:  # 10 MB
+    #if filesize >  5 * 512 * 512:  # 2.5 MB
         raise ValidationError('El tamaño del archivo no puede ser mayor a 2.5 MB.')    
     
 class Retardos(models.Model):
@@ -90,7 +90,13 @@ class Descanso(models.Model):
 
     def __str__(self):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
+
+class Tipo_incapacidad(models.Model):
+    nombre = models.CharField(max_length=200)
     
+    def __str__(self):
+        return self.nombre
+
 class Incapacidades(models.Model):
     fecha = models.DateField(null=True) #fecha inicio
     fecha_fin = models.DateField(null=True) #fecha fin
@@ -101,6 +107,8 @@ class Incapacidades(models.Model):
     comentario = models.CharField(max_length=100,null=True, blank=True)
     url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
     editado = models.CharField(max_length=100,blank=True)
+    tipo = models.ForeignKey(Tipo_incapacidad,on_delete=models.CASCADE, null=True)
+    subsecuente = models.BooleanField(default=False)
 
     def __str__(self):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
@@ -154,3 +162,7 @@ class Dia_extra(models.Model):
 
     def __str__(self):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
+    
+    
+    
+

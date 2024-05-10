@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from proyecto.models import UserDatos, Perfil, Catorcenas, Costo, TablaFestivos, Vacaciones, Economicos, Economicos_dia_tomado, Vacaciones_dias_tomados, Empresa, Solicitud_vacaciones, Solicitud_economicos, Trabajos_encomendados
+from proyecto.models import TablaVacaciones,SalarioDatos,DatosISR
+
 from django.db import models
 from django.db.models import Subquery, OuterRef, Q
 from revisar.models import AutorizarPrenomina, Estado
@@ -10,6 +12,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 import datetime 
 from dateutil import parser
+from dateutil.relativedelta import relativedelta
 import os
 
 from datetime import timedelta, date
@@ -55,7 +58,7 @@ import calendar
 from esquema.models import BonoSolicitado
 from django.db.models import Sum
 
-from .forms import IncapacidadesForm
+from .forms import IncapacidadesForm, IncapacidadesTipoForm
 from proyecto.models import Variables_imss_patronal
 from proyecto.models import SalarioDatos
 # Create your views here.
@@ -145,13 +148,8 @@ def Autorizar_general(request,prenominas, user_filter):
         return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
 
 @login_required(login_url='user-login')
-def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre):
-            
-            url = request.FILES['url']
-            
-            if incidencia == '1':
-                evento_model = Incapacidades
-            elif incidencia == '2':
+def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre,url):
+            if incidencia == '2':
                 evento_model = Castigos
             elif incidencia == '3':
                 evento_model = Permiso_goce
@@ -172,6 +170,17 @@ def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,come
             messages.success(request, 'Cambios guardados exitosamente')
             
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+@login_required(login_url='user-login')
+def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre):
+    if url:
+        obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+        obj.tipo = tipo
+        obj.subsecuente = subsecuente
+        obj.url = url
+        obj.save()
+    else:
+        Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
 
 @login_required(login_url='user-login')
 def programar_incidencias(request,pk):
@@ -198,8 +207,8 @@ def programar_incidencias(request,pk):
             incidencia = form_incidencias.cleaned_data.get('incidencias')
             fecha_incio = form_incidencias.cleaned_data['fecha']
             fecha_fin = form_incidencias.cleaned_data['fecha_fin']
-            comentario = form_incidencias.cleaned_data['comentario']
-            archivo = form_incidencias.cleaned_data['url']       
+            comentario = form_incidencias.cleaned_data['comentario']    
+            url = form_incidencias.cleaned_data['url']       
             
             #VALIDACIONES
             if fecha_incio > fecha_fin:
@@ -211,7 +220,7 @@ def programar_incidencias(request,pk):
                 messages.error(request, 'Debes seleccionar una incidencia')
                 return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
             
-            if datetime.datetime.strptime(fecha_incio, '%Y-%m-%d').date() < catorcena_actual.fecha_inicial:
+            if fecha_incio < catorcena_actual.fecha_inicial:
                 messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
                 return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
             
@@ -300,7 +309,7 @@ def programar_incidencias(request,pk):
                     # Se elimina el permiso sin goce de la BD
                     permisos_sin.delete()        
             
-            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre)
+            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre,url)
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
         else:
@@ -308,6 +317,141 @@ def programar_incidencias(request,pk):
                 for error in errors:
                     messages.error(request,error)
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
+@login_required(login_url='user-login')
+def programar_incapacidades(request,pk):
+    # crea el nuevo dato según el nuevo estado o comentario
+    if request.method == 'POST' and 'btn_incapacidades' in request.POST:
+        
+        #saber catorcena
+        ahora = datetime.date.today()
+        #ahora = datetime.date.today() + timedelta(days=10)
+        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        
+        #RH
+        user_filter = UserDatos.objects.get(user=request.user)
+        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+        
+        #Empleado
+        costo = Costo.objects.get(id=pk)
+        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
+        
+        #Se trae el formulario de las incapacidades para ser validado
+        form_incapacidades = IncapacidadesTipoForm(request.POST, request.FILES)
+        
+        if form_incapacidades.is_valid():
+            #'tipo','subsecuente','fecha','fecha_fin','comentario','url'
+            tipo = form_incapacidades.cleaned_data['tipo']
+            subsecuente = form_incapacidades.cleaned_data['subsecuente']
+            fecha_incio = form_incapacidades.cleaned_data['fecha']
+            fecha_fin = form_incapacidades.cleaned_data['fecha_fin']
+            comentario = form_incapacidades.cleaned_data['comentario']
+            url = form_incapacidades.cleaned_data['url']       
+                        
+            #VALIDACIONES
+            if fecha_incio > fecha_fin:
+                print("La fecha de inicio es posterior a la fecha final.")
+                messages.error(request, 'La fecha de inicio debe ser menor a la fecha final')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+                        
+            if fecha_incio < catorcena_actual.fecha_inicial:
+                messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[fecha_incio, fecha_fin]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[fecha_incio, fecha_fin]))
+            if vacaciones.exists():
+                messages.error(request, 'Ya existen vacaciones dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[fecha_incio, fecha_fin])
+            if economicos.exists():            
+                messages.error(request, 'Ya existen economicos dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            festivos = TablaFestivos.objects.filter(dia_festivo__range=[fecha_incio, fecha_fin])
+            if festivos.exists():
+                messages.error(request, 'Ya existen festivos dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
+            
+            #VALIDAR INCIDENCIAS - EDITAR UNA INCIDENCIA QUE ESTE DENTRO DEL RANGO DE LA CAT Y VERIFICAR QUE EXISTA EN LA CAT ANTERIOIR
+            incapacidades = Incapacidades.objects.filter(
+                prenomina__empleado_id=prenomina.empleado.id,
+                fecha__lte=fecha_fin,  # La fecha de inicio de la incapacidad debe ser menor o igual a la fecha fin del rango proporcionado
+                fecha_fin__gte=fecha_incio,   # La fecha fin de la incapacidad debe ser mayor o igual a la fecha inicio del rango proporcionado
+            )
+            
+            castigos = Castigos.objects.filter(
+                prenomina__empleado_id=prenomina.empleado.id,
+                fecha__lte=fecha_fin,
+                fecha_fin__gte=fecha_incio,
+            )
+            
+            permisos_goce = Permiso_goce.objects.filter(
+                prenomina__empleado_id=prenomina.empleado.id,
+                fecha__lte=fecha_fin,
+                fecha_fin__gte=fecha_incio,
+            )
+            
+            permisos_sin = Permiso_sin.objects.filter(
+                prenomina__empleado_id=prenomina.empleado.id,
+                fecha__lte=fecha_fin,
+                fecha_fin__gte=fecha_incio,
+            )
+            
+            #elimina una incapacidad y es remplazada por otra en caso que sea de la misma catorcena
+            if incapacidades.exists():
+                if incapacidades.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
+                    messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
+                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
+                else:
+                    #se elimina el soporte asociado
+                    soporte = incapacidades.first()
+                    os.remove(soporte.url.path)
+                    #se elima la incapacidad de la BD
+                    incapacidades.delete()
+                    
+            if castigos.exists():
+                if castigos.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
+                    messages.error(request, 'Ya existen castigos de la catorcena anterior')
+                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
+                else:
+                    # Se elimina el soporte asociado
+                    soporte = castigos.first()
+                    os.remove(soporte.url.path)
+                    # Se elimina el castigo de la BD
+                    castigos.delete()
+            
+            if permisos_goce.exists():
+                if permisos_goce.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
+                    messages.error(request, 'Ya existen permisos de goce de sueldo de la catorcena anterior')
+                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
+                else:
+                    # Se elimina el soporte asociado
+                    soporte = permisos_goce.first()
+                    os.remove(soporte.url.path)
+                    # Se elimina el permiso de goce de la BD
+                    permisos_goce.delete()
+            
+            if permisos_sin.exists():
+                if permisos_sin.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
+                    messages.error(request, 'Ya existen permisos sin goce de sueldo de la catorcena anterior')
+                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
+                else:
+                    # Se elimina el soporte asociado
+                    soporte = permisos_sin.first()
+                    os.remove(soporte.url.path)
+                    # Se elimina el permiso sin goce de la BD
+                    permisos_sin.delete()        
+            
+            capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
+        else:
+            for field, errors in form_incapacidades.errors.items():
+                for error in errors:
+                    messages.error(request,error)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
+
                     
             
 
@@ -418,6 +562,7 @@ def PrenominaRevisar(request, pk):
         ahora = datetime.date.today()
         #ahora = datetime.date.today() + timedelta(days=10)
         incapacidadesform = IncapacidadesForm()
+        incapacidadestipoform = IncapacidadesTipoForm()
         costo = Costo.objects.get(id=pk)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
@@ -443,6 +588,7 @@ def PrenominaRevisar(request, pk):
         prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+                    
         prenomina.faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
@@ -497,12 +643,12 @@ def PrenominaRevisar(request, pk):
         if request.method =='POST' and 'economico_pdf' in request.POST:
             fecha_economico = request.POST['economico_pdf']
             fecha_economico = parser.parse(fecha_economico).date()
-            solicitud= Solicitud_economicos.objects.get(status=costo.status,fecha=fecha_economico)
+            solicitud= Solicitud_economicos.objects.get(status=prenomina.empleado.status,fecha=fecha_economico)
             return PdfFormatoEconomicos(request, solicitud)
         if request.method =='POST' and 'vacaciones_pdf' in request.POST:
             fecha_vacaciones = request.POST['vacaciones_pdf']
             fecha_vacaciones = parser.parse(fecha_vacaciones).date()
-            solicitud = Solicitud_vacaciones.objects.filter(status=costo.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
+            solicitud = Solicitud_vacaciones.objects.filter(status=prenomina.empleado.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
             return PdfFormatoVacaciones(request, solicitud)
         if request.method == 'POST' and 'guardar_cambios' in request.POST:
             revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
@@ -587,7 +733,8 @@ def PrenominaRevisar(request, pk):
             'fechas_con_etiquetas': fechas_con_etiquetas,
             'autorizacion1':autorizacion1,
             'autorizacion2':autorizacion2,
-            'incapacidadesform':incapacidadesform
+            'incapacidadesform':incapacidadesform,
+            'incapacidadestipoform':incapacidadestipoform
             
             }
 
@@ -620,8 +767,45 @@ def determinar_estado_general(ultima_autorizacion):
 
     return 'Estado no reconocido'
 
-def calcular_cuotas_imss(sdi_imss):
-    #Se importan los modelos a usar
+@login_required(login_url='user-login')
+def calcular_aguinaldo(request,salario,prenomina):
+    
+    if prenomina.empleado.status.fecha_planta is None and prenomina.empleado.status.fecha_planta_anterior is None:
+        fecha = None
+    elif prenomina.empleado.status.fecha_planta is not None and prenomina.empleado.status.fecha_planta_anterior is not None:
+        fecha = prenomina.empleado.status.fecha_planta_anterior
+    elif prenomina.empleado.status.fecha_planta:
+        fecha = prenomina.empleado.status.fecha_planta
+    elif prenomina.empleado.status.fecha_planta_anterior:
+        fecha = prenomina.empleado.status.fecha_planta_anterior
+        
+    if fecha is not None:
+        antiguedad = relativedelta(datetime.date.today(),fecha)
+        if antiguedad.years > 1:
+            dias = Decimal((365) * 15 / 365)
+            aguinaldo = Decimal(dias * salario)
+            print("aguinaldo completo")
+            print(aguinaldo)
+            return aguinaldo
+        else:
+            dias_laborados = antiguedad.days + antiguedad.months * 30            
+            dias = Decimal((dias_laborados * 15)/365)
+            print("aguinaldo proporcional ")
+            aguinaldo = Decimal( dias * salario)
+            print(aguinaldo)
+            return aguinaldo
+        
+@login_required(login_url='user-login')
+def calcular_prima_dominical(request,dia_extra,salario):
+    dato = SalarioDatos.objects.get()
+    prima_dominical = salario * Decimal(dato.prima_vacacional)
+    prima_dominical = prima_dominical * dia_extra
+    print("salario", salario)
+    print("prima dominical", Decimal(prima_dominical))
+    return Decimal(prima_dominical)
+
+@login_required(login_url='user-login')
+def calcular_cuotas_imss(request,sdi_imss):
     variables_patronal = Variables_imss_patronal.objects.get()
     salario_datos = SalarioDatos.objects.get()
     
@@ -642,17 +826,38 @@ def calcular_cuotas_imss(sdi_imss):
     
     #La suma del calculo de cada resultado    
     calculo_imss = invalidez_vida + cesantia_vejez + enfermedades_maternidad
-    
+    print("Este es el calculo IMSS: ", calculo_imss)
     return calculo_imss
 
-def calcular_isr(salario):
-    from proyecto.models import DatosISR
-    
+@login_required(login_url='user-login')
+def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr):   
     salario_datos = SalarioDatos.objects.get()
     
-    #multiplicar el salario por 30.4
-    salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
+    #Salario minino queda exento
+    if salario > salario_datos.Salario_minimo:
+        #PRIMA DOMINICAL
+        if prima_dominical_isr < salario_datos.UMA:
+            #exento
+            prima_dominical_isr = 0
+        else:
+            #gravable
+            prima_dominical_isr = prima_dominical_isr - Decimal(salario_datos.UMA)
+
+        #AGUINALDO
+        if calulo_aguinaldo_isr < (salario_datos.UMA * 30):
+            calulo_aguinaldo_isr = 0
+        else:
+            calulo_aguinaldo_isr - Decimal(salario_datos.UMA * 30)
+    else:
+        #exento
+        prima_dominical_isr = 0
+        calulo_aguinaldo_isr = 0
+        
+    print("esta es la parte gravable o exenta", prima_dominical_isr)
     
+    #multiplicar el salario por 30.4
+    salario_catorcenal = (salario * Decimal(salario_datos.dias_mes) + prima_dominical_isr) #30.4
+        
     #llamar la tabla de IRS
     tabla_irs = DatosISR.objects.all()
     
@@ -667,10 +872,64 @@ def calcular_isr(salario):
     isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
     
     isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
-     
+    
+    print("calculo ISR: ", isr_mensual)
+    
     return isr_catorcenal
 
+@login_required(login_url='user-login')
+def calcular_prima_vacacional(request,salario,prenomina):
+    
+    tabla_vacaciones = TablaVacaciones.objects.all()
+    dato = SalarioDatos.objects.get()
+    
+    fecha_actual = datetime.date.today()
+       
+    calcular_prima = True
+    if prenomina.empleado.status.tipo_de_contrato_id == 4: #HONORARIOS
+        calcular_prima = False
+    elif prenomina.empleado.status.tipo_de_contrato_id == 2: #EVENTUAL
+        fecha = fecha_actual - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
+    elif prenomina.empleado.status.tipo_de_contrato_id == 7: #NR
+        calcular_prima = False
+    elif prenomina.empleado.status.fecha_planta is None and prenomina.empleado.status.fecha_planta_anterior is None:
+        calcular_prima = False
+    elif prenomina.empleado.status.fecha_planta is not None and prenomina.empleado.status.fecha_planta_anterior is not None:
+        fecha = prenomina.empleado.status.fecha_planta_anterior
+    elif prenomina.empleado.status.fecha_planta:
+        fecha = prenomina.empleado.status.fecha_planta
+    elif prenomina.empleado.status.fecha_planta_anterior:
+        fecha = prenomina.empleado.status.fecha_planta_anterior
 
+    prima_vacacional = 0
+    if calcular_prima == True:#calcula la prima
+        calcular_antiguedad = relativedelta(fecha_actual, fecha)
+        antiguedad = calcular_antiguedad.years
+        print("esta es la antiguedad ", antiguedad)
+
+        if antiguedad > 0:
+            for tabla in tabla_vacaciones:
+                if antiguedad >= tabla.years:
+                    dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
+
+            vac_reforma_actual = Decimal(dias_vacaciones) * Decimal(salario)
+            print("dias vacaciones", dias_vacaciones, "salario", salario)
+            print("vacaciones", vac_reforma_actual)
+            
+            prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
+            print("esta es la prima ", prima_vacacional)
+            return prima_vacacional
+
+        else:#No calcula la prima - No tiene el año de antiguedad o más
+            print("esta es la prima ", prima_vacacional)
+            return prima_vacacional
+
+    else:#No calcula la prima
+        print("esta es la prima ", prima_vacacional)
+        return prima_vacacional 
+        
+    
+    
 @login_required(login_url='user-login')
 def Excel_estado_prenomina(request,prenominas, user_filter):
     from datetime import datetime
@@ -789,15 +1048,18 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
         infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
         fonacot = prenomina.empleado.status.costo.fonacot 
-        isr = prenomina.empleado.status.costo.isr
         sdi_imss = prenomina.empleado.status.costo.sdi_imss
+        
         #imss = prenomina.empleado.status.costo.imms_obrero_patronal
         
         #realiza el calculo de las cuotas imss
-        calculo_imss = calcular_cuotas_imss(sdi_imss)
+        calculo_imss = calcular_cuotas_imss(request,sdi_imss)
         
         #realiza el calculo del ISR
-        calculo_isr = calcular_isr(salario)
+        #calculo_isr = calcular_isr(request,salario)
+        
+        #realiza el calculo de la prima vacacional
+        calulo_prima_vacacional = calcular_prima_vacacional(request,salario,prenomina)
         
         #Fecha para obtener los bonos agregando la hora y la fecha de acuerdo a la catorcena
         fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
@@ -829,7 +1091,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
             
         print("infonavit", prestamo_infonavit)
         print("fonacot", prestamo_fonacot)
-        print("ISR", calculo_isr)
+        #print("ISR", calculo_isr)
         print("IMSS", calculo_imss)
         
         print(prenomina.empleado)
@@ -850,6 +1112,8 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         #incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
         #incapacidades = prenomina.incapacidades_set.filter(Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
         incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        
+        
         faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
         comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
         domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
@@ -905,26 +1169,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         else: 
             permiso_sin = 0
             print("NO TIENE CASTIGOS: ",castigos)
-        
-        """
-        if permiso_sin.exists():
-            for goce in permiso_sin:
-                diferencia = goce.fecha_fin - goce.fecha
-                permiso_sin = diferencia.days + 1
-        else:
-            permiso_sin = 0
-        """
-        
-        #calular el numero de permiso con goce de sueldo
-        cantidad_dias_castigos = 0
-        """
-        if permiso_goce.exists():
-            for goce in permiso_goce:
-                diferencia = goce.fecha_fin - goce.fecha
-                permiso_goce = diferencia.days + 1
-        else:
-            permiso_goce = 0
-        """
+            
         if permiso_goce.exists():   
             #checar las incapacides de la catorcena
             for goce in permiso_goce:
@@ -1095,11 +1340,30 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
                                                   
             else:#Pertenece a solo una catorcena
                 print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LAS INCAPACIDADES")
+                cont = 0
                 for incapacidad in incapacidades:
-                    diferencia = incapacidad.fecha_fin - incapacidad.fecha
-                    incapacidades = diferencia.days + 1
+                    print(incapacidad.fecha, incapacidad.fecha_fin)
+                    diferencia = (incapacidad.fecha_fin - incapacidad.fecha).days + 1
+                    cont += diferencia  # Acumulando los días de cada incapacidad
+                    incapacidades = cont
+                    print("incapacidades por iteracion ", incapacidades)
+                    
+                    if incapacidades > 0:
+                        incidencias_incapacidades_pasajes = incapacidades
+                    if incapacidades > 3:
+                        incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
+                        print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
+                
+                    incapacidades_anterior = 0
+                    incapacidades_actual = incapacidades
+                    
+                    
+
+                    
+                print("aqui deberian de arrogar las 6 incapacidades: ", incapacidades)
                     
                 #realiza el calculo de la incapacidad
+                """
                 if incapacidades > 0:
                     incidencias_incapacidades_pasajes = incapacidades
                     if incapacidades > 3:
@@ -1108,6 +1372,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
                 
                 incapacidades_anterior = 0
                 incapacidades_actual = incapacidades
+                """
                 
         else: 
             incapacidades = 0
@@ -1118,9 +1383,13 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         if vacaciones.exists():
             for vacacion in vacaciones:
                 diferencia = vacacion.fecha_fin - vacacion.fecha_inicio
-                cantidad_dias_vacacion = diferencia.days + 1
-                
+                cantidad_dias_vacacion = diferencia.days + 1        
         print("total vacaciones: ", cantidad_dias_vacacion)
+        
+        #calculo de la prima se manda a llamar
+        if cantidad_dias_vacacion > 0:
+            calcular_prima_vacacional(cantidad_dias_vacacion)
+            
         
         #numero de catorena
         catorcena_num = catorcena_actual.catorcena 
@@ -1141,13 +1410,20 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         
         if permiso_sin > 0:
             incidencias = incidencias + permiso_sin
-        
+            
+        prima_dominical = 0
         pago_doble = 0  
         if dia_extra > 0:
             pago_doble = Decimal(dia_extra * (salario * 2))
+            prima_dominical = calcular_prima_dominical(request,dia_extra,salario)
+            
+        #calcular aguinaldo
+        calulo_aguinaldo = calcular_aguinaldo(request,salario,prenomina)
         
-        incapacidad = str("")   
-                            
+        #incapacidad = str("")   
+        #realiza el calculo del ISR
+        calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo)
+            
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
         print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "incidencias_inca", incidencias_incapacidades)
@@ -1167,11 +1443,11 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         print("apoyos pasajes: ", apoyo_pasajes)
         print("total: ", salario_catorcenal)
         print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
-        
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos
+        print("DEBE TENER PRIMA DOMINICAL: ", prima_dominical)
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical
         #¿aqui deberia ir el IMSS y el ISR en total deducciones?
         total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
-        pagar_nomina = total_percepciones - total_deducciones
+        pagar_nomina = (total_percepciones - total_deducciones)
         
         if retardos == 0: 
             retardos = ''
@@ -1965,6 +2241,14 @@ def Excel_estado_prenomina_formato(prenominas, user_filter):
         economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
         vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
         
+        
+        
+        
+        
+        
+        
+        
+        
         #calular el numero de permiso con goce de sueldo
         cantidad_dias_castigos = 0
         if permiso_sin.exists():   
@@ -2134,6 +2418,10 @@ def Excel_estado_prenomina_formato(prenominas, user_filter):
         incapacidades_anterior = 0
         incapacidades_actual = 0
         if incapacidades.exists():   
+            
+            print("estas son las incapacidades: ", incapacidades)
+            
+            
             #checar las incapacides de la catorcena
             for incapacidad in incapacidades:
                 incapacidad_fecha = incapacidad.fecha

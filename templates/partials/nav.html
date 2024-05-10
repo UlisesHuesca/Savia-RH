@@ -130,6 +130,7 @@
                         {% if usuario.tipo.id >= 4 %}
                             <h6 class="dropdown-header">Bonos</h6>
                             <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'tabuladorBonos' %}">Tabulador de Bonos</a>
                             <a class="dropdown-item" href="{% url 'listarBonosVarilleros' %}">Solicitudes Bonos</a>
                             <div class="dropdown-divider"></div>
                         {% endif %}
