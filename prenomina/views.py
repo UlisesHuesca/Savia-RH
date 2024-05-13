@@ -771,23 +771,50 @@ def determinar_estado_general(request, ultima_autorizacion):
 
 @login_required(login_url='user-login')
 def calcular_aguinaldo(request,salario,prenomina):
+    tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
+    tipo_contrato = 1    
     
-    if prenomina.empleado.status.fecha_planta is None and prenomina.empleado.status.fecha_planta_anterior is None:
-        fecha = None
-    elif prenomina.empleado.status.fecha_planta is not None and prenomina.empleado.status.fecha_planta_anterior is not None:
-        fecha = prenomina.empleado.status.fecha_planta_anterior
-    elif prenomina.empleado.status.fecha_planta:
-        fecha = prenomina.empleado.status.fecha_planta
-    elif prenomina.empleado.status.fecha_planta_anterior:
-        fecha = prenomina.empleado.status.fecha_planta_anterior
+    aguinaldo = 0
+    if tipo_contrato == 2:#eventual
+        fecha_ingreso =  prenomina.empleado.status.fecha_ingreso
+        calculo_fecha = relativedelta(datetime.date.today(),fecha_ingreso)
+        #se realiza el calculo por los meses y por los dias laborados correspondientes a cada condicion
+        if calculo_fecha.months == 1 and calculo_fecha.days == 0:
+            dias_aguinaldo = Decimal(30 * 15) / 365
+            aguinaldo = dias_aguinaldo * salario
+        elif calculo_fecha.months == 3 and calculo_fecha.days == 0:
+            dias_aguinaldo = Decimal(60 * 15) / 365
+            aguinaldo = dias_aguinaldo * salario
+        elif calculo_fecha.months == 6 and calculo_fecha.days ==0:
+            dias_aguinaldo = Decimal(90 * 15) / 365
+            aguinaldo = dias_aguinaldo * salario
+        return aguinaldo
+    
+    elif tipo_contrato in (1,3,5,6): # planta, especial, planta 1, planta 2
+        fecha_planta = prenomina.empleado.status.fecha_planta
+        fecha_planta_anterior = prenomina.empleado.status.fecha_planta_anterior
         
-    if fecha is not None:
-        antiguedad = relativedelta(datetime.date.today(),fecha)
+        #fecha_planta_anterior = datetime.date(2024,4,16)
+        
+        if fecha_planta is None and fecha_planta_anterior is None:
+            fecha = None
+            aguinaldo = 0
+            return aguinaldo
+        elif fecha_planta_anterior is not None and fecha_planta is not None:
+            fecha = fecha_planta_anterior
+        elif fecha_planta:
+            fecha = fecha_planta
+        elif fecha_planta_anterior:
+            fecha = fecha_planta_anterior
+            
+        if fecha is not None:
+            antiguedad = relativedelta(datetime.date.today(),fecha)
         if antiguedad.years > 1:
             dias = Decimal((365) * 15 / 365)
             aguinaldo = Decimal(dias * salario)
             print("aguinaldo completo")
             print(aguinaldo)
+            exit()
             return aguinaldo
         else:
             dias_laborados = antiguedad.days + antiguedad.months * 30            
@@ -795,6 +822,7 @@ def calcular_aguinaldo(request,salario,prenomina):
             print("aguinaldo proporcional ")
             aguinaldo = Decimal( dias * salario)
             print(aguinaldo)
+            exit()
             return aguinaldo
         
 @login_required(login_url='user-login')
