@@ -380,6 +380,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
         # todas las fechas de la catorcena actual
         delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
         dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
+        dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
         #lista de tuplas con la fecha y su etiqueta
         fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
@@ -398,7 +399,8 @@ def Prenomina_Solicitud_Revisar(request, pk):
                                 else (fecha, "día de descanso laborado", prenomina.extra.filter(fecha=fecha).first().comentario, prenomina.extra.filter(fecha=fecha).first().url if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().url else "") if fecha in fechas_con_extra
                                 else (fecha, "economico", "") if fecha in fechas_con_economicos
                                 else (fecha, "festivo", "") if fecha in fechas_con_festivos
-                                else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
+                                else (fecha, "vacación día inhabil", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
+                                else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
                                 else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
         fechas_con_etiquetas = [
             item + ('',) if len(item) == 3 else item for item in fechas_con_etiquetas
@@ -497,6 +499,7 @@ def prenomina_solicitudes_revisar_ajax(request, pk):
     # todas las fechas de la catorcena actual
     delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
     dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
+    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
     #lista de tuplas con la fecha y su etiqueta
     fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
@@ -513,7 +516,8 @@ def prenomina_solicitudes_revisar_ajax(request, pk):
                             else (fecha, "día de descanso laborado", prenomina.extra.filter(fecha=fecha).first().comentario if fecha in fechas_con_extra else "") if fecha in fechas_con_extra
                             else (fecha, "economico", "") if fecha in fechas_con_economicos
                             else (fecha, "festivo", "") if fecha in fechas_con_festivos
-                            else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
+                            else (fecha, "vacación día inhabil", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
+                            else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
                             else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
 
     response_data = {

@@ -76,6 +76,7 @@
                                 <td>
                                     {% if etiqueta == "festivo" %}
                                         Festivo
+                                    
                                     {% else %}
                                         <label for="comentario_{{ fecha|date:'Y-m-d' }}">{{ comentario }}</label>
                                     {% endif %}

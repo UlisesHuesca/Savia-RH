@@ -101,7 +101,7 @@ def Tabla_prenomina(request):
 
             if ultima_autorizacion is not None:
                 prenomina.valor = ultima_autorizacion.estado.tipo #Esta bien como agarra el dato de RH arriba que es el primero
-            prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
+            prenomina.estado_general = determinar_estado_general(request,ultima_autorizacion)
 
         if request.method =='POST' and 'Autorizar' in request.POST:
             if user_filter.tipo.nombre ==  "RH":
@@ -115,7 +115,7 @@ def Tabla_prenomina(request):
         if request.method =='POST' and 'Excel' in request.POST:
             return Excel_estado_prenomina(request,prenominas, user_filter)
         if request.method =='POST' and 'Excel2' in request.POST:
-            return Excel_estado_prenomina_formato(prenominas, user_filter)
+            return Excel_estado_prenomina_formato(request,prenominas, user_filter)
         
 
 
@@ -504,14 +504,14 @@ def prenomina_revisar_ajax(request, pk):
     # todas las fechas de la catorcena actual
     delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
     dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
-
+    # Lista ordenada de días de la semana en español
+    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     #lista de tuplas con la fecha y su etiqueta
     fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
                             else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
                             else (fecha, "permiso con goce de sueldo", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
                             else (fecha, "permiso sin goce de sueldo", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
                             else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
-                            
                             else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
                             #else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
                             else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
@@ -520,7 +520,8 @@ def prenomina_revisar_ajax(request, pk):
                             else (fecha, "día de descanso laborado", prenomina.extra.filter(fecha=fecha).first().comentario if fecha in fechas_con_extra else "") if fecha in fechas_con_extra
                             else (fecha, "economico", "") if fecha in fechas_con_economicos
                             else (fecha, "festivo", "") if fecha in fechas_con_festivos
-                            else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
+                            else (fecha, "vacación día inhabil", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
+                            else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
                             else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
     
     response_data = {
@@ -611,7 +612,7 @@ def PrenominaRevisar(request, pk):
         # todas las fechas de la catorcena actual
         delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
         dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
-
+        dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
         #lista de tuplas con la fecha y su etiqueta
         fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
                                 #else (fecha, "castigo", prenomina.castigos.filter(fecha=fecha).first().comentario if fecha in fechas_con_castigos else "") if fecha in fechas_con_castigos
@@ -630,7 +631,8 @@ def PrenominaRevisar(request, pk):
                                 #else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario, prenomina.extra.filter(fecha=fecha).first().url if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().url else "") if fecha in fechas_con_extra
                                 else (fecha, "economico", "") if fecha in fechas_con_economicos
                                 else (fecha, "festivo", "") if fecha in fechas_con_festivos
-                                else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
+                                else (fecha, "vacación día inhabil", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
+                                else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
                                 else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
                                         #else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario if fecha in fechas_con_extra else "") if fecha in fechas_con_extra
 
@@ -742,8 +744,8 @@ def PrenominaRevisar(request, pk):
     else:
         return render(request, 'revisar/403.html')
 
-#@login_required(login_url='user-login')
-def determinar_estado_general(ultima_autorizacion):
+@login_required(login_url='user-login')
+def determinar_estado_general(request, ultima_autorizacion):
     if ultima_autorizacion is None:
         return "Sin autorizaciones"
 
@@ -2094,8 +2096,8 @@ def PdfFormatoVacaciones(request, solicitud):
     buf.seek(0)
     return FileResponse(buf, as_attachment=True, filename='Formato_Vacaciones.pdf')
 
-#@login_required(login_url='user-login')
-def Excel_estado_prenomina_formato(prenominas, user_filter):
+@login_required(login_url='user-login')
+def Excel_estado_prenomina_formato(request,prenominas, user_filter):
     from datetime import datetime
     
     response= HttpResponse(content_type = "application/ms-excel")
