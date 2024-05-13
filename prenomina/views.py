@@ -70,7 +70,7 @@ def Tabla_prenomina(request):
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
     if user_filter.tipo.nombre == "RH":
         ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=10)
+        #ahora = datetime.date.today() + timedelta(days=15)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         if revisar_perfil.empresa == empresa_faxton:
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
@@ -459,7 +459,7 @@ def programar_incapacidades(request,pk):
 def prenomina_revisar_ajax(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     ahora = datetime.date.today()
-    #ahora = datetime.date.today() + timedelta(days=10)
+    #ahora = datetime.date.today() + timedelta(days=15)
     costo = Costo.objects.get(id=pk)
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
     prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
@@ -561,7 +561,7 @@ def PrenominaRevisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "RH":
         ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=10)
+        #ahora = datetime.date.today() + timedelta(days=15)
         incapacidadesform = IncapacidadesForm()
         incapacidadestipoform = IncapacidadesTipoForm()
         costo = Costo.objects.get(id=pk)
@@ -769,23 +769,36 @@ def determinar_estado_general(request, ultima_autorizacion):
 
     return 'Estado no reconocido'
 
+
+@login_required(login_url='user-login')
+def conteo_incidencias_aguinaldo(request,prenomina,fecha_inicio,fecha_fin):
+    #incidencias es una variable que lleva el conteo de todas las incidencias para el aguinaldo y se retorna  
+    incidencias = 0
+    faltas = Faltas.objects.filter(prenomina__empleado = prenomina.empleado.id,fecha__range=(fecha_inicio,fecha_fin)).count()
+    incidencias = faltas
+    return incidencias
+
 @login_required(login_url='user-login')
 def calcular_aguinaldo(request,salario,prenomina):
     tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
-    tipo_contrato = 1    
+    #tipo_contrato = 1    
     
     aguinaldo = 0
     if tipo_contrato == 2:#eventual
         fecha_ingreso =  prenomina.empleado.status.fecha_ingreso
         calculo_fecha = relativedelta(datetime.date.today(),fecha_ingreso)
+        
         #se realiza el calculo por los meses y por los dias laborados correspondientes a cada condicion
         if calculo_fecha.months == 1 and calculo_fecha.days == 0:
+            #primer mes laborado le corresponden 30 dias
             dias_aguinaldo = Decimal(30 * 15) / 365
             aguinaldo = dias_aguinaldo * salario
         elif calculo_fecha.months == 3 and calculo_fecha.days == 0:
+            #tercer mes laborado le corresponden 60 dias
             dias_aguinaldo = Decimal(60 * 15) / 365
             aguinaldo = dias_aguinaldo * salario
-        elif calculo_fecha.months == 6 and calculo_fecha.days ==0:
+        elif calculo_fecha.months == 6 and calculo_fecha.days == 0:
+            #tercer mes laborado le corresponden 90 dias
             dias_aguinaldo = Decimal(90 * 15) / 365
             aguinaldo = dias_aguinaldo * salario
         return aguinaldo
@@ -793,13 +806,10 @@ def calcular_aguinaldo(request,salario,prenomina):
     elif tipo_contrato in (1,3,5,6): # planta, especial, planta 1, planta 2
         fecha_planta = prenomina.empleado.status.fecha_planta
         fecha_planta_anterior = prenomina.empleado.status.fecha_planta_anterior
-        
-        #fecha_planta_anterior = datetime.date(2024,4,16)
-        
+                
+        #Se obtiene la fecha de planta o planta anterior
         if fecha_planta is None and fecha_planta_anterior is None:
             fecha = None
-            aguinaldo = 0
-            return aguinaldo
         elif fecha_planta_anterior is not None and fecha_planta is not None:
             fecha = fecha_planta_anterior
         elif fecha_planta:
@@ -807,24 +817,50 @@ def calcular_aguinaldo(request,salario,prenomina):
         elif fecha_planta_anterior:
             fecha = fecha_planta_anterior
             
+        #de acuerdo a la fecha se realiza el calculo para el aguinaldo
         if fecha is not None:
             antiguedad = relativedelta(datetime.date.today(),fecha)
-        if antiguedad.years > 1:
-            dias = Decimal((365) * 15 / 365)
-            aguinaldo = Decimal(dias * salario)
-            print("aguinaldo completo")
-            print(aguinaldo)
-            exit()
-            return aguinaldo
+            
+            if antiguedad.years >= 1:#Aguinaldo completo cuando cumple el año
+                año_actual = datetime.today().year
+                inicio_año = datetime(año_actual, 1, 1)
+                fin_año = datetime(año_actual, 12, 31)
+                
+                #llama funcion para el conteo de las incidencias necesarias para el aguinaldo
+                total_incidencias = conteo_incidencias_aguinaldo(request,prenomina,inicio_año,fin_año)
+                #se restan las incidencias con los dias laborados proporcionales
+                #dias = total_incidencias - dias
+                                
+                dias = Decimal((365) * 15 / 365)
+                aguinaldo = Decimal(dias * salario)
+                print("aguinaldo completo")
+                print(aguinaldo)
+                #exit()
+                return aguinaldo
+            else: #aguinaldo proporcional 
+                fecha_final = datetime.date(datetime.date.today().year, 12, 31) #obtener fin de año
+                diferencia = fecha_final - fecha 
+                dias_aguinaldo = diferencia.days #total de dias laborados
+                print("Esta es la fecha del aguinaldo: ",fecha)
+                print("Recuerda que son 360 dias: ",dias_aguinaldo)
+                #fecha es la fecha de planta o anterior
+                dias_incidencias = conteo_incidencias_aguinaldo(request,prenomina,fecha,fecha_final)
+               
+                #se restan las incidencias con los dias laborados proporcionales
+                dias_laborados = dias_aguinaldo - dias_incidencias
+                print("Se restan los dias ", dias_laborados)
+                        
+                dias = Decimal((dias_laborados * 15)/365)
+                print("aguinaldo proporcional ")
+                aguinaldo = Decimal( dias * salario)
+                print(aguinaldo)
+                #exit()
+                return aguinaldo
         else:
-            dias_laborados = antiguedad.days + antiguedad.months * 30            
-            dias = Decimal((dias_laborados * 15)/365)
-            print("aguinaldo proporcional ")
-            aguinaldo = Decimal( dias * salario)
-            print(aguinaldo)
-            exit()
             return aguinaldo
-        
+    else:
+        return aguinaldo
+         
 @login_required(login_url='user-login')
 def calcular_prima_dominical(request,dia_extra,salario):
     dato = SalarioDatos.objects.get()
@@ -1017,7 +1053,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
     columna_max = len(columns)+2
     
     ahora = datetime.now()
-    #ahora = datetime.now() + timedelta(days=10)
+    #ahora = datetime.now() + timedelta(days=15)
     
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
 
