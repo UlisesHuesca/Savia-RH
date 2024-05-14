@@ -172,15 +172,27 @@ def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,come
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 @login_required(login_url='user-login')
-def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre):
-    if url:
-        obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
-        obj.tipo = tipo
-        obj.subsecuente = subsecuente
-        obj.url = url
-        obj.save()
+def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre,incapacidades,):
+    if incapacidades.exists() and subsecuente == True:
+        incapacidad = Incapacidades.objects.get(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=fecha_fin,fecha_fin__gte=fecha_incio,)
+        fecha_subsecuente = incapacidad.fecha_fin + timedelta(days=1)
+        if url:
+            obj, created = Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}",})
+            obj.tipo = tipo
+            obj.subsecuente = subsecuente
+            obj.url = url
+            obj.save()
+        else:
+            Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
     else:
-        Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+        if url:
+            obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+            obj.tipo = tipo
+            obj.subsecuente = subsecuente
+            obj.url = url
+            obj.save()
+        else:
+            Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
 
 @login_required(login_url='user-login')
 def programar_incidencias(request,pk):
@@ -399,16 +411,26 @@ def programar_incapacidades(request,pk):
             )
             
             #elimina una incapacidad y es remplazada por otra en caso que sea de la misma catorcena
-            if incapacidades.exists():
+            if incapacidades.exists() and subsecuente is False:
                 if incapacidades.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
                     messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
                     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
                 else:
+                    #Traer la ultima incapacidad
+                    ultima_incapacidad = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha_fin__gte=fecha_fin,).last()
+                    if ultima_incapacidad is not None:
+                        #Traer incidencias 
+                        eliminar_subsecuentes = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=ultima_incapacidad.fecha_fin,fecha_fin__gte=fecha_incio,)
+                        #se elimina el soporte asociado
+                        soporte = eliminar_subsecuentes.first()
+                        os.remove(soporte.url.path)
+                        #se elima la incapacidad de la BD
+                        eliminar_subsecuentes.delete()
                     #se elimina el soporte asociado
-                    soporte = incapacidades.first()
-                    os.remove(soporte.url.path)
+                    #soporte = incapacidades.first()
+                    #os.remove(soporte.url.path)
                     #se elima la incapacidad de la BD
-                    incapacidades.delete()
+                    #incapacidades.delete()
                     
             if castigos.exists():
                 if castigos.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
@@ -443,7 +465,7 @@ def programar_incapacidades(request,pk):
                     # Se elimina el permiso sin goce de la BD
                     permisos_sin.delete()        
             
-            capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre)
+            capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre, incapacidades)
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
         else:
