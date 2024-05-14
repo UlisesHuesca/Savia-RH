@@ -172,15 +172,27 @@ def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,come
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 @login_required(login_url='user-login')
-def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre):
-    if url:
-        obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
-        obj.tipo = tipo
-        obj.subsecuente = subsecuente
-        obj.url = url
-        obj.save()
+def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre,incapacidades,):
+    if incapacidades.exists() and subsecuente == True:
+        incapacidad = Incapacidades.objects.get(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=fecha_fin,fecha_fin__gte=fecha_incio,)
+        fecha_subsecuente = incapacidad.fecha_fin + timedelta(days=1)
+        if url:
+            obj, created = Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}",})
+            obj.tipo = tipo
+            obj.subsecuente = subsecuente
+            obj.url = url
+            obj.save()
+        else:
+            Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
     else:
-        Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+        if url:
+            obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+            obj.tipo = tipo
+            obj.subsecuente = subsecuente
+            obj.url = url
+            obj.save()
+        else:
+            Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
 
 @login_required(login_url='user-login')
 def programar_incidencias(request,pk):
@@ -399,16 +411,26 @@ def programar_incapacidades(request,pk):
             )
             
             #elimina una incapacidad y es remplazada por otra en caso que sea de la misma catorcena
-            if incapacidades.exists():
+            if incapacidades.exists() and subsecuente is False:
                 if incapacidades.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
                     messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
                     return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
                 else:
+                    #Traer la ultima incapacidad
+                    ultima_incapacidad = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha_fin__gte=fecha_fin,).last()
+                    if ultima_incapacidad is not None:
+                        #Traer incidencias 
+                        eliminar_subsecuentes = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=ultima_incapacidad.fecha_fin,fecha_fin__gte=fecha_incio,)
+                        #se elimina el soporte asociado
+                        soporte = eliminar_subsecuentes.first()
+                        os.remove(soporte.url.path)
+                        #se elima la incapacidad de la BD
+                        eliminar_subsecuentes.delete()
                     #se elimina el soporte asociado
-                    soporte = incapacidades.first()
-                    os.remove(soporte.url.path)
+                    #soporte = incapacidades.first()
+                    #os.remove(soporte.url.path)
                     #se elima la incapacidad de la BD
-                    incapacidades.delete()
+                    #incapacidades.delete()
                     
             if castigos.exists():
                 if castigos.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
@@ -443,7 +465,7 @@ def programar_incapacidades(request,pk):
                     # Se elimina el permiso sin goce de la BD
                     permisos_sin.delete()        
             
-            capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre)
+            capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre, incapacidades)
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
         else:
@@ -776,6 +798,7 @@ def conteo_incidencias_aguinaldo(request,prenomina,fecha_inicio,fecha_fin):
     incidencias = 0
     faltas = Faltas.objects.filter(prenomina__empleado = prenomina.empleado.id,fecha__range=(fecha_inicio,fecha_fin)).count()
     incidencias = faltas
+    print("este es el recuento totoal de las faltas ", faltas)
     return incidencias
 
 @login_required(login_url='user-login')
@@ -783,9 +806,11 @@ def calcular_aguinaldo(request,salario,prenomina):
     tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
     #tipo_contrato = 1    
     
-    aguinaldo = 0
+    aguinaldo = Decimal(0.00)
     if tipo_contrato == 2:#eventual
+        #fecha ingreso
         fecha_ingreso =  prenomina.empleado.status.fecha_ingreso
+        #calculo relacion dias laborados
         calculo_fecha = relativedelta(datetime.date.today(),fecha_ingreso)
         
         #se realiza el calculo por los meses y por los dias laborados correspondientes a cada condicion
@@ -816,28 +841,30 @@ def calcular_aguinaldo(request,salario,prenomina):
             fecha = fecha_planta
         elif fecha_planta_anterior:
             fecha = fecha_planta_anterior
-            
+                       
         #de acuerdo a la fecha se realiza el calculo para el aguinaldo
         if fecha is not None:
             antiguedad = relativedelta(datetime.date.today(),fecha)
-            
+          
             if antiguedad.years >= 1:#Aguinaldo completo cuando cumple el año
-                año_actual = datetime.today().year
-                inicio_año = datetime(año_actual, 1, 1)
-                fin_año = datetime(año_actual, 12, 31)
+                #aqui es con respecto al año 1/ENE - 31/DIC
+                año_actual = datetime.date.today().year
+                inicio_año = datetime.date(año_actual, 1, 1)
+                fin_año = datetime.date(año_actual, 12, 31)
                 
                 #llama funcion para el conteo de las incidencias necesarias para el aguinaldo
                 total_incidencias = conteo_incidencias_aguinaldo(request,prenomina,inicio_año,fin_año)
                 #se restan las incidencias con los dias laborados proporcionales
-                #dias = total_incidencias - dias
-                                
-                dias = Decimal((365) * 15 / 365)
-                aguinaldo = Decimal(dias * salario)
+                dias = 365 - total_incidencias
+                
+                dias_laborados = Decimal((dias) * 15 / 365)
+                aguinaldo = Decimal(dias_laborados * salario)
                 print("aguinaldo completo")
                 print(aguinaldo)
                 #exit()
                 return aguinaldo
             else: #aguinaldo proporcional 
+                #No cumple el año y se obtiene el proporcional
                 fecha_final = datetime.date(datetime.date.today().year, 12, 31) #obtener fin de año
                 diferencia = fecha_final - fecha 
                 dias_aguinaldo = diferencia.days #total de dias laborados
@@ -911,9 +938,12 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr):
 
         #AGUINALDO
         if calulo_aguinaldo_isr < (salario_datos.UMA * 30):
+            #exento
             calulo_aguinaldo_isr = 0
         else:
+            #gravado
             calulo_aguinaldo_isr - Decimal(salario_datos.UMA * 30)
+            
     else:
         #exento
         prima_dominical_isr = 0
@@ -922,8 +952,10 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr):
     print("esta es la parte gravable o exenta", prima_dominical_isr)
     
     #multiplicar el salario por 30.4
-    salario_catorcenal = (salario * Decimal(salario_datos.dias_mes) + prima_dominical_isr) #30.4
-        
+    salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
+    salario_catorcenal = salario_catorcenal + prima_dominical_isr + calulo_aguinaldo_isr
+
+     
     #llamar la tabla de IRS
     tabla_irs = DatosISR.objects.all()
     
@@ -1510,8 +1542,9 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         print("total: ", salario_catorcenal)
         print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
         print("DEBE TENER PRIMA DOMINICAL: ", prima_dominical)
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical
-        #¿aqui deberia ir el IMSS y el ISR en total deducciones?
+        #total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + calulo_aguinaldo
+        #IMSS y el ISR
         total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
         pagar_nomina = (total_percepciones - total_deducciones)
         
