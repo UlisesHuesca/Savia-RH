@@ -163,6 +163,10 @@ class Dia_extra(models.Model):
     def __str__(self):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
     
-    
-    
+class Aguinaldo_Contrato(models.Model):
+    empleado = models.ForeignKey(Costo, on_delete = models.CASCADE, null=True)
+    aguinaldo = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    fecha = models.DateField(null=True)
+    catorcena = models.IntegerField(null = True)#la idea sumar a la catorcena actual + 1, para tener la suguiente
+    complete = models.BooleanField(default=False)#para saber si ya se pago
 
