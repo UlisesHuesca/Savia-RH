@@ -185,6 +185,10 @@ def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenom
             obj.save()
         else:
             Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+
+        messages.success(request, 'Se extendio la incapacidad')    
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
     else:
         if url:
             obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
@@ -195,6 +199,9 @@ def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenom
         else:
             Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
 
+        messages.success(request, 'Se guardo correctamente')    
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
 @login_required(login_url='user-login')
 def programar_incidencias(request,pk):
     # crea el nuevo dato según el nuevo estado o comentario
@@ -805,12 +812,15 @@ def conteo_incidencias_aguinaldo(request,prenomina,fecha_inicio,fecha_fin):
 
 @login_required(login_url='user-login')
 def calcular_aguinaldo_eventual(request,salario,prenomina):
-    ahora = datetime.date.today()
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    
-    tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
-    #tipo_contrato = 1    
-    
+    """
+    se realiza el calculo del registro cuando cumpla el tiempo y se guarda en la base de datos, para guardar
+    se debe estar en complete = True (pagado), mes (el ultimo mes del contrato) y se considera que se va 
+    a pagar en la siguiente catorcena
+    """
+    #tipo contrato
+    tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id    
+    #el mes corresponde cuando cumple 1°, 2° o 3° mes
+    mes = 0
     aguinaldo = Decimal(0.00)
     if tipo_contrato == 2:#eventual
         #fecha ingreso
@@ -818,29 +828,42 @@ def calcular_aguinaldo_eventual(request,salario,prenomina):
         #calculo relacion dias laborados
         calculo_fecha = relativedelta(datetime.date.today(),fecha_ingreso)
         
-        #se realiza el calculo por los meses y por los dias laborados correspondientes a cada condicion
-        if calculo_fecha.months == 1 and calculo_fecha.days == 0:
-            #primer mes laborado le corresponden 30 dias
-            dias_aguinaldo = Decimal(30 * 15) / 365
-            aguinaldo = dias_aguinaldo * salario
-        elif calculo_fecha.months == 3 and calculo_fecha.days == 0:
-            #tercer mes laborado le corresponden 60 dias
-            dias_aguinaldo = Decimal(60 * 15) / 365
-            aguinaldo = dias_aguinaldo * salario
-        elif calculo_fecha.months == 6 and calculo_fecha.days == 0:
-            #tercer mes laborado le corresponden 90 dias
-            dias_aguinaldo = Decimal(90 * 15) / 365
-            aguinaldo = dias_aguinaldo * salario
+        #se lleva un registro de los aguinaldos que se van registrando 
+        aguinaldo_registrado = Aguinaldo_Contrato.objects.filter(empleado_id = prenomina.empleado.id).last()
         
-        #se guarda en caso que exista un valor en el aguinaldo
+        if aguinaldo_registrado is None:
+            #se realiza el calculo por los meses y por los dias laborados correspondientes a cada condicion
+            if calculo_fecha.months >= 1 and calculo_fecha.days >= 0:
+                #primer mes laborado le corresponden 30 dias
+                dias_aguinaldo = Decimal(30 * 15) / 365
+                aguinaldo = dias_aguinaldo * salario
+                mes = 1
+        else:
+            if aguinaldo_registrado.mes == 1 and aguinaldo_registrado.complete == True and calculo_fecha.months >= 3 and calculo_fecha.days >= 0:
+                #tercer mes laborado le corresponden 60 dias
+                dias_aguinaldo = Decimal(60 * 15) / 365
+                aguinaldo = dias_aguinaldo * salario
+                mes = 3
+            elif aguinaldo_registrado.mes == 3 and aguinaldo_registrado.complete == True and calculo_fecha.months >= 6 and calculo_fecha.days >= 0:
+                #sexto mes laborado le corresponden 90 dias
+                dias_aguinaldo = Decimal(90 * 15) / 365
+                aguinaldo = dias_aguinaldo * salario
+                mes = 6
+            print("este es el aguinaldo eventual: ",aguinaldo)
+            #se guarda en caso que exista un valor en el aguinaldo
+        
         if aguinaldo != 0:
+            #saber la catorcena actual
+            ahora = datetime.date.today()
+            catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
             #Guardar el aguinaldo
             aguinaldo_contrato = Aguinaldo_Contrato(
-                empleado = prenomina.empleado.id,
+                empleado = prenomina.empleado,
                 aguinaldo = aguinaldo,
                 fecha = date.today(),
-                catorcena = catorcena_actual.id + 1,
+                catorcena = catorcena_actual.id + 1, #el aguinaldo se paga en la cat siguiente
                 complete=False,
+                mes = mes
             )
             aguinaldo_contrato.save()
             
@@ -857,7 +880,7 @@ def calcular_aguinaldo(request,salario,prenomina):
     if catorcena_actual.id == catorcena_decembrina.id:
         
         tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
-        
+        tipo_contrato = 2
         if tipo_contrato in (1,3,5,6): # planta, especial, planta 1, planta 2
             fecha_planta = prenomina.empleado.status.fecha_planta
             fecha_planta_anterior = prenomina.empleado.status.fecha_planta_anterior
@@ -979,9 +1002,11 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calcul
         if calculo_aguinaldo_eventual_isr < (salario_datos.UMA * 30):
             #exento
             calculo_aguinaldo_eventual_isr = 0
+            print("aguinaldo envetual exento", calculo_aguinaldo_eventual_isr)
         else:
             #gravado
             calculo_aguinaldo_eventual_isr - Decimal(salario_datos.UMA * 30)
+            print("aguinaldo envetual gravado", calculo_aguinaldo_eventual_isr)
         
     else:
         #exento
@@ -1066,8 +1091,48 @@ def calcular_prima_vacacional(request,salario,prenomina):
         print("esta es la prima ", prima_vacacional)
         return prima_vacacional 
         
+@login_required(login_url='user-login')    
+def calcular_incapacidades(request,prenomina,catorcena_actual):
+    #faltas = Faltas.objects.filter(prenomina__empleado = prenomina.empleado.id,fecha__range=(fecha_inicio,fecha_fin)).count()
+    print("Llamada desde el calcular incapacidades")
     
+    incapacidades = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
+    for incapacidad in incapacidades:
+        dentro_de_la_catorcena = catorcena_actual.fecha_inicial <= incapacidad.fecha <= catorcena_actual.fecha_final
+        if dentro_de_la_catorcena:
+            print("La incapacidad está dentro del rango de la catorcena.")
+            diferencia = incapacidad.fecha_fin - incapacidad.fecha
+            dias = diferencia.days + 1
+            print(dias)
+        else:
+            print("La incapacidad está fuera del rango de la catorcena.")
+            fecha_inicio = max(incapacidad.fecha, catorcena_actual.fecha_inicial)  # Selecciona la fecha más reciente entre la fecha de la incapacidad y la fecha inicial de la catorcena
+            fecha_fin = min(incapacidad.fecha_fin, catorcena_actual.fecha_final)  # Selecciona la fecha más temprana entre la fecha de fin de la incapacidad y la fecha final de la catorcena
+            
+            # Calcula los días de incapacidad a partir de la fecha ajustada
+            diferencia = fecha_fin - fecha_inicio
+            dias = diferencia.days + 1
+            print(dias)
+            
+            
+        
+        
+        
+       
+        
     
+    """
+    incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+    print("Llamada desde el calcular incapacidades")
+    cont = 0
+    for incapacidad in incapacidades:
+        print(incapacidad.fecha,incapacidad.fecha_fin)
+        diferencia = incapacidad.fecha_fin - incapacidad.fecha
+        dias = diferencia.days + 1
+        print("estas son las incacidades",dias)
+    """     
+    
+
 @login_required(login_url='user-login')
 def Excel_estado_prenomina(request,prenominas, user_filter):
     from datetime import datetime
@@ -1258,6 +1323,15 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
         economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
         vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
+        
+        calcular_incapacidades(request,prenomina,catorcena_actual)
+        
+        
+        
+        
+        
+        
+        
         
         #calular el numero de permiso con goce de sueldo
         cantidad_dias_castigos = 0
@@ -1557,21 +1631,17 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         #calcular aguinaldo
         calulo_aguinaldo = calcular_aguinaldo(request,salario,prenomina)
         
-        #calcular aguinaldo eventual
+        #calcular aguinaldo eventual - siempre se ejecutara al momento de generar el reporte
         calcular_aguinaldo_eventual(request,salario,prenomina)
+        
+        #obtiene el aguinaldo del ultimo contrato y se genera en la fecha de que cumpla su contrato y se paga solo una vez en la proxima catorcena
         aguinaldo_contrato = Aguinaldo_Contrato.objects.filter(empleado_id=prenomina.empleado.id).last()
         calculo_aguinaldo_eventual = 0
         if aguinaldo_contrato is not None and catorcena_actual.id == aguinaldo_contrato.catorcena:
-            calculo_aguinaldo_eventual = aguinaldo_contrato.aguinaldo
-        
-
-   
-        
-        
-        
-        
-        
-        
+            calculo_aguinaldo_eventual = aguinaldo_contrato.aguinaldo # se pasa el valor del aguinaldo del contrato para ser calculado en el ISR
+            aguinaldo_contrato.complete = True #se actualiza el registro para definir que se ha pagado
+            aguinaldo_contrato.save()
+            
         #incapacidad = str("")   
         #realiza el calculo del ISR
         calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calculo_aguinaldo_eventual)
