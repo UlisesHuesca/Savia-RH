@@ -109,16 +109,7 @@ class Incapacidades(models.Model):
     editado = models.CharField(max_length=100,blank=True)
     tipo = models.ForeignKey(Tipo_incapacidad,on_delete=models.CASCADE, null=True)
     subsecuente = models.BooleanField(default=False)
-
-    def contar_dias_incapacidad(self):
-        if self.fecha and self.fecha_fin:
-            # Calcular la diferencia entre las fechas
-            diferencia = self.fecha_fin - self.fecha
-            # Sumar 1 día porque queremos contar el día de inicio también
-            return diferencia.days + 1
-        else:
-            return 0
-        
+    
     def __str__(self):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
 
