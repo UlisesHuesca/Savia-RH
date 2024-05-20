@@ -618,8 +618,15 @@ def PrenominaRevisar(request, pk):
         #prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-                    
+        #prenomina.incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))  | Q(fecha_fin__gte=(catorcena_actual.fecha_final)) | Q(fecha__lte=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
+        
+        prenomina.incapacidades = Incapacidades.objects.filter(
+            Q(prenomina__empleado_id=prenomina.empleado.id),
+            Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) |
+            Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) |
+            Q(fecha__lt=catorcena_actual.fecha_inicial, fecha_fin__gt=catorcena_actual.fecha_final)
+        )     
+               
         prenomina.faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         prenomina.domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
@@ -1268,16 +1275,13 @@ def calcular_incapacidades(request,prenomina,catorcena_actual):
                     cont_enfermedad = cont_enfermedad + dias
                     tipo = incapacidad.tipo_id
                     subsecuente = incapacidad.subsecuente
-                    print("dias de incapadidad enfermedad ",cont_enfermedad)
+                    #print("dias de incapadidad enfermedad ",cont_enfermedad)
+                    if cont_enfermedad > 3:
+                        cont_enfermedad = cont_enfermedad - 3
+                    print("este es el numero de incapacidades por enfermedad general: ", cont_enfermedad)
                     
-                    if incapacidad.subsecuente == False:
-                        if cont_enfermedad > 3:
-                            cont_enfermedad = cont_enfermedad - 3
-                            incapacidad.complete = True
-                            incapacidad.save()
-                        else:
-                            cont_enfermedad = 0
-                                                                        
+                   
+                    
                 elif incapacidad.tipo_id == 3: #maternidad
                     cont_maternidad = cont_maternidad + dias
                     tipo = incapacidad.tipo_id
