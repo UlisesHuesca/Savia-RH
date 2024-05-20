@@ -77,7 +77,11 @@
                                     <div class="input-group mb-3">
                                         {% render_field incapacidadestipoform.fecha_fin type="date" class="form-control"%}
                                     </div>
-    
+
+                                    <label>Día inhabil</label>
+                                    <div class="input-group mb-3">
+                                        {% render_field incapacidadestipoform.dia_inhabil class="form-control"%}
+                                    </div>
                                    
                                     <label>Comentario</label>
                                     <div class="input-group mb-3">
@@ -146,7 +150,11 @@
                                     {% render_field incapacidadesform.fecha_fin type="date" class="form-control"%}
                                 </div>
 
-                               
+                                <label>Día inhabil</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incapacidadestipoform.dia_inhabil class="form-control"%}
+                                </div>
+
                                 <label>Comentario</label>
                                 <div class="input-group mb-3">
                                     {% render_field incapacidadesform.comentario type="comentario" class="form-control"%}
@@ -211,8 +219,8 @@
                                         Economico
                                     {% elif etiqueta == "vacaciones" %}
                                         Vacaciones
-                                    {% elif etiqueta == "vacación día inhabil" %}
-                                        Vacación día inhabil
+                                    {% elif etiqueta == "descanso incidencia" %}
+                                        Descanso
                                     {% else %}
                                         <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}" class="form-control">
                                     {% endif %}
@@ -225,8 +233,8 @@
                                         <button type="submit" name="economico_pdf" class="btn btn-outline-danger" value="{{ fecha }}">
                                             <i class="fa-solid fa-file-pdf fa-2xl"></i>
                                         </button>
-                                    {% elif etiqueta == "vacación día inhabil" %}
-                                        Vacación día inhabil
+                                    {% elif etiqueta == "descanso incidencia" %}
+                                        Descanso
                                     {% elif etiqueta == "vacaciones" %}
                                         Vacaciones
                                         <button type="submit" name="vacaciones_pdf" class="btn btn-outline-danger" value="{{ fecha }}">

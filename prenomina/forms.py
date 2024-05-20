@@ -16,7 +16,7 @@ class IncapacidadesForm(forms.ModelForm):
     
     class Meta:
         model = Incapacidades
-        fields = ['fecha','fecha_fin','comentario','url']
+        fields = ['fecha','fecha_fin','dia_inhabil','comentario','url']
 
 class IncapacidadesTipoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -25,7 +25,7 @@ class IncapacidadesTipoForm(forms.ModelForm):
         
     class Meta:
         model = Incapacidades
-        fields = ['tipo','subsecuente','fecha','fecha_fin','comentario','url']
+        fields = ['tipo','subsecuente','dia_inhabil','fecha','fecha_fin','comentario','url']
         
     
     
