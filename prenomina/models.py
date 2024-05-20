@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 from django.db import models
-from proyecto.models import Costo
+from proyecto.models import Costo, Dia_vacacion
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ValidationError
 
@@ -40,6 +40,7 @@ class Retardos(models.Model):
 class Castigos(models.Model):
     fecha = models.DateField(null=True)
     fecha_fin = models.DateField(null=True) #fecha fin
+    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
     prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
@@ -54,6 +55,7 @@ class Castigos(models.Model):
 class Permiso_goce(models.Model):
     fecha = models.DateField(null=True)
     fecha_fin = models.DateField(null=True) #fecha fin
+    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
     prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
@@ -68,6 +70,7 @@ class Permiso_goce(models.Model):
 class Permiso_sin(models.Model):
     fecha = models.DateField(null=True)
     fecha_fin = models.DateField(null=True) #fecha fin
+    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
     prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
@@ -100,6 +103,7 @@ class Tipo_incapacidad(models.Model):
 class Incapacidades(models.Model):
     fecha = models.DateField(null=True) #fecha inicio
     fecha_fin = models.DateField(null=True) #fecha fin
+    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
     prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)

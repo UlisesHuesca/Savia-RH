@@ -109,7 +109,7 @@ def Tabla_prenomina(request):
                 prenominas_filtradas = [prenom for prenom in prenominas if prenom.estado_general == 'RH pendiente (rechazado por Controles técnicos)' or prenom.estado_general == 'RH pendiente (rechazado por Gerencia)' or prenom.estado_general == 'Sin autorizaciones']
                 if prenominas_filtradas:
                     # Llamar a la función Autorizar_gerencia con las prenominas filtradas
-                    return Autorizar_general(request,prenominas_filtradas, user_filter)
+                    return Autorizar_general(request,prenominas_filtradas, user_filter,catorcena_actual)
                 else:
                     # Si no hay prenominas que cumplan la condición, manejar según sea necesario
                     messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
@@ -134,22 +134,30 @@ def Tabla_prenomina(request):
             return render(request, 'revisar/403.html')
 
 @login_required(login_url='user-login')
-def Autorizar_general(request,prenominas, user_filter):
+def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
     if request.user.is_authenticated:
         nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
         aprobado = Estado.objects.get(tipo="aprobado")
+        fechas_domingo = [fecha for fecha in (catorcena_actual.fecha_inicial + timedelta(days=d) for d in range((catorcena_actual.fecha_final - catorcena_actual.fecha_inicial).days + 1)) if fecha.weekday() == 6]
         for prenomina in prenominas:
+            prenomina.domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+            prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
             revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo) #Checa si existe autorización de su perfil y si no lo crea 
             revisado.estado = Estado.objects.get(tipo="aprobado")
             nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
             revisado.perfil = nombre
             revisado.comentario = 'Aprobación general'
             revisado.save()
-            messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
+            #Añadir dias domingo o descanso
+            if prenomina.domingo.count() == 0 and prenomina.descanso.count() == 0:
+                for fecha in fechas_domingo:
+                    descanso, created = Domingo.objects.get_or_create(prenomina=prenomina,fecha = fecha, comentario = "generado automaticamente", editado = "sistema")
+                    descanso.save()
+        messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
         return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
 
 @login_required(login_url='user-login')
-def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre,url):
+def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,nombre,url):
             if incidencia == '2':
                 evento_model = Castigos
             elif incidencia == '3':
@@ -159,11 +167,11 @@ def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,come
                 
             if evento_model:
                 if url:
-                    obj, created = evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+                    obj, created = evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil,prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
                     obj.url = url
                     obj.save()
                 else:
-                    evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+                    evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
             else:
                 #  donde nuevo_estado no tiene un mapeo en el diccionario
                 print(f"Error: nuevo_estado desconocido")
@@ -173,7 +181,7 @@ def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,come
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 @login_required(login_url='user-login')
-def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre,incapacidades,):
+def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,url,nombre,incapacidades,):
     if incapacidades.exists() and subsecuente == True:
         incapacidad = Incapacidades.objects.get(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=fecha_fin,fecha_fin__gte=fecha_incio,)
         fecha_subsecuente = incapacidad.fecha_fin + timedelta(days=1)
@@ -181,23 +189,24 @@ def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenom
             obj, created = Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}",})
             obj.tipo = tipo
             obj.subsecuente = subsecuente
+            obj.dia_inhabil = dia_inhabil
             obj.url = url
             obj.save()
         else:
-            Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+            Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
 
         messages.success(request, 'Se extendio la incapacidad')    
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
     else:
         if url:
-            obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+            obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
             obj.tipo = tipo
             obj.subsecuente = subsecuente
             obj.url = url
             obj.save()
         else:
-            Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+            Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
 
         messages.success(request, 'Se guardo correctamente')    
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
@@ -227,6 +236,7 @@ def programar_incidencias(request,pk):
             incidencia = form_incidencias.cleaned_data.get('incidencias')
             fecha_incio = form_incidencias.cleaned_data['fecha']
             fecha_fin = form_incidencias.cleaned_data['fecha_fin']
+            dia_inhabil = form_incidencias.cleaned_data['dia_inhabil']
             comentario = form_incidencias.cleaned_data['comentario']    
             url = form_incidencias.cleaned_data['url']       
             
@@ -329,7 +339,7 @@ def programar_incidencias(request,pk):
                     # Se elimina el permiso sin goce de la BD
                     permisos_sin.delete()        
             
-            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,prenomina,comentario,nombre,url)
+            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,nombre,url)
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
         else:
@@ -365,6 +375,7 @@ def programar_incapacidades(request,pk):
             subsecuente = form_incapacidades.cleaned_data['subsecuente']
             fecha_incio = form_incapacidades.cleaned_data['fecha']
             fecha_fin = form_incapacidades.cleaned_data['fecha_fin']
+            dia_inhabil = form_incapacidades.cleaned_data['dia_inhabil']
             comentario = form_incapacidades.cleaned_data['comentario']
             url = form_incapacidades.cleaned_data['url']       
                         
@@ -472,8 +483,7 @@ def programar_incapacidades(request,pk):
                     os.remove(soporte.url.path)
                     # Se elimina el permiso sin goce de la BD
                     permisos_sin.delete()        
-            
-            capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,prenomina,comentario,url,nombre, incapacidades)
+            capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,url,nombre, incapacidades)
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
         else:
@@ -537,22 +547,33 @@ def prenomina_revisar_ajax(request, pk):
     # Lista ordenada de días de la semana en español
     dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     #lista de tuplas con la fecha y su etiqueta
-    fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
-                            else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
-                            else (fecha, "permiso con goce de sueldo", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
-                            else (fecha, "permiso sin goce de sueldo", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
-                            else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
-                            else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
-                            #else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
-                            else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
-                            else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario if fecha in fechas_con_comision else "") if fecha in fechas_con_comision
-                            else (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
-                            else (fecha, "día de descanso laborado", prenomina.extra.filter(fecha=fecha).first().comentario if fecha in fechas_con_extra else "") if fecha in fechas_con_extra
-                            else (fecha, "economico", "") if fecha in fechas_con_economicos
-                            else (fecha, "festivo", "") if fecha in fechas_con_festivos
-                            else (fecha, "vacación día inhabil", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
-                            else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
-                            else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
+    fechas_con_etiquetas = [ #Por los condicionales prioriza en orden ascendente
+        (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
+        #descanso dato general
+        else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
+        else (fecha, "festivo", "") if fecha in fechas_con_festivos
+        else (fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
+        #descanso castigo
+        else (fecha, "descanso incidencia", "") if any(castigos.fecha <= fecha <= castigos.fecha_fin and dias_semana[fecha.weekday()] == castigos.dia_inhabil.nombre for castigos in prenomina.castigos)
+        else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario) if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
+        #descanso permiso con goce de sueldo
+        else (fecha, "descanso incidencia", "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin and dias_semana[fecha.weekday()] == permiso_goce.dia_inhabil.nombre for permiso_goce in prenomina.permiso_goce)
+        else (fecha, "permiso con goce de sueldo", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario) if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
+        #descanso permiso sin goce de sueldo
+        else (fecha, "descanso incidencia", "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin and dias_semana[fecha.weekday()] == permiso_sin.dia_inhabil.nombre for permiso_sin in prenomina.permiso_sin)
+        else (fecha, "permiso sin goce de sueldo", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario) if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
+        #descanso incapacidad
+        else (fecha, "descanso incidencia", "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin and dias_semana[fecha.weekday()] == incapacidad.dia_inhabil.nombre for incapacidad in prenomina.incapacidades)
+        else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario) if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
+        else (fecha, "faltas", prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
+        else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario) if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().comentario
+        else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario) if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().comentario
+        else (fecha, "economico", "") if fecha in fechas_con_economicos
+        #descanso vacaciones
+        else (fecha, "descanso incidencia", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
+        else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
+        else (fecha, "asistencia", "") for fecha in dias_entre_fechas
+    ]
     
     response_data = {
         'fechas_con_etiquetas': fechas_con_etiquetas,
@@ -644,26 +665,33 @@ def PrenominaRevisar(request, pk):
         dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
         dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
         #lista de tuplas con la fecha y su etiqueta
-        fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
-                                #else (fecha, "castigo", prenomina.castigos.filter(fecha=fecha).first().comentario if fecha in fechas_con_castigos else "") if fecha in fechas_con_castigos
-                                else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
-                                #else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha=fecha).first().comentario, prenomina.permiso_goce.filter(fecha=fecha).first().url if fecha in fechas_con_permiso_goce and prenomina.permiso_goce.filter(fecha=fecha).first().url else "") if fecha in fechas_con_permiso_goce
-                                else (fecha, "permiso con goce de sueldo", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
-                                #else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha=fecha).first().comentario, prenomina.permiso_sin.filter(fecha=fecha).first().url if fecha in fechas_con_permiso_sin and prenomina.permiso_sin.filter(fecha=fecha).first().url else "") if fecha in fechas_con_permiso_sin
-                                else (fecha, "permiso sin goce de sueldo", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
-                                #else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha=fecha).first().comentario, prenomina.incapacidades.filter(fecha=fecha).first().url if fecha in fechas_con_incapacidades and prenomina.incapacidades.filter(fecha=fecha).first().url else "") if fecha in fechas_con_incapacidades
-                                else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
-                                else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
-                                else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
-                                else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario, prenomina.comision.filter(fecha=fecha).first().url if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().url else "") if fecha in fechas_con_comision
-                                else (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
-                                else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario, prenomina.extra.filter(fecha=fecha).first().url if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().url else "") if fecha in fechas_con_extra
-                                #else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario, prenomina.extra.filter(fecha=fecha).first().url if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().url else "") if fecha in fechas_con_extra
-                                else (fecha, "economico", "") if fecha in fechas_con_economicos
-                                else (fecha, "festivo", "") if fecha in fechas_con_festivos
-                                else (fecha, "vacación día inhabil", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
-                                else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
-                                else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
+        fechas_con_etiquetas = [ #Por los condicionales prioriza en orden ascendente
+            (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
+            #descanso dato general
+            else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
+            else (fecha, "festivo", "") if fecha in fechas_con_festivos
+            else (fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
+            #descanso castigo
+            else (fecha, "descanso incidencia", "") if any(castigos.fecha <= fecha <= castigos.fecha_fin and dias_semana[fecha.weekday()] == castigos.dia_inhabil.nombre for castigos in prenomina.castigos)
+            else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
+            #descanso permiso con goce de sueldo
+            else (fecha, "descanso incidencia", "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin and dias_semana[fecha.weekday()] == permiso_goce.dia_inhabil.nombre for permiso_goce in prenomina.permiso_goce)
+            else (fecha, "permiso con goce de sueldo", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
+            #descanso permiso sin goce de sueldo
+            else (fecha, "descanso incidencia", "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin and dias_semana[fecha.weekday()] == permiso_sin.dia_inhabil.nombre for permiso_sin in prenomina.permiso_sin)
+            else (fecha, "permiso sin goce de sueldo", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
+            #descanso incapacidad
+            else (fecha, "descanso incidencia", "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin and dias_semana[fecha.weekday()] == incapacidad.dia_inhabil.nombre for incapacidad in prenomina.incapacidades)
+            else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
+            else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
+            else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario, prenomina.comision.filter(fecha=fecha).first().url if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().url else "") if fecha in fechas_con_comision
+            else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario, prenomina.extra.filter(fecha=fecha).first().url if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().url else "") if fecha in fechas_con_extra
+            else (fecha, "economico", "") if fecha in fechas_con_economicos
+            #descanso vacaciones
+            else (fecha, "descanso incidencia", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
+            else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
+            else (fecha, "asistencia", "") for fecha in dias_entre_fechas
+        ]
                                         #else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario if fecha in fechas_con_extra else "") if fecha in fechas_con_extra
 
         fechas_con_etiquetas = [
