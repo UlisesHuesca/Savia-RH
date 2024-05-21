@@ -164,14 +164,52 @@ def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,dia_inhabil,pr
                 evento_model = Permiso_goce
             elif incidencia == '4':
                 evento_model = Permiso_sin
-                
+            dias_semana = {
+                            'Lunes': 0,
+                            'Martes': 1,
+                            'Miércoles': 2,
+                            'Jueves': 3,
+                            'Viernes': 4,
+                            'Sábado': 5,
+                            'Domingo': 6
+                        }
             if evento_model:
                 if url:
                     obj, created = evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil,prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
                     obj.url = url
                     obj.save()
+                    # Obtener el día de la semana del día inhabil
+                    dia_semana = dia_inhabil.nombre
+                    dia_semana = dias_semana[dia_semana]
+
+                    # Definir el tipo de modelo basado en el día de la semana
+                    if dia_semana == 6:  # Domingo
+                        descanso_model = Domingo
+                    else:
+                        descanso_model = Descanso
+                    # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
+                    for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
+                        if fecha_iter.weekday() == dia_semana:
+                            # Crear el objeto correspondiente
+                            descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
+                            descanso.save()
                 else:
                     evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+                    # Obtener el día de la semana del día inhabil
+                    dia_semana = dia_inhabil.nombre
+                    dia_semana = dias_semana[dia_semana]
+
+                    # Definir el tipo de modelo basado en el día de la semana
+                    if dia_semana == 6:  # Domingo
+                        descanso_model = Domingo
+                    else:
+                        descanso_model = Descanso
+                    # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
+                    for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
+                        if fecha_iter.weekday() == dia_semana:
+                            # Crear el objeto correspondiente
+                            descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
+                            descanso.save()
             else:
                 #  donde nuevo_estado no tiene un mapeo en el diccionario
                 print(f"Error: nuevo_estado desconocido")
@@ -182,6 +220,15 @@ def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,dia_inhabil,pr
 
 @login_required(login_url='user-login')
 def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,url,nombre,incapacidades,):
+    dias_semana = {
+                    'Lunes': 0,
+                    'Martes': 1,
+                    'Miércoles': 2,
+                    'Jueves': 3,
+                    'Viernes': 4,
+                    'Sábado': 5,
+                    'Domingo': 6
+                }
     if incapacidades.exists() and subsecuente == True:
         incapacidad = Incapacidades.objects.get(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=fecha_fin,fecha_fin__gte=fecha_incio,)
         fecha_subsecuente = incapacidad.fecha_fin + timedelta(days=1)
@@ -192,9 +239,38 @@ def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,dia_in
             obj.dia_inhabil = dia_inhabil
             obj.url = url
             obj.save()
+            # Obtener el día de la semana del día inhabil
+            dia_semana = dia_inhabil.nombre
+            dia_semana = dias_semana[dia_semana]
+
+            # Definir el tipo de modelo basado en el día de la semana
+            if dia_semana == 6:  # Domingo
+                descanso_model = Domingo
+            else:
+                descanso_model = Descanso
+            # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
+            for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
+                if fecha_iter.weekday() == dia_semana:
+                    # Crear el objeto correspondiente
+                    descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
+                    descanso.save()
         else:
             Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+            # Obtener el día de la semana del día inhabil
+            dia_semana = dia_inhabil.nombre
+            dia_semana = dias_semana[dia_semana]
 
+            # Definir el tipo de modelo basado en el día de la semana
+            if dia_semana == 6:  # Domingo
+                descanso_model = Domingo
+            else:
+                descanso_model = Descanso
+            # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
+            for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
+                if fecha_iter.weekday() == dia_semana:
+                    # Crear el objeto correspondiente
+                    descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
+                    descanso.save()
         messages.success(request, 'Se extendio la incapacidad')    
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
@@ -205,9 +281,38 @@ def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,dia_in
             obj.subsecuente = subsecuente
             obj.url = url
             obj.save()
+            # Obtener el día de la semana del día inhabil
+            dia_semana = dia_inhabil.nombre
+            dia_semana = dias_semana[dia_semana]
+
+            # Definir el tipo de modelo basado en el día de la semana
+            if dia_semana == 6:  # Domingo
+                descanso_model = Domingo
+            else:
+                descanso_model = Descanso
+            # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
+            for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
+                if fecha_iter.weekday() == dia_semana:
+                    # Crear el objeto correspondiente
+                    descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
+                    descanso.save()
         else:
             Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
+            # Obtener el día de la semana del día inhabil
+            dia_semana = dia_inhabil.nombre
+            dia_semana = dias_semana[dia_semana]
 
+            # Definir el tipo de modelo basado en el día de la semana
+            if dia_semana == 6:  # Domingo
+                descanso_model = Domingo
+            else:
+                descanso_model = Descanso
+            # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
+            for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
+                if fecha_iter.weekday() == dia_semana:
+                    # Crear el objeto correspondiente
+                    descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
+                    descanso.save()
         messages.success(request, 'Se guardo correctamente')    
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
         
@@ -567,7 +672,8 @@ def prenomina_revisar_ajax(request, pk):
         else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario) if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
         else (fecha, "faltas", prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
         else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario) if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().comentario
-        else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario) if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().comentario
+        #else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario) if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().comentario
+        else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario) if fecha in fechas_con_extra
         else (fecha, "economico", "") if fecha in fechas_con_economicos
         #descanso vacaciones
         else (fecha, "descanso incidencia", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
