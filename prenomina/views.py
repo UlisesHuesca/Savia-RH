@@ -611,6 +611,7 @@ def prenomina_revisar_ajax(request, pk):
 def PrenominaRevisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "RH":
+        
         ahora = datetime.date.today()
         #ahora = datetime.date.today() + timedelta(days=15)
         incapacidadesform = IncapacidadesForm()
@@ -1279,7 +1280,12 @@ def calcular_incapacidades(request,prenomina,catorcena_actual):
     cont_enfermedad = 0
     tipo = 0
     subsecuente = False
-    cont_subsecuente = 0
+    cont_descanso = 0
+    fecha = None
+    cont_incapacidad = 0
+    dias = 0
+    pagar_dias = 0
+    cont_subsecuente = 1
     
     #Query de las incapacidades que caen en la catorcena
     incapacidades = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
@@ -1290,8 +1296,19 @@ def calcular_incapacidades(request,prenomina,catorcena_actual):
             
             if dentro_de_la_catorcena:
                 print("La incapacidad está dentro del rango de la catorcena.")
-                diferencia = incapacidad.fecha_fin - incapacidad.fecha
-                dias = diferencia.days + 1
+                #diferencia = incapacidad.fecha_fin - incapacidad.fecha
+                #dias = diferencia.days + 1
+                
+                #detectar el dia de descanso
+                cont_descanso = 0 #puede ser domingo o un dia entre semana
+                for i in range((incapacidad.fecha_fin - incapacidad.fecha).days + 1): #rango para el ciclo for
+                    fecha = incapacidad.fecha + timedelta(days=i) #para incrementar el dia
+                    if fecha.weekday() == (incapacidad.dia_inhabil_id - 1): #verifica si es el descanso
+                        cont_descanso += 1 # cuenta
+
+                #conteo de los dias en relacion dias de descanso
+                dias = incapacidad.fecha_fin - incapacidad.fecha
+                dias = (dias.days + 1) - cont_descanso
                 
                 if incapacidad.tipo_id == 1 :#riesgo
                     cont_riesgo = cont_riesgo + dias
@@ -1301,29 +1318,52 @@ def calcular_incapacidades(request,prenomina,catorcena_actual):
                 
                 elif incapacidad.tipo_id == 2: #enfermedad
                     cont_enfermedad = cont_enfermedad + dias
+                    print("estos son los dias de la catorcena actual de las incapacidades", cont_enfermedad)
                     tipo = incapacidad.tipo_id
-                    subsecuente = incapacidad.subsecuente
-                    #print("dias de incapadidad enfermedad ",cont_enfermedad)
-                    if cont_enfermedad > 3:
-                        cont_enfermedad = cont_enfermedad - 3
-                    print("este es el numero de incapacidades por enfermedad general: ", cont_enfermedad)
-                    
-                   
-                    
+                    if incapacidad.subsecuente == False:
+                        cont_subsecuente = cont_subsecuente + 1
+                        print("entra en el primer for ", incapacidad.subsecuente)
+                        if cont_enfermedad > 3:
+                            pagar_dias = cont_enfermedad - 3
+                        else:
+                            pagar_dias = 0
+                    else:
+                        if subsecuente < 1:
+                            pagar_dias = cont_enfermedad - 3
+                        else:
+                            pagar_dias = cont_enfermedad
+                                                        
                 elif incapacidad.tipo_id == 3: #maternidad
                     cont_maternidad = cont_maternidad + dias
                     tipo = incapacidad.tipo_id
                     subsecuente = incapacidad.subsecuente
                     print("dias de incapadidad maternidad ", cont_maternidad)
                     
+                        
+                    
             else:
+                  
                 print("La incapacidad está fuera del rango de la catorcena.")
                 fecha_inicio = max(incapacidad.fecha, catorcena_actual.fecha_inicial)  # Selecciona la fecha más reciente entre la fecha de la incapacidad y la fecha inicial de la catorcena
                 fecha_fin = min(incapacidad.fecha_fin, catorcena_actual.fecha_final)  # Selecciona la fecha más temprana entre la fecha de fin de la incapacidad y la fecha final de la catorcena
                 
-                # Calcula solo los dias que caen andentro de la cat
-                diferencia = fecha_fin - fecha_inicio
-                dias = diferencia.days + 1
+                print("esta es la fecha de inicio pero de? ", fecha_inicio)
+                print("esta es la fecha fin de pero de? ", fecha_fin)
+                
+                
+                
+                #detectar el dia de descanso
+                cont_descanso = 0 #puede ser domingo o un dia entre semana
+                for i in range((fecha_fin - fecha_inicio).days + 1): #rango para el ciclo for
+                    fecha = incapacidad.fecha + timedelta(days=i) #para incrementar el dia
+                    if fecha.weekday() == (incapacidad.dia_inhabil_id - 1): #verifica si es el descanso
+                        cont_descanso += 1 # cuenta
+
+                #conteo de los dias en relacion dias de descanso
+                dias = fecha_fin - fecha_inicio
+                dias = (dias.days + 1) - cont_descanso
+                print("estos son los dias de la catorcena ", dias)
+                
                 
                 if incapacidad.tipo_id == 1 :#riesgo
                     cont_riesgo = cont_riesgo + dias
@@ -1332,9 +1372,10 @@ def calcular_incapacidades(request,prenomina,catorcena_actual):
                 
                 elif incapacidad.tipo_id == 2: #enfermedad
                     cont_enfermedad = cont_enfermedad + dias
+                    print("esta es la cont enfermedad: ", cont_enfermedad)
                     tipo = incapacidad.tipo_id
                     subsecuente = incapacidad.subsecuente
-                    print("dias de incapadidad enfermedad ", cont_enfermedad)
+                    pagar_dias = cont_enfermedad
                     
                 elif incapacidad.tipo_id == 3: #maternidad
                     cont_maternidad = cont_maternidad + dias
@@ -1348,7 +1389,7 @@ def calcular_incapacidades(request,prenomina,catorcena_actual):
         print("tipo",tipo)
         print("susecuente", subsecuente)
             
-    return cont_riesgo,cont_enfermedad,cont_maternidad,tipo,subsecuente      
+    return cont_riesgo,cont_enfermedad,pagar_dias,cont_maternidad,tipo,subsecuente      
 
 @login_required(login_url='user-login')
 def Excel_estado_prenomina(request,prenominas, user_filter):
@@ -1523,12 +1564,13 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         incapacidades_riesgo = 0
         incapacidades_enfermedad = 0
         incapacidades_maternidad = 0
-        cont_riesgo,cont_enfermedad,cont_maternidad,tipo,subsecuente = calcular_incapacidades(request,prenomina,catorcena_actual)
+                
+        cont_riesgo,cont_enfermedad,pagar_dias_incapacidad,cont_maternidad,tipo,subsecuente = calcular_incapacidades(request,prenomina,catorcena_actual)
         
         if tipo == 1:#riesgo de trabajo
             incapacidades_riesgo = cont_riesgo
         elif tipo == 2:#enfermedad general
-            incapacidades_enfermedad = cont_enfermedad
+            incapacidades_enfermedad = cont_enfermedad            
         elif tipo == 3:#maternidad
             incapacidades_maternidad = cont_maternidad
                             
@@ -1704,13 +1746,16 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
         #print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "incidencias_inca", incidencias_incapacidades)
+        incapacidades = incapacidades_riesgo + incapacidades_maternidad + incapacidades_enfermedad
         print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "Incapacidades_riesgo", incapacidades_riesgo + incapacidades_maternidad, + incapacidades_enfermedad)
-        
         #se hace el calculo en relacion con los pagos de dias laborados
-        dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + incapacidades_riesgo + incapacidades_enfermedad + incapacidades_maternidad)
+        print("estos son los dias a pagar: ", pagar_dias_incapacidad)
+        dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + pagar_dias_incapacidad)
+        print("estos son los dias laborados: ", dias_laborados)
         proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
         proporcion_laborados = proporcion_septimos_dias + dias_laborados
         salario_catorcenal = (proporcion_laborados * salario) + pago_doble
+        print("ESTE ES EL SALARIO CATORCENAL ", salario_catorcenal)
         
         print("las incidencias incapacidades", incidencias_incapacidades)
         if incidencias_incapacidades_pasajes > 0:
@@ -1788,7 +1833,8 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
             permiso_goce,
             permiso_sin,
             descanso,
-            str("Días anteriores: ")+str(incapacidades_anterior)+str(" Días actual: ")+str(incapacidades_actual),
+            #str("Días anteriores: ")+str(incapacidades_anterior)+str(" Días actual: ")+str(incapacidades_actual),
+            incapacidades,
             faltas,
             comision,
             domingo,
