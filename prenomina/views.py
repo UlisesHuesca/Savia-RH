@@ -671,8 +671,9 @@ def prenomina_revisar_ajax(request, pk):
         else (fecha, "descanso incidencia", "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin and dias_semana[fecha.weekday()] == incapacidad.dia_inhabil.nombre for incapacidad in prenomina.incapacidades)
         else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario) if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
         else (fecha, "faltas", prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
-        else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario) if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().comentario
+        #else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario) if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().comentario
         #else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario) if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().comentario
+        else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario) if fecha in fechas_con_comision
         else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario) if fecha in fechas_con_extra
         else (fecha, "economico", "") if fecha in fechas_con_economicos
         #descanso vacaciones
@@ -1125,7 +1126,9 @@ def calcular_cuotas_imss(request,sdi_imss):
 @login_required(login_url='user-login')
 def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calculo_aguinaldo_eventual_isr):   
     salario_datos = SalarioDatos.objects.get()
-    
+    limite_inferior = 0
+    porcentaje = 0
+    cuota_fija = 0
     #Salario minino queda exento
     if salario > salario_datos.Salario_minimo:
         #PRIMA DOMINICAL
@@ -1166,7 +1169,7 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calcul
     #multiplicar el salario por 30.4
     salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
     #se suman la prima dominical, vacacional, los aguinaldos para despues aplicar el calculo del isr
-    salario_catorcenal = salario_catorcenal + prima_dominical_isr + calulo_aguinaldo_isr + calculo_aguinaldo_eventual_isr
+    #salario_catorcenal = salario_catorcenal + prima_dominical_isr + calulo_aguinaldo_isr + calculo_aguinaldo_eventual_isr
 
      
     #llamar la tabla de IRS
@@ -1241,32 +1244,32 @@ def calcular_prima_vacacional(request,salario,prenomina):
 
 @login_required(login_url='user-login')    
 def calcular_retardos(request,prenomina,catorcena_actual):
-    retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+    retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
     return retardos
 
 @login_required(login_url='user-login')    
 def calcular_descanso(request,prenomina,catorcena_actual):
-    descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+    descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
     return descanso
 
 @login_required(login_url='user-login')    
 def calcular_faltas(request,prenomina,catorcena_actual):
-    faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+    faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
     return faltas
 
 @login_required(login_url='user-login')    
 def calcular_comision(request,prenomina,catorcena_actual):
-    comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+    comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
     return comision
 
 @login_required(login_url='user-login')    
 def calcular_domingo(request,prenomina,catorcena_actual):
-    domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+    domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
     return domingo
 
 @login_required(login_url='user-login')    
 def calcular_dia_extra(request,prenomina,catorcena_actual):
-     dia_extra = prenomina.dia_extra_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
+     dia_extra = prenomina.dia_extra_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
      return dia_extra
  
 @login_required(login_url='user-login')    
@@ -1285,51 +1288,37 @@ def calcular_vacaciones(request,prenomina,catorcena_actual):
     return vacaciones
 
 @login_required(login_url='user-login')    
-def calcular_castigos(request,prenomina,catorcena_actual):
-    #es para llevar conteo de todos los castigos
+def calcular_castigos(request, prenomina, catorcena_actual):
+    # Para llevar conteo de todos los castigos
     cont_castigos = 0
-    print("llamada desde de la funcion de castigos")
-    #query de los castigos que caen en la catorcena
-    castigos = Castigos.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
-    if castigos.exists():
-        for castigo in castigos:
-            #solo cuenta los dias que estan en la catorcena
-            dentro_de_la_catorcena = catorcena_actual.fecha_inicial <= castigo.fecha <= catorcena_actual.fecha_final
-            #
-            if dentro_de_la_catorcena:
-                
-                cont_descanso = 0 #puede ser domingo o un dia entre semana
-                for i in range((castigo.fecha_fin - castigo.fecha).days + 1): #rango para el ciclo for
-                    fecha = castigo.fecha + timedelta(days=i) #para incrementar el dia
-                    if fecha.weekday() == (castigo.dia_inhabil_id - 1): #verifica si es el descanso
-                        cont_descanso += 1 # cuenta
+    print("Llamada desde la función de castigos")
 
-                #conteo de los dias en relacion dias de descanso
-                dias = castigo.fecha_fin - castigo.fecha
-                dias = (dias.days + 1) - cont_descanso
-                
-                cont_castigos = cont_castigos + dias
-                
-            else:
-                print("Los catigos está fuera del rango de la catorcena.")
-                fecha_inicio = max(castigo.fecha, catorcena_actual.fecha_inicial)  # Selecciona la fecha más reciente entre la fecha de la incapacidad y la fecha inicial de la catorcena
-                fecha_fin = min(castigo.fecha_fin, catorcena_actual.fecha_final)  # Selecciona la fecha más temprana entre la fecha de fin de la incapacidad y la fecha final de la catorcena
-                
-                #detectar el dia de descanso
-                cont_descanso = 0 #puede ser domingo o un dia entre semana
-                for i in range((fecha_fin - fecha_inicio).days + 1): #rango para el ciclo for
-                    fecha = fecha_inicio + timedelta(days=i) #para incrementar el dia
-                    if fecha.weekday() == (castigo.dia_inhabil_id - 1): #verifica si es el descanso
-                        cont_descanso += 1 # cuenta
+    # Query de los castigos que caen en la catorcena
+    castigos = Castigos.objects.filter(
+        prenomina__empleado_id=prenomina.empleado.id,
+        fecha__lte=catorcena_actual.fecha_final,
+        fecha_fin__gte=catorcena_actual.fecha_inicial
+    )
 
-                #conteo de los dias en relacion dias de descanso
-                dias = fecha_fin - fecha_inicio
-                dias = (dias.days + 1) - cont_descanso
-                print("estos son los dias de la catorcena ", dias)
-                cont_castigos = cont_castigos + dias
-                    
-        print("este es total de los castigos: ", cont_castigos)
-    return cont_castigos   
+    def contar_dias_descanso(fecha_inicio, fecha_fin, dia_inhabil_id):
+        total_dias = (fecha_fin - fecha_inicio).days + 1
+        dias_descanso = sum(1 for i in range(total_dias) if (fecha_inicio + timedelta(days=i)).weekday() == (dia_inhabil_id - 1))
+        return total_dias - dias_descanso
+
+    for castigo in castigos:
+        if catorcena_actual.fecha_inicial <= castigo.fecha <= catorcena_actual.fecha_final:
+            dias = contar_dias_descanso(castigo.fecha, castigo.fecha_fin, castigo.dia_inhabil_id)
+            cont_castigos += dias
+        else:
+            print("El castigo está fuera del rango de la catorcena.")
+            fecha_inicio = max(castigo.fecha, catorcena_actual.fecha_inicial)
+            fecha_fin = min(castigo.fecha_fin, catorcena_actual.fecha_final)
+            dias = contar_dias_descanso(fecha_inicio, fecha_fin, castigo.dia_inhabil_id)
+            print("Estos son los días de la catorcena:", dias)
+            cont_castigos += dias
+
+    print("Este es el total de los castigos:", cont_castigos)
+    return cont_castigos
 
 @login_required(login_url='user-login')    
 def calcular_permisos_con_goce(request,prenomina,catorcena_actual):
@@ -1536,7 +1525,7 @@ def calcular_incapacidades(request,prenomina,catorcena_actual):
         print("tipo",tipo)
         print("susecuente", subsecuente)
             
-    return cont_riesgo,cont_enfermedad,pagar_dias,cont_maternidad,tipo,subsecuente      
+    return cont_riesgo,cont_enfermedad,pagar_dias,cont_maternidad,tipo     
 
 @login_required(login_url='user-login')
 def Excel_estado_prenomina(request,prenominas, user_filter):
@@ -1712,7 +1701,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         incapacidades_enfermedad = 0
         incapacidades_maternidad = 0
                 
-        cont_riesgo,cont_enfermedad,pagar_dias_incapacidad,cont_maternidad,tipo,subsecuente = calcular_incapacidades(request,prenomina,catorcena_actual)
+        cont_riesgo,cont_enfermedad,pagar_dias_incapacidad,cont_maternidad,tipo = calcular_incapacidades(request,prenomina,catorcena_actual)
         
         if tipo == 1:#riesgo de trabajo
             incapacidades_riesgo = cont_riesgo
@@ -1732,8 +1721,8 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         print("total vacaciones: ", cantidad_dias_vacacion)
         
         #calculo de la prima se manda a llamar
-        if cantidad_dias_vacacion > 0:
-            calcular_prima_vacacional(cantidad_dias_vacacion)
+        #if cantidad_dias_vacacion > 0:
+            #calcular_prima_vacacional(cantidad_dias_vacacion)
             
         
         #numero de catorena
@@ -1794,20 +1783,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         
         print("ESTE ES EL APOYO PASAJES ahora: ", apoyo_pasajes)
         apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (incidencias + incapacidades_enfermedad + incapacidades_riesgo))
-
-        """
-        incidencias_incapacidades = 0
-        incidencias_pasajes = 0
-        incidencias_incapacidades_pasajes = 0
-        print("las incidencias incapacidades", incidencias_incapacidades)
-        if incidencias_incapacidades_pasajes > 0:
-            apoyo_pasajes = (apoyo_pasajes / 12 * (12 - (incidencias + incidencias_incapacidades_pasajes))) #12 son los dias trabajados
-            print("Aqui es donde se ejecuta el codigo")
-        else:
-            apoyo_pasajes = (apoyo_pasajes / 12 * (12 - (incidencias))) #12 son los dias trabajados
-            print("Aqui no se deberia ejecutar el codigo")
-        """
-        
+          
         print("apoyos pasajes: ", apoyo_pasajes)
         print("total: ", salario_catorcenal)
         print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)

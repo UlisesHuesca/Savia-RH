@@ -529,7 +529,8 @@ def prenomina_solicitudes_revisar_ajax(request, pk):
         else (fecha, "descanso incidencia", "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin and dias_semana[fecha.weekday()] == incapacidad.dia_inhabil.nombre for incapacidad in prenomina.incapacidades)
         else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario) if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
         else (fecha, "faltas", prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
-        else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario) if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().comentario
+        #else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario) if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().comentario
+        else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario) if fecha in fechas_con_comision
         else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario) if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().comentario
         else (fecha, "economico", "") if fecha in fechas_con_economicos
         #descanso vacaciones

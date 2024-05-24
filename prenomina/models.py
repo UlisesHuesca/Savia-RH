@@ -33,6 +33,12 @@ class Retardos(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     comentario = models.CharField(max_length=100,null=True, blank=True)
     editado = models.CharField(max_length=100,blank=True)
+    
+    class Meta:
+        # Definir un índice en la columna 'fecha'
+        indexes = [
+            models.Index(fields=['fecha']),
+        ]
 
     def __str__(self):
         return f'Retardo: {self.fecha} id prenomina:{self.prenomina}'
@@ -48,6 +54,12 @@ class Castigos(models.Model):
     comentario = models.CharField(max_length=100,null=True, blank=True)
     url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
     editado = models.CharField(max_length=100,blank=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['fecha']),    # Índice para la columna 'fecha'
+            models.Index(fields=['fecha_fin']) # Índice para la columna 'fecha_fin'
+        ]
 
     def __str__(self):
         return f'Castigo {self.id}: {self.fecha}'
@@ -63,7 +75,13 @@ class Permiso_goce(models.Model):
     comentario = models.CharField(max_length=100,null=True, blank=True)
     url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
     editado = models.CharField(max_length=100,blank=True)
-
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['fecha']),
+            models.Index(fields=['fecha_fin'])
+        ]
+        
     def __str__(self):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
 
@@ -79,6 +97,13 @@ class Permiso_sin(models.Model):
     url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
     editado = models.CharField(max_length=100,blank=True)
 
+    class Meta:
+        # Definir un índice en la columna 'fecha'
+        indexes = [
+            models.Index(fields=['fecha']),
+            models.Index(fields=['fecha_fin'])
+        ]
+    
     def __str__(self):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
     
@@ -91,6 +116,11 @@ class Descanso(models.Model):
     comentario = models.CharField(max_length=100,null=True, blank=True)
     editado = models.CharField(max_length=100,blank=True)
 
+    class Meta:
+        # Definir un índice en la columna 'fecha'
+        indexes = [
+            models.Index(fields=['fecha']),
+        ]
     def __str__(self):
         return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
 
