@@ -2,206 +2,76 @@ from django.db import models
 
 # Create your models here.
 from django.db import models
-from proyecto.models import Costo, Dia_vacacion
+from proyecto.models import Costo, Catorcenas, Dia_vacacion
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ValidationError
 
 class Prenomina(models.Model):
     empleado = models.ForeignKey(Costo, on_delete = models.CASCADE, null=True)
-    fecha = models.DateField(null=True)
+    catorcena = models.ForeignKey(Catorcenas, on_delete=models.CASCADE, null=True)
     complete = models.BooleanField(default=False) #Este complete es para saber si ya se reviso
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)
     editado = models.CharField(max_length=100,blank=True)
 
     def __str__(self):
-        return f'Empleado: {self.empleado}, Fecha: {self.fecha}'
-    #retardos#castigos#permiso_goce#permiso_sin#descanso#incapacidades
-    #faltas#comision #domingo
-
+        return f'Empleado: {self.empleado}, Cartocena: {self.catorcena}'
+    
 def validar_size(value):
+    #se utiliza para validar imagenes
     filesize = value.size
     if filesize >  5 * 2048 * 2048:  # 10 MB
     #if filesize >  5 * 512 * 512:  # 2.5 MB
         raise ValidationError('El tamaño del archivo no puede ser mayor a 2.5 MB.')    
     
-class Retardos(models.Model):
-    fecha = models.DateField(null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    editado = models.CharField(max_length=100,blank=True)
+class Incidencia(models.Model):
+    tipo = models.CharField(max_length=50, null=False)
+    slug = models.CharField(max_length=10, null=True)
     
-    class Meta:
-        # Definir un índice en la columna 'fecha'
-        indexes = [
-            models.Index(fields=['fecha']),
-        ]
-
     def __str__(self):
-        return f'Retardo: {self.fecha} id prenomina:{self.prenomina}'
+        return self.tipo
     
-class Castigos(models.Model):
-    fecha = models.DateField(null=True)
-    fecha_fin = models.DateField(null=True) #fecha fin
-    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
+class Rango(models.Model):
+    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
+    fecha_inicio = models.DateField(null=False, db_index=True)
+    fecha_fin = models.DateField(null=False, db_index=True)
+    dia_inhabil = models.OneToOneField(Dia_vacacion, on_delete=models.CASCADE, null=False)
+    comentario = models.CharField(max_length=100, null=True)
+    soporte = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])
     complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
-    editado = models.CharField(max_length=100,blank=True)
-    
-    class Meta:
-        indexes = [
-            models.Index(fields=['fecha']),    # Índice para la columna 'fecha'
-            models.Index(fields=['fecha_fin']) # Índice para la columna 'fecha_fin'
-        ]
 
-    def __str__(self):
-        return f'Castigo {self.id}: {self.fecha}'
-    
-class Permiso_goce(models.Model):
-    fecha = models.DateField(null=True)
-    fecha_fin = models.DateField(null=True) #fecha fin
-    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
-    editado = models.CharField(max_length=100,blank=True)
-    
     class Meta:
-        indexes = [
-            models.Index(fields=['fecha']),
-            models.Index(fields=['fecha_fin'])
-        ]
+        abstract = True # no crea una tabla en la BD, es una plantilla
         
-    def __str__(self):
-        return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
-
-class Permiso_sin(models.Model):
-    fecha = models.DateField(null=True)
-    fecha_fin = models.DateField(null=True) #fecha fin
-    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
-    editado = models.CharField(max_length=100,blank=True)
-
-    class Meta:
-        # Definir un índice en la columna 'fecha'
-        indexes = [
-            models.Index(fields=['fecha']),
-            models.Index(fields=['fecha_fin'])
-        ]
+class IncapacidadesRango(Rango):
+    subsecuente = models.BooleanField(default=False, null=False)
     
     def __str__(self):
-        return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
+        return self.incidencia, self.fecha_inicio, self.fecha_inicio
     
-class Descanso(models.Model):
-    fecha = models.DateField(null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    editado = models.CharField(max_length=100,blank=True)
-
-    class Meta:
-        # Definir un índice en la columna 'fecha'
-        indexes = [
-            models.Index(fields=['fecha']),
-        ]
+    
+class IncidenciasRango(Rango):
     def __str__(self):
-        return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
+        return self.incidencia, self.fecha_inicio, self.fecha_inicio
+    
+    pass # se pone porque no se requieren más campos
 
-class Tipo_incapacidad(models.Model):
-    nombre = models.CharField(max_length=200)
+class pagar_incapacidad(models.Model):
+    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=False)
+    incapacidades_rango = models.ForeignKey(IncapacidadesRango, on_delete=models.CASCADE, null=False)
+    dias_pagados = models.IntegerField(null=False)
+    subsecuente = models.BooleanField(default=False, null=False)
+    complete = models.BooleanField(default=False)
     
     def __str__(self):
-        return self.nombre
-
-class Incapacidades(models.Model):
-    fecha = models.DateField(null=True) #fecha inicio
-    fecha_fin = models.DateField(null=True) #fecha fin
-    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
-    editado = models.CharField(max_length=100,blank=True)
-    tipo = models.ForeignKey(Tipo_incapacidad,on_delete=models.CASCADE, null=True)
-    subsecuente = models.BooleanField(default=False)
+        return self.prenomina, self.dias_pagados
     
-    def __str__(self):
-        return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
-
-class Faltas(models.Model):
-    fecha = models.DateField(null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    editado = models.CharField(max_length=100,blank=True)
-
-    def __str__(self):
-        return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
-
-class Comision(models.Model):
-    fecha = models.DateField(null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
-    editado = models.CharField(max_length=100,blank=True)
-
-    def __str__(self):
-        return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
-
-class Domingo(models.Model):
-    fecha = models.DateField(null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    editado = models.CharField(max_length=100,blank=True)
-
-    def __str__(self):
-        return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
-
-class Dia_extra(models.Model):
-    fecha = models.DateField(null=True)
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=True)
-    complete = models.BooleanField(default=False)
-    created_at=models.DateTimeField(auto_now=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    comentario = models.CharField(max_length=100,null=True, blank=True)
-    url = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
-    editado = models.CharField(max_length=100,blank=True)
-
-    def __str__(self):
-        return f'Fecha: {self.fecha} id prenomina:{self.prenomina}'
+class PrenominaIncidencias(models.Model):
+    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False, related_name='incidencias')
+    incapacidades_rango = models.ForeignKey(IncapacidadesRango, on_delete=models.CASCADE, null=True)
+    incidencias_rango = models.ForeignKey(IncidenciasRango, on_delete=models.CASCADE, null=True)
+    fecha = models.DateField(null=False, db_index=True)
+    comentario = models.CharField(max_length=100, null=True, blank=True)
+    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
+    soporte = models.FileField(upload_to="prenomina/",null=True,blank=True,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])
     
-class Aguinaldo_Contrato(models.Model):
-    empleado = models.ForeignKey(Costo, on_delete = models.CASCADE, null=True)
-    aguinaldo = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
-    fecha = models.DateField(null=True)
-    catorcena = models.IntegerField(null = True)#la idea sumar a la catorcena actual + 1, para tener la suguiente
-    complete = models.BooleanField(default=False)#para saber si ya se pago
-    mes = models.IntegerField(null=True,default=1)#para saber si es 1°, 2° o 3° mes
-

@@ -7,10 +7,8 @@ from prenomina import views
 urlpatterns = [
     path('Prenomina', views.Tabla_prenomina, name='Prenomina'),
     path('revisar/<int:pk>/', views.PrenominaRevisar, name='Prenomina_revisar'),
-    path('revisar_ajax/<int:pk>/', views.prenomina_revisar_ajax, name='Prenomina_revisar_ajax'),
     path('programar_incidencias/<int:pk>/',views.programar_incidencias, name="programar_incidencias"),
     path('programar_incapacidades/<int:pk>/',views.programar_incapacidades, name="programar_incapacidades")
     #path('Perfil/Baja/<int:pk>/', views.Baja_empleado, name='Baja_empleado'),  
-
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

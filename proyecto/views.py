@@ -20,7 +20,7 @@ from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados
 from .models import Variables_carga_social, Variables_imss_patronal, CostoAnterior
 from esquema.models import BonoSolicitado
 from revisar.models import AutorizarPrenomina
-from prenomina.models import Prenomina, Castigos, Permiso_goce, Permiso_sin, Incapacidades
+from prenomina.models import Prenomina
 from prenomina.filters import PrenominaFilter
 import csv
 import json

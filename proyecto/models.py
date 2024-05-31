@@ -477,8 +477,8 @@ class Bonos(models.Model):
 
 class Catorcenas(models.Model):
     catorcena = models.IntegerField(null=True, default=0)
-    fecha_inicial = models.DateField(null=True)
-    fecha_final = models.DateField(null=True)
+    fecha_inicial = models.DateField(null=True, db_index=True)
+    fecha_final = models.DateField(null=True, db_index=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):

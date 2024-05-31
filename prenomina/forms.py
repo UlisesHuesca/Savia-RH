@@ -1,32 +1,22 @@
 from django import forms
-from .models import Incapacidades, Tipo_incapacidad
-from esquema.models import Puesto
+from .models import PrenominaIncidencias, Incidencia
+from django.forms import modelformset_factory
 
-class IncapacidadesForm(forms.ModelForm):
-    #Se define un choiceField para seleccionar 
-    opciones = (
-        (None, 'Selecciona una opción'),
-        (2, 'Castigos'),
-        (3, 'Permisos con goce'),
-        (4, 'Permisos sin goce'),
-    )
-    
-    # Define el campo de selección utilizando ChoiceField
-    incidencias = forms.ChoiceField(choices=opciones)
-    
+#Se define el formulario de la prenomina
+class PrenominaIncidenciasForm(forms.ModelForm):    
     class Meta:
-        model = Incapacidades
-        fields = ['fecha','fecha_fin','dia_inhabil','comentario','url']
-
-class IncapacidadesTipoForm(forms.ModelForm):
+        model = PrenominaIncidencias
+        fields = ['fecha', 'comentario', 'incidencia', 'soporte']
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['tipo'].queryset = Tipo_incapacidad.objects.all()
+        self.fields['fecha'].widget.attrs['readonly'] = 'readonly'
+            
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['incidencia'].queryset = Incidencia.objects.all().order_by('tipo')
         
-    class Meta:
-        model = Incapacidades
-        fields = ['tipo','subsecuente','dia_inhabil','fecha','fecha_fin','comentario','url']
-        
-    
+#Se define un formset - crea 14    
+PrenominaIncidenciasFormSet = modelformset_factory(PrenominaIncidencias,PrenominaIncidenciasForm, extra=0) 
     
     

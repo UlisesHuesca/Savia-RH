@@ -28,7 +28,7 @@ from esquema.models import Solicitud
 from .models import AutorizarPrenomina, Estado
 from django.db.models import Q
 from proyecto.filters import CostoFilter
-from prenomina.models import Prenomina, Retardos, Castigos, Permiso_goce, Permiso_sin, Descanso, Incapacidades, Faltas, Comision, Domingo, Dia_extra
+from prenomina.models import Prenomina
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 import datetime
@@ -71,7 +71,7 @@ from django.core.files.base import ContentFile
 import math
 
 #importar reporte Excel prenomina
-from prenomina.views import Excel_estado_prenomina
+from prenomina.views import Excel_estado_prenomina, obtener_catorcena
 
 from prenomina.filters import PrenominaFilter
 
@@ -243,9 +243,13 @@ def autorizarSolicitud(request,solicitud):
 def Tabla_solicitudes_prenomina(request):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
-        ahora = datetime.date.today()
+        #ahora = datetime.date.today()
         #ahora = datetime.date.today() + timedelta(days=10)
-        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        
+        #se llama la funcion para obtener la cartocena actual - llamada de app prenomina
+        catorcena_actual = obtener_catorcena()
+        
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         empresa_faxton = Empresa.objects.get(empresa="Faxton")
         if revisar_perfil.empresa == empresa_faxton:
@@ -259,8 +263,8 @@ def Tabla_solicitudes_prenomina(request):
         #costo = costo_filter.qs
         #Trae las prenominas que le toca a cada perfil
         if user_filter.tipo.nombre ==  "Control Tecnico": #1er perfil
-            prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="RH",fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).distinct()
-            rh = prenominas = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena
+            prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="RH",catorcena = catorcena_actual.id).distinct()
+            rh = prenominas = Prenomina.objects.filter(empleado__in=costo, catorcena = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena
             rh = rh.count()
             ct = prenominas_verificadas.count()
             if ct < rh:

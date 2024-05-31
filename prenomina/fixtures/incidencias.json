@@ -1,0 +1,143 @@
+[
+    {
+        "model": "prenomina.incidencia",
+        "pk": 1,
+        "fields": {
+            "tipo": "Retardo",
+            "slug":"R" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 2,
+        "fields": {
+            "tipo": "Descanso",
+            "slug":"DES" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 3,
+        "fields": {
+            "tipo": "Falta",
+            "slug":"F" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 4,
+        "fields": {
+            "tipo": "Comisión",
+            "slug":"C" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 5,
+        "fields": {
+            "tipo": "Domingo",
+            "slug":"D"
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 6,
+        "fields": {
+            "tipo": "Día de descanso laborado",
+            "slug":"DDD" 
+        }
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 7,
+        "fields": {
+            "tipo": "Castigo",
+            "slug":"CAS" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 8,
+        "fields": {
+            "tipo": "Permiso sin goce de sueldo",
+            "slug":"PSS" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 9,
+        "fields": {
+            "tipo": "Permiso con goce de sueldo",
+            "slug":"PGS" 
+        }
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 10,
+        "fields": {
+            "tipo": "Incapacidad enfermedad general",
+            "slug":"I" 
+        }
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 11,
+        "fields": {
+            "tipo": "Incapacidad riesgo laboral",
+            "slug":"I" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 12,
+        "fields": {
+            "tipo": "Incapacidad maternidad",
+            "slug":"I" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 13,
+        "fields": {
+            "tipo": "Festivo",
+            "slug":"FE" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 14,
+        "fields": {
+            "tipo": "Economico",
+            "slug":"DE" 
+        }
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 15,
+        "fields": {
+            "tipo": "Vacación",
+            "slug":"V" 
+        }
+
+    },
+    {
+        "model": "prenomina.incidencia",
+        "pk": 16,
+        "fields": {
+            "tipo": "Asistencia",
+            "slug":"A" 
+        }
+
+    }
+    
+]

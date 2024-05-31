@@ -47,61 +47,7 @@
                 <button type="button" class="btn btn-primary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#incapacidades-modal">
                     Incapacidades
                 </button>
-                <!-- Modal programar INCAPACIDADES - 3 TIPOS -->
-                <div class="modal fade" id="incapacidades-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <form action="{% url 'programar_incapacidades' costo.id %}" method="post" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Incapacidades</h1>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <label>Tipo de incapacidad</label>
-                                    <div class="input-group mb-3">
-                                        {% render_field incapacidadestipoform.tipo class="form-control"%}
-                                    </div>
-
-                                    <label>Subsecuente</label>
-                                    <div class="input-group mb-3 form-check form-switch">
-                                        {% render_field incapacidadestipoform.subsecuente type="checkbox" class="form-check-input" role="switch" %}
-                                    </div>
-
-                                    <label>Fecha Inicio</label>
-                                    <div class="input-group mb-3">
-                                        {% render_field incapacidadestipoform.fecha type="date" class="form-control"%}
-                                    </div>
-    
-                                    <label>Fecha Final</label>
-                                    <div class="input-group mb-3">
-                                        {% render_field incapacidadestipoform.fecha_fin type="date" class="form-control"%}
-                                    </div>
-
-                                    <label>Día inhabil</label>
-                                    <div class="input-group mb-3">
-                                        {% render_field incapacidadestipoform.dia_inhabil class="form-control"%}
-                                    </div>
-                                   
-                                    <label>Comentario</label>
-                                    <div class="input-group mb-3">
-                                        {% render_field incapacidadestipoform.comentario type="comentario" class="form-control"%}
-                                    </div>
-    
-                                    <label>Soporte</label>
-                                    <div class="input-group mb-3" id="show-soporte">
-                                        {% render_field incapacidadestipoform.url type="file" class="form-control" accept=".png, .jpg, .jpeg, .pdf" %}
-                                    </div>
-    
-                                </div>
-                                <div class="modal-footer d-flex justify-content-between">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="submit" name="btn_incapacidades" class="btn btn-primary">Guardar</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+               
 
 
                 <!-- Button trigger modal -->
@@ -109,71 +55,7 @@
                     Incidencias
                 </button>
 
-                <!-- Modal programar INDIDENCIAS-->
-                <div class="modal fade" id="programar-incidencias" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                    <form action="{% url 'programar_incidencias' costo.id %}" method="post" enctype="multipart/form-data" id="incidencias-form">
-                        {% csrf_token %}
-                        <div class="modal-content">
-                            <div class="modal-header">
-                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Programar Incidencias</h1>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                            </div>
-                            <div class="modal-body">
-                                <label>Incidencias</label>
-                                <div class="input-group mb-3">
-                                    {% render_field incapacidadesform.incidencias class="form-control"%}
-                                </div>
-                                
-                                {% comment %}
-                                    
-                              
-                                    
-                                <div class="input-group mb-3">
-                                    <select id="incidencias" name="incidencias" class="form-control mb-2">
-                                        <option selected disabled>------------</option>
-                                        <option value="1">Incapacidades</option>
-                                        <option value="2">Castigos</option>
-                                        <option value="3">Permisos con goce </option>
-                                        <option value="4">Permisos sin goce</option>
-                                    </select>
-                                </div>
-                                {% endcomment %}
-
-                                <label>Fecha Inicio</label>
-                                <div class="input-group mb-3">
-                                    {% render_field incapacidadesform.fecha type="date" class="form-control"%}
-                                </div>
-
-                                <label>Fecha Final</label>
-                                <div class="input-group mb-3">
-                                    {% render_field incapacidadesform.fecha_fin type="date" class="form-control"%}
-                                </div>
-
-                                <label>Día inhabil</label>
-                                <div class="input-group mb-3">
-                                    {% render_field incapacidadestipoform.dia_inhabil class="form-control"%}
-                                </div>
-
-                                <label>Comentario</label>
-                                <div class="input-group mb-3">
-                                    {% render_field incapacidadesform.comentario type="comentario" class="form-control"%}
-                                </div>
-
-                                <label>Soporte</label>
-                                <div class="input-group mb-3" id="show-soporte">
-                                    {% render_field incapacidadesform.url type="file" class="form-control" accept=".png, .jpg, .jpeg, .pdf" %}
-                                </div>
-
-                            </div>
-                            <div class="modal-footer d-flex justify-content-between">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" name="btn_incidencias" class="btn btn-primary">Guardar</button>
-                            </div>
-                        </div>
-                    </form>
-                    </div>
-                </div>
+               
                 
 
             </div>
@@ -194,82 +76,40 @@
                     <thead class="text-black" style="background-color: #F5F5F5;">
                         <tr style="background-color:#2A628F;color:#ffffff;">
                             <th>Fecha</th>
-                            <th>Estado actual</th>
+                            <th>Seleccionar Incidencia</th>
+                            {% comment %}
+                            <th>Incidencia actual</th>
+                            {% endcomment %}
                             <th>Comentario</th>
-                            <th>Cambiar Estado</th>
-                            <th>Subir Soporte</th> <!-- Nueva columna -->
+                            <th>Subir Soporte</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for fecha, etiqueta, comentario, archivo in fechas_con_etiquetas %}
-                            <tr>
-                                <td>{{ fecha|date:'d/m/Y' }}</td>
-                                <td>
-                                    {% if etiqueta == 'día extra' %}                            
-                                        día de descanso laborado
-                                    {% else %}
-                                        {{etiqueta}}
-                                    {% endif %}
-                                   
-                                </td>
-                                <td>
-                                    {% if etiqueta == "festivo" %}
-                                        Festivo
-                                    {% elif etiqueta == "economico" %}
-                                        Economico
-                                    {% elif etiqueta == "vacaciones" %}
-                                        Vacaciones
-                                    {% elif etiqueta == "descanso incidencia" %}
-                                        Descanso
-                                    {% else %}
-                                        <input type="text" name="comentario_{{ fecha|date:'Y-m-d' }}" value="{{ comentario }}" class="form-control">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if etiqueta == "festivo" %}
-                                        Festivo
-                                    {% elif etiqueta == "economico" %}
-                                        Economico
-                                        <button type="submit" name="economico_pdf" class="btn btn-outline-danger" value="{{ fecha }}">
-                                            <i class="fa-solid fa-file-pdf fa-2xl"></i>
-                                        </button>
-                                    {% elif etiqueta == "descanso incidencia" %}
-                                        Descanso
-                                    {% elif etiqueta == "vacaciones" %}
-                                        Vacaciones
-                                        <button type="submit" name="vacaciones_pdf" class="btn btn-outline-danger" value="{{ fecha }}">
-                                            <i class="fa-solid fa-file-pdf fa-2xl"></i>
-                                        </button>
-                                    {% else %}
-                                    <select name="estado_{{ fecha|date:'Y-m-d' }}" onchange="showInput(this)" class="form-select" aria-label="Default select example">
-                                        <option value="asistencia" {% if etiqueta == "asistencia" %}selected{% endif %}>Asistencia</option>
-                                        <option value="retardo" {% if etiqueta == "retardo" %}selected{% endif %}>Retardo</option>
-                                        <option disabled value="castigo" {% if etiqueta == "castigo" %}selected{% endif %}>Castigo</option>
-                                        <option disabled value="permiso con goce de sueldo" {% if etiqueta == "permiso con goce de sueldo" %}selected{% endif %}>Permiso con goce de sueldo</option>
-                                        <option disabled value="permiso sin goce de sueldo" {% if etiqueta == "permiso sin goce de sueldo" %}selected{% endif %}>Permiso sin goce de sueldo</option>
-                                        <option value="descanso" {% if etiqueta == "descanso" %}selected{% endif %}>Descanso</option>
-                                        <option disabled value="incapacidades" {% if etiqueta == "incapacidades" %}selected{% endif %}>Incapacidades</option>
-                                        <option value="faltas" {% if etiqueta == "faltas" %}selected{% endif %}>Faltas</option>
-                                        <option value="comision" {% if etiqueta == "comision" %}selected{% endif %}>Comisión</option>
-                                        <option value="domingo" {% if etiqueta == "domingo" %}selected{% endif %}>Domingo</option>
-                                        <option value="día extra" {% if etiqueta == "día extra" %}selected{% endif %}>Día de descanso laborado</option>
-                                        <!-- Agrega más opciones según tus factores -->
-                                    </select>
-                                    {% endif %}
-                                </td>
-                                <td> <!-- Nueva columna para subir archivos -->
-                                    <div class="custom-file">
-                                        <input type="file" class="custom-file-input form-control-sm" id="archivo_{{ fecha|date:'Y-m-d' }}" name="archivo_{{ fecha|date:'Y-m-d' }}">
-                                        <label class="custom-file-label" for="archivo_{{ fecha|date:'Y-m-d' }}">{{ archivo.name|default:'Seleccionar soporte' }}</label>
-                                    </div>
-                                    {% if archivo %}
-                                        <p>Archivo actual: <a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> 
-                                            <small class="text-muted"> {{archivo}} </small>
-                                        </p>
-                                    
-                                    {% endif %}
-                                </td>
-                            </tr>
+                        {{ prenomina_incidencias_form.management_form }}
+                        {% for prenomina_form in prenomina_incidencias_form%} 
+                        <tr>
+                            <td>
+                                {% render_field prenomina_form.fecha style="border: none; background: none;" class="form-control" readonly="True"%}
+                            </td>
+                            <td>
+                                {% render_field prenomina_form.incidencia class="form-control select2-bootstrap" %}
+                            </td>
+                            {% comment %}
+                            <td>Lorem</td>
+                            {% endcomment %}
+                            <td>
+                                {% render_field prenomina_form.comentario class="form-control"%}
+                            </td>
+                            <td>
+                                
+                                {% render_field prenomina_form.soporte class="form-control form-control-sm"%}
+                            </td>
+                                {% render_field prenomina_form.id type="hidden"%}
+                            <td>
+                                <button class="btn btn-danger btn-sm" title="Eliminar incidencia"><i class="fas fa-minus"></i></button>
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -288,43 +128,6 @@
         </div>
     </div>
 </div>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function() {
-        function updateFileInputs() {
-            // Recorrer cada fila de la tabla
-            $('table tbody tr').each(function() {
-                var selectedOption = $(this).find('select[name^="estado_"]').val();
-                var fileInput = $(this).find('.custom-file-input');
-
-                // Valores que habilitarán el input de archivo
-                var enabledValues = ["permiso_goce", "permiso_sin", "incapacidades", "comision", "extra","castigo"];
-
-                // Valores adicionales que deshabilitarán el input de archivo
-                var disabledValues = ["vacaciones", "economico"];
-
-                // Verificar si el valor seleccionado está en la lista de valores habilitados
-                if (enabledValues.includes(selectedOption) || disabledValues.includes(selectedOption)) {
-                    fileInput.prop('disabled', false); // Habilitar el input de archivo
-                } else {
-                    fileInput.prop('disabled', true); // Deshabilitar el input de archivo
-                    fileInput.val(''); // Limpiar cualquier valor seleccionado previamente
-                    fileInput.closest('.custom-file').find('.custom-file-label').text(''); // Limpiar el nombre del archivo mostrado
-                }
-            });
-        }
-
-        // Llamar a la función para actualizar los inputs de archivo al cargar la página
-        updateFileInputs();
-
-        // Adjuntar un manejador de eventos change a los selectores para actualizar los inputs de archivo cuando se cambie el estado
-        $('select[name^="estado_"]').change(function() {
-            updateFileInputs();
-        });
-    });
-</script>
-
 {% endblock %}
 </body>
 </html>
