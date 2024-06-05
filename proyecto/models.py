@@ -14,7 +14,7 @@ class TablaVacaciones(models.Model):
         return f'Años: {self.years}, dias de vacaciones: {self.days}'
 
 class TablaFestivos(models.Model):
-    dia_festivo = models.DateField(null=True)
+    dia_festivo = models.DateField(null=True,db_index=True)
     complete = models.BooleanField(default=False)
 
     def __str__(self):
@@ -638,8 +638,8 @@ class Vacaciones(models.Model):
 
 class Vacaciones_dias_tomados(models.Model):
     prenomina = models.ForeignKey(Vacaciones, on_delete = models.CASCADE, null=True)
-    fecha_inicio = models.DateField(null=True)
-    fecha_fin = models.DateField(null=True)
+    fecha_inicio = models.DateField(null=True,db_index=True)
+    fecha_fin = models.DateField(null=True,db_index=True)
     dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete = models.CASCADE, blank=True, null=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
@@ -687,7 +687,7 @@ class Economicos(models.Model):
 
 class Economicos_dia_tomado(models.Model):
     prenomina = models.ForeignKey(Economicos, on_delete = models.CASCADE, null=True)
-    fecha = models.DateField(null=True)
+    fecha = models.DateField(null=True,db_index=True)
     complete = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now=True)
     updated_at=models.DateTimeField(auto_now=True)

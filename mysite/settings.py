@@ -120,7 +120,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         #'NAME': 'incapacidades',
-        'NAME': 'rapida',
+        'NAME': 'ultima',
         #'NAME': 'sql',
         'USER': 'root',
         'PASSWORD': '12345678',

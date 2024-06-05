@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Subquery, OuterRef, Q
 from revisar.models import AutorizarPrenomina, Estado
 from proyecto.filters import CostoFilter
-from .models import Prenomina, PrenominaIncidencias
+from .models import Prenomina, PrenominaIncidencias, IncidenciasRango
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 import datetime 
@@ -61,7 +61,9 @@ from django.db.models import Sum
 from proyecto.models import Variables_imss_patronal
 from proyecto.models import SalarioDatos
 
-from .forms import PrenominaIncidenciasFormSet
+from .forms import PrenominaIncidenciasFormSet, IncidenciasRangoForm
+import time
+
 # Create your views here.
 
 #funcion para obtener la catorcena actual
@@ -70,8 +72,150 @@ def obtener_catorcena():
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
     return catorcena_actual
 
+def generar_prenomina(prenomina,catorcena,festivos):
+        #crear_registro_prenomina(prenomina, prenomina.catorcena)
+        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=(catorcena.fecha_inicial, catorcena.fecha_final))
+        vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
+
+        incidencias = [] #es una lista de objectos que lleva los 14 dias con incidencias de la prenomina
+        incidencia = 0 #se inicializa la incidencia
+        fecha_incidencia = catorcena.fecha_inicial
+        
+        for i in range(1,15):
+            fecha = fecha_incidencia
+            incidencia = 16 #asistencia
+            if fecha.weekday() == 6:  
+                incidencia = 5 #domingo
+            elif fecha in [festivo.dia_festivo for festivo in festivos]:
+                incidencia = 13 #festivo:
+            elif fecha in [economico.fecha for economico in economicos]:
+                incidencia = 14 #economico            
+            
+            #Itera y saca la fecha de inicio y la fecha fin
+            for vacacion in vacaciones:
+                #se ajusta la fecha de acuerdo a la catorcena
+                fecha_inicio = max(vacacion.fecha_inicio, prenomina.catorcena.fecha_inicial)
+                fecha_fin = min(vacacion.fecha_fin, prenomina.catorcena.fecha_final)
+                #se considera el dia inhabil (descanso)       
+                dia_inhabil = vacacion.dia_inhabil_id
+                
+                #sacar las fechas
+                while fecha_inicio <= fecha_fin:
+                    if fecha_inicio <= fecha <= fecha_fin:
+                        incidencia = 15 # vacacion
+                        #verifica si es domingo o descanso
+                        if fecha_inicio.weekday() == (dia_inhabil - 1): 
+                            if (dia_inhabil - 1) == 6:# se resta 1 para obtener el dia domingo
+                                incidencia = 5 #domingo
+                            else:
+                                incidencia = 2 #descanso
+                        elif fecha_inicio in [festivo.dia_festivo for festivo in festivos]:
+                            incidencia = 13 #festivo:
+                            
+                    #se agregar un dia para realizar el recorrido de la fecha
+                    fecha_inicio += timedelta(days=1)
+            
+            #se prepara el objecto PrenominaIncidencia para posterior ser almacenado en la BD
+            crear_incidencia = PrenominaIncidencias(
+                prenomina_id=prenomina.id,
+                fecha=fecha,
+                incidencia_id=incidencia  
+            )
+            
+            #se inserta a la lista de las incidencias         
+            incidencias.append(crear_incidencia)     
+            #se agregar un dia para realizar el recorrido
+            fecha_incidencia += timedelta(days=1)
+            
+        #se insertan todos los objecto en una sola consulta
+        PrenominaIncidencias.objects.bulk_create(incidencias, batch_size=14)
+
+def crear_rango_incidencias(request,pk):
+    #catorcena
+    catorcena_actual = obtener_catorcena()
+    #RH
+    user_filter = UserDatos.objects.get(user=request.user)
+    #nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+    #Empleado
+    costo = Costo.objects.get(id=pk)
+    prenomina = Prenomina.objects.get(empleado=costo,catorcena = catorcena_actual.id)
+    
+    if request.method == 'POST':       
+        #Se trae el formulario de las incapacidades para ser validado
+        incidencias_form = IncidenciasRangoForm(request.POST, request.FILES)
+        print(incidencias_form)
+        error
+        
+        """
+        if incidencias_form.is_valid():    
+            incidencia_rango = incidencias_form.save(commit=False)
+            incidencia_rango.soporte = request.FILES['soporte'] 
+            incidencia_rango.save()  
+            
+            incidencias = PrenominaIncidencias.objects.filter(prenomina = prenomina,fecha__range=[incidencia_rango.fecha_inicio,incidencia_rango.fecha_fin])
+            
+            for incidencia in incidencias:  
+                incidencia.soporte =   incidencia_rango.soporte
+                incidencia.incidencia = incidencia_rango.incidencia
+                incidencia.comentario = incidencia_rango.comentario
+                incidencia.incidencias_rango = incidencia_rango
+                incidencia.save()
+        """
+        context = {
+            'incidencias_form':incidencias_form,
+            'costo':costo,
+            'prenomina':prenomina
+        }
+    else:
+        incidencias_form = IncidenciasRangoForm()
+        context = {
+            'incidencias_form':incidencias_form,
+            'costo':costo,
+            'prenomina':prenomina
+        }
+        
+    return render(request, 'prenomina/rango_incidencias.html',context)
+
+def actualizar_prenomina(prenominas,catorcena,festivos):
+    print("aqui se debe actualizar la prenomina")
+    cont = 0
+    for prenomina in prenominas:
+        cont = cont + 1
+        print("contador ",cont)
+        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=(catorcena.fecha_inicial, catorcena.fecha_final))
+        vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
+        
+        # Para los días económicos - registrados en el tiempo de la prenomina
+        for economico in economicos:
+            PrenominaIncidencias.objects.filter(
+                prenomina=prenomina,
+                fecha=economico.fecha
+            ).update(
+                comentario=None,
+                soporte=None,
+                incidencia_id=14 #economico
+            )
+                  
+        # Para los días de vacaciones registrados en el tiempo de la prenomina
+        for vacacion in vacaciones:
+            # Buscar las incidencias correspondientes en la prenomina actual
+            incidencias_vacaciones = PrenominaIncidencias.objects.filter(prenomina=prenomina,fecha__range=(vacacion.fecha_inicio, vacacion.fecha_fin))
+            for incidencia_vacacion in incidencias_vacaciones:
+                if incidencia_vacacion.incidencia_id == 16:#asistencia
+                    incidencia_vacacion.incidencia_id = 15#vacacion
+                elif incidencia_vacacion.fecha.weekday() == (int(vacacion.dia_inhabil_id) - 1):
+                    if (int(vacacion.dia_inhabil_id) - 1) == 6:# se resta 1 para obtener el dia domingo
+                        incidencia_vacacion.incidencia_id = 5 #domingo
+                    else:
+                        incidencia_vacacion.incidencia_id = 2 #descanso
+                incidencia_vacacion.save()
+        
+        
+       
+
 @login_required(login_url='user-login')
 def Tabla_prenomina(request):
+    start_time = time.time()  # Registrar el tiempo de inicio
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
@@ -89,7 +233,8 @@ def Tabla_prenomina(request):
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
 
         prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena=catorcena_actual.id)
-        
+        #prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador").prefetch_related('incidencias')
+        festivos = TablaFestivos.objects.filter(dia_festivo__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #crear las prenominas actuales si es que ya es nueva catorcena
         for empleado in costo:
             #checar si existe prenomina para el empleado en la catorcena actual
@@ -97,10 +242,13 @@ def Tabla_prenomina(request):
             #si no existe crear una nueva prenomina
             if not prenomina_existente:
                 nueva_prenomina = Prenomina(empleado=empleado, catorcena=catorcena_actual)
-                nueva_prenomina.save()
+                nueva_prenomina.save() 
+                #generar_prenomina(nueva_prenomina,catorcena_actual,festivos)
+            #else:
+                #actualizar_prenomina(prenominas,catorcena_actual,festivos)                
         #costo_filter = CostoFilter(request.GET, queryset=costo)
         #costo = costo_filter.qs
-        prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador")
+        #prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador").prefetch_related('incidencias')
         
         prenomina_filter = PrenominaFilter(request.GET, queryset=prenominas)
         prenominas = prenomina_filter.qs
@@ -137,6 +285,8 @@ def Tabla_prenomina(request):
             'salidas_list': salidas_list,
             'prenominas':prenominas
         }
+        end_time = time.time()  # Registrar el tiempo de finalización
+        print(f"Tiempo total de carga de la página: {end_time - start_time} segundos")
         return render(request, 'prenomina/Tabla_prenomina.html', context)
     else:
             return render(request, 'revisar/403.html')
@@ -323,7 +473,77 @@ def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,dia_in
                     descanso.save()
         messages.success(request, 'Se guardo correctamente')    
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+@login_required(login_url='user-login')
+def programar_incidencias(request,pk):
+    # crea el nuevo dato según el nuevo estado o comentario
+    if request.method == 'POST' and 'btn_incidencias' in request.POST:
         
+        #saber catorcena
+        ahora = datetime.date.today()
+        #ahora = datetime.date.today() + timedelta(days=10)
+        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        
+        #RH
+        user_filter = UserDatos.objects.get(user=request.user)
+        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+        
+        #Empleado
+        costo = Costo.objects.get(id=pk)
+        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
+        
+        #Se trae el formulario de las incapacidades para ser validado
+        form_incidencias = IncapacidadesForm(request.POST, request.FILES)
+        
+        if form_incidencias.is_valid():
+            incidencia = form_incidencias.cleaned_data.get('incidencias')
+            fecha_incio = form_incidencias.cleaned_data['fecha']
+            fecha_fin = form_incidencias.cleaned_data['fecha_fin']
+            dia_inhabil = form_incidencias.cleaned_data['dia_inhabil']
+            comentario = form_incidencias.cleaned_data['comentario']    
+            url = form_incidencias.cleaned_data['url']       
+            
+            #VALIDACIONES
+            if fecha_incio > fecha_fin:
+                print("La fecha de inicio es posterior a la fecha final.")
+                messages.error(request, 'La fecha de inicio debe ser menor a la fecha final')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            if not incidencia:
+                messages.error(request, 'Debes seleccionar una incidencia')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            if fecha_incio < catorcena_actual.fecha_inicial:
+                messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[fecha_incio, fecha_fin]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[fecha_incio, fecha_fin]))
+            if vacaciones.exists():
+                messages.error(request, 'Ya existen vacaciones dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[fecha_incio, fecha_fin])
+            if economicos.exists():            
+                messages.error(request, 'Ya existen economicos dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+            
+            festivos = TablaFestivos.objects.filter(dia_festivo__range=[fecha_incio, fecha_fin])
+            if festivos.exists():
+                messages.error(request, 'Ya existen festivos dentro del rango de fechas especificado')
+                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
+            
+            
+            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,nombre,url)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        
+        else:
+            for field, errors in form_incidencias.errors.items():
+                for error in errors:
+                    messages.error(request,error)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
 @login_required(login_url='user-login')
 def programar_incidencias(request,pk):
     # crea el nuevo dato según el nuevo estado o comentario
@@ -605,8 +825,49 @@ def programar_incapacidades(request,pk):
                     messages.error(request,error)
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
     
-     
-     
+@login_required(login_url='user-login')
+def crear_rango_incidencias_dos(request,pk):
+    # crea el nuevo dato según el nuevo estado o comentario
+    if request.method == 'POST' and 'btn_incidencias' in request.POST:        
+        #catorcena
+        catorcena_actual = obtener_catorcena()
+        #RH
+        user_filter = UserDatos.objects.get(user=request.user)
+        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+        #Empleado
+        costo = Costo.objects.get(id=pk)
+        prenomina = Prenomina.objects.get(empleado=costo,catorcena = catorcena_actual.id)
+        
+        #Se trae el formulario de las incapacidades para ser validado
+        incidencias_form = IncidenciasRangoForm(request.POST, request.FILES)
+        
+        if incidencias_form.is_valid():    
+            incidencia_rango = incidencias_form.save(commit=False)  # Guarda el formulario pero no en la base de datos aún
+            if incidencia_rango.fecha_inicio > incidencia_rango.fecha_fin:
+                return JsonResponse({'poscondicion': 'La fecha de inicio debe ser menor a la fecha final'}, status=422)
+            
+            
+            
+            incidencia_rango.soporte = request.FILES['soporte']  # Asigna el archivo adjunto al campo 'soporte' de la incidencia
+            print("es la foto ", incidencia_rango.soporte)
+            incidencia_rango.save()  
+            
+            incidencias = PrenominaIncidencias.objects.filter(prenomina = prenomina,fecha__range=[incidencia_rango.fecha_inicio,incidencia_rango.fecha_fin])
+            for incidencia in incidencias:
+              
+                incidencia.soporte =   incidencia_rango.soporte
+                incidencia.incidencia = incidencia_rango.incidencia
+                incidencia.comentario = incidencia_rango.comentario
+                incidencia.incidencias_rango = incidencia_rango
+                incidencia.save()
+                
+            print(incidencia_rango.id)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        else:
+            for field, errors in incidencias_form.errors.items():
+                for error in errors:
+                    messages.error(request,error)
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 def crear_registro_prenomina(prenomina,catorcena):
     # Lista de las incidencias de la prenomina a crear
     incidencias_prenomina = []
@@ -646,6 +907,9 @@ def PrenominaRevisar(request, pk):
         autorizacion1 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Control Tecnico").first()
         autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
         
+        #obtener la instancia de los formularios
+        incidenciasrangoform = IncidenciasRangoForm()
+        
         #Para guardar los datos en la prenomina
         if request.method == 'POST' and 'guardar_cambios' in request.POST:
             #se obtienen todos los formularios - formset
@@ -660,26 +924,24 @@ def PrenominaRevisar(request, pk):
                     incidencia = form.cleaned_data['incidencia']
                     soporte = form.cleaned_data['soporte']    
                     #se busca por prenomina y por fecha, se guarda o actuliza la prenomina
-                    prenomina_registro, created = PrenominaIncidencias.objects.update_or_create(
+                    PrenominaIncidencias.objects.filter(
                         prenomina=prenomina,  # Criterios de búsqueda
-                        fecha = fecha,
-                        defaults={
-                            'fecha': fecha,
-                            'comentario': comentario,
-                            'soporte': soporte,
-                            'incidencia': incidencia,
-                        }
-                    )
-                    #se guarda la instancia de la prenomina                    
-                    prenomina_registro.save()
-                                    
+                        fecha = fecha
+                        ).update(
+                            comentario = comentario,
+                            soporte = soporte,
+                            incidencia = incidencia
+                        )
+                          
                 #es para guardar la autorizacion
+                """
                 revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
                 revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
                 perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
                 revisado_rh.perfil=perfil_rh
                 revisado_rh.comentario="Revisado por RH"
                 revisado_rh.save()
+                """
             else:
                 for form in prenomina_form:
                     if form.errors:
@@ -690,6 +952,9 @@ def PrenominaRevisar(request, pk):
             return HttpResponseRedirect(request.path_info)
 
         else:
+            """
+            
+            
             if PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id).exists():
                 print("si existe, llamar directo el query")
                 queryset = PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id)
@@ -697,22 +962,20 @@ def PrenominaRevisar(request, pk):
                 print("No existe, crear el form automatico")
                 crear_registro_prenomina(prenomina,catorcena_actual)
                 queryset = PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id)
-                
+            """
+            queryset = PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id)
             prenomina_incidencias_form = PrenominaIncidenciasFormSet(queryset = queryset)
            
             
         context = {
-            #'dias_entre_fechas': dias_entre_fechas, #Dias de la catorcena
             'prenomina':prenomina,
             'costo':costo,
             'catorcena_actual':catorcena_actual,
-            #'fechas_con_etiquetas': fechas_con_etiquetas,
             'autorizacion1':autorizacion1,
             'autorizacion2':autorizacion2,
             'prenomina_incidencias_form':prenomina_incidencias_form,
-            'catorcena_actual':catorcena_actual
-            #'incapacidadesform':incapacidadesform,
-            #'incapacidadestipoform':incapacidadestipoform
+            'catorcena_actual':catorcena_actual,
+            'incidenciasrangoform':incidenciasrangoform
         }
 
         return render(request, 'prenomina/Actualizar_revisar.html',context)

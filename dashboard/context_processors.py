@@ -43,11 +43,11 @@ def contadores_processor(request):
             else:
                 costo = Costo.objects.filter(status__perfil__distrito=usuario.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
 
-            prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Control Tecnico",fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).distinct()    
-            rh = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena
+            prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Control Tecnico",catorcena_id = catorcena_actual.id).distinct()    
+            rh = Prenomina.objects.filter(empleado__in=costo, catorcena_id = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena
             rh = rh.count()
             ct = prenominas_verificadas.count()
-            g = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Gerencia",fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).distinct()
+            g = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Gerencia",catorcena_id = catorcena_actual.id).distinct()
             g = g.count()
             if rh == ct:
                 prenomina_estado = 1 #Ya estan todas revisadas por rh y ct

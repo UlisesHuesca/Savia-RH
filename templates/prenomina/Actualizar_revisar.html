@@ -43,20 +43,79 @@
         <div class="column is-half is-offset-one-quarter">
             <h4 class="title is-size-2">Prenomina del empleado</h4>
             <div class="d-flex justify-content-end my-0">
+                
+                <a class="btn btn-primary" href="{% url 'crear_rango_incidencias' costo.id %}" title="Agregar incidencias por rango"><i class="fas fa-plus"></i> Incidencias</a>
+
                 <!-- Button trigger modal -->
                 <button type="button" class="btn btn-primary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#incapacidades-modal">
                     Incapacidades
                 </button>
-               
+                 <!-- Modal programar INDIDENCIAS-->
+                 <div class="modal fade" id="programar-incidencias" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                    <form action="{% url 'crear_rango_incidencias' costo.id %}" method="post" enctype="multipart/form-data" id="incidencias-form">
+                        {% csrf_token %}
+                        <div class="modal-content">
+                            <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Programar Incidencias</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label>Incidencias</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidenciasrangoform.incidencia class="form-control"%}
+                                </div>
+                                
+                                {% comment %}      
+                                <div class="input-group mb-3">
+                                    <select id="incidencias" name="incidencias" class="form-control mb-2">
+                                        <option selected disabled>------------</option>
+                                        <option value="1">Incapacidades</option>
+                                        <option value="2">Castigos</option>
+                                        <option value="3">Permisos con goce </option>
+                                        <option value="4">Permisos sin goce</option>
+                                    </select>
+                                </div>
+                                {% endcomment %}
 
+                                <label>Fecha Inicio</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidenciasrangoform.fecha_inicio type="date" class="form-control"%}
+                                </div>
 
+                                <label>Fecha Final</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidenciasrangoform.fecha_fin type="date" class="form-control"%}
+                                </div>
+
+                                <label>Día inhabil</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidenciasrangoform.dia_inhabil class="form-control"%}
+                                </div>
+
+                                <label>Comentario</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidenciasrangoform.comentario class="form-control"%}
+                                </div>
+
+                                <label>Soporte</label>
+                                <div class="input-group mb-3" id="show-soporte">
+                                    {% render_field incidenciasrangoform.soporte class="form-control"%}
+                                </div>
+
+                            </div>
+                            <div class="modal-footer d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" name="btn_incidencias" class="btn btn-primary">Guardar</button>
+                            </div>
+                        </div>
+                    </form>
+                    </div>
+                </div>
                 <!-- Button trigger modal -->
                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#programar-incidencias">
                     Incidencias
                 </button>
-
-               
-                
 
             </div>
             <span class="h4">{{cos.nombres}} {{empleado.apellidos}}</span>
@@ -93,7 +152,7 @@
                                 {% render_field prenomina_form.fecha style="border: none; background: none;" class="form-control" readonly="True"%}
                             </td>
                             <td>
-                                {% render_field prenomina_form.incidencia class="form-control select2-bootstrap" %}
+                                {% render_field prenomina_form.incidencia class="form-control select2-bootstrap"%}
                             </td>
                             {% comment %}
                             <td>Lorem</td>

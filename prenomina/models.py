@@ -35,7 +35,7 @@ class Rango(models.Model):
     incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
     fecha_inicio = models.DateField(null=False, db_index=True)
     fecha_fin = models.DateField(null=False, db_index=True)
-    dia_inhabil = models.OneToOneField(Dia_vacacion, on_delete=models.CASCADE, null=False)
+    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete=models.CASCADE, null=False)
     comentario = models.CharField(max_length=100, null=True)
     soporte = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])
     complete = models.BooleanField(default=False)
@@ -74,4 +74,22 @@ class PrenominaIncidencias(models.Model):
     comentario = models.CharField(max_length=100, null=True, blank=True)
     incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
     soporte = models.FileField(upload_to="prenomina/",null=True,blank=True,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])
+
+class PrenominaIncidencias(models.Model):
+    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False, related_name='incidencias')
+    fecha = models.DateField(null=False, db_index=True)
+    comentario = models.CharField(max_length=100, null=True, blank=True)
+    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
+    soporte = models.FileField(upload_to="prenomina/",null=True,blank=True,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])    
     
+    
+    
+class Rango(models.Model):
+    prenominaincidencias = models.ForeignKey(PrenominaIncidencias, on_delete=models.CASCADE, null=False)
+    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
+    fecha_inicio = models.DateField(null=False, db_index=True)
+    fecha_fin = models.DateField(null=False, db_index=True)
+    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete=models.CASCADE, null=False)
+    comentario = models.CharField(max_length=100, null=True)
+    soporte = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])
+    complete = models.BooleanField(default=False)

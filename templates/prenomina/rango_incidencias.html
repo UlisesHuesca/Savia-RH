@@ -1,0 +1,74 @@
+{% extends 'partials/base.html' %}
+
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}
+Registrar - Rango Incidencias
+{% endblock title %}
+
+{% block css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css">
+{% endblock css %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card my-5 py-5">
+                <div class="card-body">
+                    <h1 class="h4">Agregar Incidencias</h1>
+                    <hr>
+                    <h5 class="h5">{{prenomina.empleado}}</h5>
+                    <h5 class="h6">{{prenomina.catorcena}}</h5>
+                    <div class="row d-flex justify-content-center">
+                        <div class="col-12 col-md-6 border-1 border p-5 mt-3 shadow">
+                            <form method="post" class="b border-1" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <label>Incidencias</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidencias_form.incidencia class="form-control"%}
+                                </div>
+                                <label>Fecha Inicio</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidencias_form.fecha_inicio type="date" class="form-control"%}
+                                </div>
+
+                                <label>Fecha Final</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidencias_form.fecha_fin type="date" class="form-control"%}
+                                </div>
+
+                                <label>Día inhabil</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidencias_form.dia_inhabil class="form-control"%}
+                                </div>
+
+                                <label>Comentario</label>
+                                <div class="input-group mb-3">
+                                    {% render_field incidencias_form.comentario class="form-control"%}
+                                </div>
+
+                                <label>Soporte</label>
+                                <div class="input-group mb-3" id="show-soporte">
+                                    {% render_field incidencias_form.soporte class="form-control"%}
+                                </div>
+                                <div class="mt-5">
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block js %}
+
+{% endblock js %}
+    
