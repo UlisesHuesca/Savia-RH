@@ -22,7 +22,7 @@ def validar_size(value):
     filesize = value.size
     if filesize >  5 * 2048 * 2048:  # 10 MB
     #if filesize >  5 * 512 * 512:  # 2.5 MB
-        raise ValidationError('El tamaño del archivo no puede ser mayor a 2.5 MB.')    
+        raise ValidationError('El tamaño del archivo no puede ser mayor a 10MB.')    
     
 class Incidencia(models.Model):
     tipo = models.CharField(max_length=50, null=False)
@@ -31,65 +31,36 @@ class Incidencia(models.Model):
     def __str__(self):
         return self.tipo
     
-class Rango(models.Model):
+class IncidenciaRango(models.Model):
     incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
     fecha_inicio = models.DateField(null=False, db_index=True)
     fecha_fin = models.DateField(null=False, db_index=True)
     dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete=models.CASCADE, null=False)
     comentario = models.CharField(max_length=100, null=True)
     soporte = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])
-    complete = models.BooleanField(default=False)
-
-    class Meta:
-        abstract = True # no crea una tabla en la BD, es una plantilla
-        
-class IncapacidadesRango(Rango):
-    subsecuente = models.BooleanField(default=False, null=False)
-    
-    def __str__(self):
-        return self.incidencia, self.fecha_inicio, self.fecha_inicio
-    
-    
-class IncidenciasRango(Rango):
-    def __str__(self):
-        return self.incidencia, self.fecha_inicio, self.fecha_inicio
-    
-    pass # se pone porque no se requieren más campos
-
-class pagar_incapacidad(models.Model):
-    prenomina = models.ForeignKey(Prenomina, on_delete = models.CASCADE, null=False)
-    incapacidades_rango = models.ForeignKey(IncapacidadesRango, on_delete=models.CASCADE, null=False)
-    dias_pagados = models.IntegerField(null=False)
-    subsecuente = models.BooleanField(default=False, null=False)
-    complete = models.BooleanField(default=False)
-    
-    def __str__(self):
-        return self.prenomina, self.dias_pagados
-    
-class PrenominaIncidencias(models.Model):
-    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False, related_name='incidencias')
-    incapacidades_rango = models.ForeignKey(IncapacidadesRango, on_delete=models.CASCADE, null=True)
-    incidencias_rango = models.ForeignKey(IncidenciasRango, on_delete=models.CASCADE, null=True)
-    fecha = models.DateField(null=False, db_index=True)
-    comentario = models.CharField(max_length=100, null=True, blank=True)
-    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
-    soporte = models.FileField(upload_to="prenomina/",null=True,blank=True,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])
+    subsecuente = models.BooleanField(null=True, default=None)
+    complete = models.BooleanField(default=None,null=True, blank=True) 
 
 class PrenominaIncidencias(models.Model):
-    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False, related_name='incidencias')
+    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False)
+    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
+    incidencia_rango = models.ForeignKey(IncidenciaRango, on_delete=models.CASCADE, null=True, blank=True)
     fecha = models.DateField(null=False, db_index=True)
     comentario = models.CharField(max_length=100, null=True, blank=True)
-    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
     soporte = models.FileField(upload_to="prenomina/",null=True,blank=True,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])    
+    complete = models.BooleanField(default=None, null=True, blank=True)
     
+    def __str__(self):
+        return f"{self.prenomina}, {self.incidencia}, {self.fecha}"
+
+"""
+class PagarIncapacidad(models.Model):
+    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False)
+    prenomina_rango = models.ForeignKey(IncidenciaRango, on_delete=models.CASCADE, null=False,related_name="pagar_incapacidad")
+    dias_pagados = models.IntegerField(null=False)
+    complete = models.BooleanField(default=None)
     
+    def __str__(self):
+        return self.dias_pagados
+"""
     
-class Rango(models.Model):
-    prenominaincidencias = models.ForeignKey(PrenominaIncidencias, on_delete=models.CASCADE, null=False)
-    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
-    fecha_inicio = models.DateField(null=False, db_index=True)
-    fecha_fin = models.DateField(null=False, db_index=True)
-    dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete=models.CASCADE, null=False)
-    comentario = models.CharField(max_length=100, null=True)
-    soporte = models.FileField(upload_to="prenomina/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])
-    complete = models.BooleanField(default=False)

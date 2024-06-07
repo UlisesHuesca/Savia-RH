@@ -1,37 +1,38 @@
 from django import forms
-from .models import PrenominaIncidencias, Incidencia, IncidenciasRango
+from .models import PrenominaIncidencias, Incidencia, IncidenciaRango
 from proyecto.models import Dia_vacacion
-from django.forms import modelformset_factory
+from django.forms import formset_factory
+from django.core.cache import cache
 
+from datetime import date, timedelta
 
-class IncidenciasRangoForm(forms.ModelForm):
-    class Meta:
-        model = IncidenciasRango
-        fields = ['incidencia', 'fecha_inicio', 'fecha_fin','dia_inhabil','comentario','soporte']
-        required = {
-            'comentario':False
-        }
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['incidencia'].queryset = Incidencia.objects.filter(pk__in=[7,8,9])
-        #self.fields['dia_inhabil'].queryset = Incidencia.objects.all()
-
-#Se define el formulario de la prenomina
 class PrenominaIncidenciasForm(forms.ModelForm):    
     class Meta:
         model = PrenominaIncidencias
-        fields = ['fecha', 'comentario', 'incidencia', 'soporte']
+        fields = ['fecha', 'comentario', 'incidencia']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['fecha'].widget.attrs['readonly'] = 'readonly'
-            
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['incidencia'].queryset = Incidencia.objects.all().order_by('tipo')
         
-#Se define un formset - crea 14    
-PrenominaIncidenciasFormSet = modelformset_factory(PrenominaIncidencias,PrenominaIncidenciasForm, extra=0) 
+        #se crea la cache para la consulta de las incidencias
+        cache_key = 'incidencias_cache'
+        incidencias_cache = cache.get(cache_key)
+        if not incidencias_cache:
+            incidencias_cache = Incidencia.objects.all().order_by('tipo')
+            cache.set(cache_key, incidencias_cache)
+        self.fields['incidencia'].queryset = incidencias_cache
+        
+        #eliminar cache
+        #incidencias_cache = cache.get(cache_key)
+        #cache.delete(cache_key)
+        
+        
+PrenominaIncidenciasFormSet = formset_factory(PrenominaIncidenciasForm, extra=0) 
+        
+
+
+
 
 
         

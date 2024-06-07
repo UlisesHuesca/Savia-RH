@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import Subquery, OuterRef, Q
 from revisar.models import AutorizarPrenomina, Estado
 from proyecto.filters import CostoFilter
-from .models import Prenomina, PrenominaIncidencias, IncidenciasRango
+from .models import Prenomina,PrenominaIncidencias
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 import datetime 
@@ -61,7 +61,7 @@ from django.db.models import Sum
 from proyecto.models import Variables_imss_patronal
 from proyecto.models import SalarioDatos
 
-from .forms import PrenominaIncidenciasFormSet, IncidenciasRangoForm
+from .forms import PrenominaIncidenciasFormSet
 import time
 
 # Create your views here.
@@ -232,20 +232,23 @@ def Tabla_prenomina(request):
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
 
-        prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena=catorcena_actual.id)
+        prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena=catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador")
         #prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador").prefetch_related('incidencias')
         festivos = TablaFestivos.objects.filter(dia_festivo__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #crear las prenominas actuales si es que ya es nueva catorcena
+        nuevas_prenominas = []
         for empleado in costo:
             #checar si existe prenomina para el empleado en la catorcena actual
             prenomina_existente = prenominas.filter(empleado=empleado).exists()
             #si no existe crear una nueva prenomina
             if not prenomina_existente:
                 nueva_prenomina = Prenomina(empleado=empleado, catorcena=catorcena_actual)
-                nueva_prenomina.save() 
+                nuevas_prenominas.append(nueva_prenomina)
                 #generar_prenomina(nueva_prenomina,catorcena_actual,festivos)
             #else:
-                #actualizar_prenomina(prenominas,catorcena_actual,festivos)                
+                #actualizar_prenomina(prenominas,catorcena_actual,festivos)  
+        if nuevas_prenominas:
+            Prenomina.objects.bulk_create(nuevas_prenominas)              
         #costo_filter = CostoFilter(request.GET, queryset=costo)
         #costo = costo_filter.qs
         #prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador").prefetch_related('incidencias')
@@ -289,7 +292,7 @@ def Tabla_prenomina(request):
         print(f"Tiempo total de carga de la página: {end_time - start_time} segundos")
         return render(request, 'prenomina/Tabla_prenomina.html', context)
     else:
-            return render(request, 'revisar/403.html')
+        return render(request, 'revisar/403.html')
 
 @login_required(login_url='user-login')
 def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
@@ -885,12 +888,32 @@ def crear_registro_prenomina(prenomina,catorcena):
         incidencias_prenomina.append(objeto)
     
     PrenominaIncidencias.objects.bulk_create(incidencias_prenomina)
+ 
+def crear_formsets():
+    from django.forms import formset_factory
+    from .forms import PrenominaIncidenciasForm
+    # Crear el formset factory
+    FormSet = formset_factory(PrenominaIncidenciasForm, extra=14)
+    
+    # Definir la fecha inicial
+    fecha_inicial = date(2024, 6, 1)  # Fecha inicial
+
+    # Lista para almacenar los formsets
+    formsets = []
+
+    # Generar los 14 formsets con fechas iniciales consecutivas
+    for i in range(14):
+        nueva_fecha = fecha_inicial + timedelta(days=i)
+        formset = FormSet(initial=[{'fecha': nueva_fecha.strftime('%Y-%m-%d')}])
+        formsets.append(formset)
+
+    return formsets
     
 @login_required(login_url='user-login')
 def PrenominaRevisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id == 4: #Perfil RH
-        
+        start_time = time.time()  # Registrar el tiempo de inicio
         #llamar la fucion para obtener la catorcena actual
         catorcena_actual = obtener_catorcena()
         
@@ -908,77 +931,92 @@ def PrenominaRevisar(request, pk):
         autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
         
         #obtener la instancia de los formularios
-        incidenciasrangoform = IncidenciasRangoForm()
         
         #Para guardar los datos en la prenomina
         if request.method == 'POST' and 'guardar_cambios' in request.POST:
-            #se obtienen todos los formularios - formset
-            prenomina_form= PrenominaIncidenciasFormSet(request.POST, request.FILES)
-            #validaciones
+            prenomina_form = PrenominaIncidenciasFormSet(request.POST)
+            #print(formset)
             if prenomina_form.is_valid():
-                #se recorre cada formulario con sus respectivos datos
                 for form in prenomina_form:
                     #se extren los datos 
-                    fecha = form.cleaned_data['fecha']
-                    comentario = form.cleaned_data['comentario']
-                    incidencia = form.cleaned_data['incidencia']
-                    soporte = form.cleaned_data['soporte']    
-                    #se busca por prenomina y por fecha, se guarda o actuliza la prenomina
-                    PrenominaIncidencias.objects.filter(
-                        prenomina=prenomina,  # Criterios de búsqueda
-                        fecha = fecha
-                        ).update(
-                            comentario = comentario,
-                            soporte = soporte,
-                            incidencia = incidencia
+                    if form.cleaned_data['incidencia'] != 16:
+                        fecha = form.cleaned_data['fecha']
+                        comentario = form.cleaned_data['comentario']
+                        incidencia = form.cleaned_data['incidencia']
+                        
+                        registro_prenomina, creado = PrenominaIncidencias.objects.update_or_create(
+                            prenomina=prenomina,
+                            fecha=fecha,
+                            defaults={
+                                'comentario': comentario, 
+                                'incidencia': incidencia
+                            }
                         )
-                          
-                #es para guardar la autorizacion
-                """
-                revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
-                revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
-                perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                revisado_rh.perfil=perfil_rh
-                revisado_rh.comentario="Revisado por RH"
-                revisado_rh.save()
-                """
-            else:
-                for form in prenomina_form:
-                    if form.errors:
-                        print(f"Errores en el formulario {form.prefix}:")
-                        for field, errors in form.errors.items():
-                            print(f"  Campo '{field}': {', '.join(errors)}")
-            #return redirect('Prenomina') 
-            return HttpResponseRedirect(request.path_info)
-
+                    
+            return redirect('Prenomina')
+            #se obtienen todos los formularios - formset
+            #prenomina_form= FormSet(request.POST)
+            #print(prenomina_form)
+            print('asda')
+            #se obtienen todos los formularios - formset
+            #prenomina_form= PrenominaIncidenciasFormSet(request.POST, request.FILES)
+            #validaciones
+            #if prenomina_form.is_valid():
+                #se recorre cada formulario con sus respectivos datos
+            #    for form in prenomina_form:
+                    #se extren los datos 
+            #        fecha = form.cleaned_data['fecha']
+            #        comentario = form.cleaned_data['comentario']
+            #        incidencia = form.cleaned_data['incidencia']
+                    #soporte = form.cleaned_data['soporte']    
+                    #se busca por prenomina y por fecha, se guarda o actuliza la prenomina
+            #        PrenominaIncidencias.objects.filter(
+            #            prenomina=prenomina,  # Criterios de búsqueda
+            #            fecha = fecha
+            #            ).update(
+            #                comentario = comentario,
+            #              soporte = soporte,
+            #                incidencia = incidencia
+            #            )
         else:
-            """
+            fecha_inicial = catorcena_actual.fecha_inicial  # Fecha inicial
+            # 5 domingo, 16 asistencia, 6 y 13 domingo calendario
+            datos_iniciales = [{'fecha': fecha_inicial + timedelta(days=i),'incidencia':5 if i == 6 or i == 13 else 16} for i in range(14)] # se preparan los 14 forms con su fecha, 12 asistencias, 2 domingos
+            #se filtra las incidencias por la prenomina es decir por el empleado
+            incidencias = PrenominaIncidencias.objects.filter(prenomina_id = prenomina.id)
             
-            
-            if PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id).exists():
-                print("si existe, llamar directo el query")
-                queryset = PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id)
-            else:
-                print("No existe, crear el form automatico")
-                crear_registro_prenomina(prenomina,catorcena_actual)
-                queryset = PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id)
-            """
-            queryset = PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id)
-            prenomina_incidencias_form = PrenominaIncidenciasFormSet(queryset = queryset)
-           
-            
-        context = {
-            'prenomina':prenomina,
-            'costo':costo,
-            'catorcena_actual':catorcena_actual,
-            'autorizacion1':autorizacion1,
-            'autorizacion2':autorizacion2,
-            'prenomina_incidencias_form':prenomina_incidencias_form,
-            'catorcena_actual':catorcena_actual,
-            'incidenciasrangoform':incidenciasrangoform
-        }
+            # Iterar sobre las incidencias y actualizar los datos iniciales si coinciden con la fecha
+            for incidencia in incidencias:
+                for data in datos_iniciales:
+                    if incidencia.fecha == data['fecha']:
+                        data['comentario'] = incidencia.comentario
+                        data['incidencia'] = incidencia.incidencia_id
+                        
+            prenomina_incidencias_form = PrenominaIncidenciasFormSet(initial=datos_iniciales)
 
-        return render(request, 'prenomina/Actualizar_revisar.html',context)
+            #es para guardar la autorizacion
+            """
+            revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
+            revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
+            perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            revisado_rh.perfil=perfil_rh
+            revisado_rh.comentario="Revisado por RH"
+            revisado_rh.save()
+            """
+                     
+            context = {
+                'prenomina':prenomina,
+                'costo':costo,
+                'catorcena_actual':catorcena_actual,
+                'autorizacion1':autorizacion1,
+                'autorizacion2':autorizacion2,
+
+                'catorcena_actual':catorcena_actual,
+                'prenomina_incidencias_form': prenomina_incidencias_form,
+            }
+            end_time = time.time()  # Registrar el tiempo de finalización
+            print(f"Tiempo total de carga de la página: {end_time - start_time} segundos")
+            return render(request, 'prenomina/Actualizar_revisar.html',context)
     else:
         return render(request, 'revisar/403.html')
 
