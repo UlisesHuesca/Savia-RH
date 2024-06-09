@@ -87,7 +87,7 @@
                             {% endcomment %}
                             <th>Comentario</th>
                             <th>Subir Soporte</th>
-                            <th></th>
+                            <th>Eliminar</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -112,7 +112,12 @@
                             </td>
                                
                             <td>
-                                <button class="btn btn-danger btn-sm" title="Eliminar incidencia"><i class="fas fa-minus"></i></button>
+                                <div class="form-check">
+                                    {% render_field prenomina_form.DELETE class="form-check-input"%}
+                                    {{prenomina_form.id}}
+                                    {{prenomina_form.rango_id}}
+                                </div>
+                               
                             </td>
                         </tr>
                         {% endfor %}
@@ -136,5 +141,18 @@
     </div>
 </div>
 {% endblock %}
+
+
+{% block js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var formulario = document.getElementById('id_form-0-incidencia')
+        var domingoOption = formulario.querySelector('option[value="7"]');
+        console.log(formulario)
+        
+    });
+</script>
+{% endblock js %}
+
 </body>
 </html>

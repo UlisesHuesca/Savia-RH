@@ -10,6 +10,12 @@ class PrenominaIncidenciasForm(forms.ModelForm):
     class Meta:
         model = PrenominaIncidencias
         fields = ['fecha', 'comentario', 'incidencia']
+
+        #id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
+        DELETE = forms.BooleanField(required=False, initial=False)  # Campo para marcar la eliminación
+    
+    id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
+    id_rango = forms.IntegerField(widget=forms.HiddenInput(), required=False)
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,7 +34,7 @@ class PrenominaIncidenciasForm(forms.ModelForm):
         #cache.delete(cache_key)
         
         
-PrenominaIncidenciasFormSet = formset_factory(PrenominaIncidenciasForm, extra=0) 
+PrenominaIncidenciasFormSet = formset_factory(PrenominaIncidenciasForm, extra=0,can_delete=True) 
         
 
 
