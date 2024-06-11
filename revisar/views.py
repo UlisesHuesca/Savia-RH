@@ -272,8 +272,8 @@ def Tabla_solicitudes_prenomina(request):
             elif ct == rh:
                 mensaje_gerencia = "Todas revisadas por RH"
         elif user_filter.tipo.nombre ==  "Gerencia":  #2do perfil
-            prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Control Tecnico",fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).distinct()
-            rh = prenominas = Prenomina.objects.filter(empleado__in=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena
+            prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="Control Tecnico",catorcena=catorcena_actual).distinct()
+            rh = prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena=catorcena_actual).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena
             rh = rh.count()
             ct = prenominas_verificadas.count()
             if ct < rh:
@@ -342,7 +342,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
         #ahora = datetime.date.today() + timedelta(days=10)
         costo = Costo.objects.get(id=pk)
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
+        prenomina = Prenomina.objects.get(empleado=costo,catorcena=catorcena_actual)
         verificado_rh = AutorizarPrenomina.objects.filter(prenomina=prenomina).first()
 
         festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
@@ -350,7 +350,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
         vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
         autorizacion1 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Control Tecnico").first()
         autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
-
+        """
         #obtener factores de días asociados a cada prenomina
         prenomina.retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #prenomina.castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
@@ -431,6 +431,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
             fecha_vacaciones = parser.parse(fecha_vacaciones).date()
             solicitud = Solicitud_vacaciones.objects.filter(status=costo.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
             return PdfFormatoVacaciones(request, solicitud)
+        """
         if request.method == 'POST' and 'aprobar' or request.method == 'POST' and 'rechazar' in request.POST:
             if 'aprobar' in request.POST:
                 estado = 'aprobado'
@@ -452,14 +453,14 @@ def Prenomina_Solicitud_Revisar(request, pk):
             else:
                 messages.error(request,'No se pudo procesar el estado intentalo de nuevo')
         context = {
-            'dias_entre_fechas': dias_entre_fechas, #Dias de la catorcena
+            #'dias_entre_fechas': dias_entre_fechas, #Dias de la catorcena
             'prenomina':prenomina,
             'verificado_rh':verificado_rh,
             'costo':costo,
             'autorizacion1':autorizacion1,
             'autorizacion2':autorizacion2,
             'catorcena_actual':catorcena_actual,
-            'fechas_con_etiquetas': fechas_con_etiquetas,
+            #'fechas_con_etiquetas': fechas_con_etiquetas,
             }
 
         return render(request, 'revisar/Prenomina_Solicitud_Revisar.html',context)

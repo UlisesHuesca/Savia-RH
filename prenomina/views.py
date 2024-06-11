@@ -952,6 +952,12 @@ def PrenominaRevisar(request, pk):
                                 'incidencia': incidencia
                             }
                         )
+            revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
+            revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
+            perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            revisado_rh.perfil=perfil_rh
+            revisado_rh.comentario="Revisado por RH"
+            revisado_rh.save()
                     
             return redirect('Prenomina')
             #se obtienen todos los formularios - formset
@@ -1254,7 +1260,7 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calcul
             
             
         #AGUINALDO EVENTUAL
-        if calculo_aguinaldo_eventual_isr < (salario_datos.UMA * 30):
+        if calculo_aguinaldo_eventual_isr <  (salario_datos.UMA * 30):
             #exento
             calculo_aguinaldo_eventual_isr = 0
             print("aguinaldo envetual exento", calculo_aguinaldo_eventual_isr)
@@ -1344,179 +1350,139 @@ def calcular_prima_vacacional(request,salario,prenomina):
     else:#No calcula la prima
         print("esta es la prima ", prima_vacacional)
         return prima_vacacional 
-
-@login_required(login_url='user-login')    
-def calcular_retardos(request,prenomina,catorcena_actual):
-    retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
+"""    
+def calcular_dias_interseccion(fecha_inicio_rango, fecha_fin_rango, fecha_inicio_catorcena, fecha_fin_catorcena, dias_inhabiles):
+    inicio = max(fecha_inicio_rango, fecha_inicio_catorcena)
+    fin = min(fecha_fin_rango, fecha_fin_catorcena)
+    if inicio > fin:
+        return 0, 0
+    else:
+        total_dias = (fin - inicio).days + 1
+        dias_inhabiles_count = sum(1 for day in range(total_dias)
+                                   if (inicio + timedelta(days=day)).weekday() in dias_inhabiles)
+        return total_dias, dias_inhabiles_count
+"""    
+@login_required(login_url='user-login')
+def calcular_retardos(request, prenomina, catorcena_actual):
+    retardos = prenomina.prenominaincidencias_set.filter(
+        incidencia__id = 1,  # Filtra por tipo de incidencia
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("fecha").count()
     return retardos
 
-@login_required(login_url='user-login')    
-def calcular_descanso(request,prenomina,catorcena_actual):
-    descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
+@login_required(login_url='user-login')
+def calcular_descanso(request, prenomina, catorcena_actual):
+    descanso = prenomina.prenominaincidencias_set.filter(
+        incidencia__id = 2,  # Filtra por tipo de incidencia
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("fecha").count()
     return descanso
 
-@login_required(login_url='user-login')    
-def calcular_faltas(request,prenomina,catorcena_actual):
-    faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
+@login_required(login_url='user-login')
+def calcular_faltas(request, prenomina, catorcena_actual):
+    faltas = prenomina.prenominaincidencias_set.filter(
+        incidencia__id = 3,  # Filtra por tipo de incidencia
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("fecha").count()
     return faltas
 
-@login_required(login_url='user-login')    
-def calcular_comision(request,prenomina,catorcena_actual):
-    comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
+@login_required(login_url='user-login')
+def calcular_comision(request, prenomina, catorcena_actual):
+    comision = prenomina.prenominaincidencias_set.filter(
+        incidencia__id = 4,  # Filtra por tipo de incidencia
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("fecha").count()
     return comision
 
-@login_required(login_url='user-login')    
-def calcular_domingo(request,prenomina,catorcena_actual):
-    domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
+@login_required(login_url='user-login')
+def calcular_domingo(request, prenomina, catorcena_actual):
+    domingo = prenomina.prenominaincidencias_set.filter(
+        incidencia__id = 5,  # Filtra por tipo de incidencia
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("fecha").count()
     return domingo
 
-@login_required(login_url='user-login')    
-def calcular_dia_extra(request,prenomina,catorcena_actual):
-     dia_extra = prenomina.dia_extra_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).values("fecha").count()
-     return dia_extra
+@login_required(login_url='user-login')
+def calcular_dia_extra(request, prenomina, catorcena_actual):
+    dia_extra = prenomina.prenominaincidencias_set.filter(
+        incidencia__id = 6,  # Filtra por tipo de incidencia
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("fecha").count()
+    return dia_extra
  
 @login_required(login_url='user-login')    
 def calcular_festivos(request,prenomina,catorcena_actual):
-    festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
+    festivos = prenomina.prenominaincidencias_set.filter(
+        incidencia__id = 13,  # Filtra por tipo de incidencia
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("fecha").count()
     return festivos 
 
 @login_required(login_url='user-login')    
 def calcular_economicos(request,prenomina,catorcena_actual):
-    economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
+    economicos = prenomina.prenominaincidencias_set.filter(
+        incidencia__id = 14,  # Filtra por tipo de incidencia
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("fecha").count()
     return economicos
 
-@login_required(login_url='user-login')    
-def calcular_vacaciones(request,prenomina,catorcena_actual):
-    vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
+@login_required(login_url='user-login')
+def calcular_castigos(request, prenomina, catorcena_actual):
+    castigos = prenomina.prenominaincidencias_set.filter(
+        incidencia__id=7,
+        incidencia_rango__fecha_inicio__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("incidencia_rango__fecha_inicio").count()
+    return castigos
+
+@login_required(login_url='user-login')
+def calcular_permisos_sin_goce(request, prenomina, catorcena_actual):
+    permisos_sin_goce = prenomina.prenominaincidencias_set.filter(
+        incidencia__id=8,
+        incidencia_rango__fecha_inicio__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("incidencia_rango__fecha_inicio").count()
+    return permisos_sin_goce
+
+@login_required(login_url='user-login')
+def calcular_permisos_con_goce(request, prenomina, catorcena_actual):
+    permisos_con_goce = prenomina.prenominaincidencias_set.filter(
+        incidencia__id=9,
+        incidencia_rango__fecha_inicio__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("incidencia_rango__fecha_inicio").count()
+    return permisos_con_goce
+
+@login_required(login_url='user-login')
+def calcular_vacaciones(request, prenomina, catorcena_actual):
+    vacaciones = prenomina.prenominaincidencias_set.filter(
+        incidencia__id=15,
+        incidencia_rango__fecha_inicio__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("incidencia_rango__fecha_inicio").count()
     return vacaciones
 
-@login_required(login_url='user-login')    
-def calcular_castigos(request, prenomina, catorcena_actual):
-    # Para llevar conteo de todos los castigos
-    cont_castigos = 0
-    print("Llamada desde la función de castigos")
+@login_required(login_url='user-login')
+def calcular_incapacidad_enfermedad_general(request, prenomina, catorcena_actual):
+    incapacidad_enfermedad_general = prenomina.prenominaincidencias_set.filter(
+        incidencia__id=10,
+        incidencia_rango__fecha_inicio__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("incidencia_rango__fecha_inicio").count()
+    return incapacidad_enfermedad_general
 
-    # Query de los castigos que caen en la catorcena
-    castigos = Castigos.objects.filter(
-        prenomina__empleado_id=prenomina.empleado.id,
-        fecha__lte=catorcena_actual.fecha_final,
-        fecha_fin__gte=catorcena_actual.fecha_inicial
-    )
+@login_required(login_url='user-login')
+def calcular_incapacidad_riesgo_laboral(request, prenomina, catorcena_actual):
+    incapacidad_riesgo_laboral = prenomina.prenominaincidencias_set.filter(
+        incidencia__id=11,
+        incidencia_rango__fecha_inicio__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("incidencia_rango__fecha_inicio").count()
+    return incapacidad_riesgo_laboral
 
-    def contar_dias_descanso(fecha_inicio, fecha_fin, dia_inhabil_id):
-        total_dias = (fecha_fin - fecha_inicio).days + 1
-        dias_descanso = sum(1 for i in range(total_dias) if (fecha_inicio + timedelta(days=i)).weekday() == (dia_inhabil_id - 1))
-        return total_dias - dias_descanso
+@login_required(login_url='user-login')
+def calcular_incapacidad_maternidad(request, prenomina, catorcena_actual):
+    incapacidad_maternidad = prenomina.prenominaincidencias_set.filter(
+        incidencia__id=12,
+        incidencia_rango__fecha_inicio__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values("incidencia_rango__fecha_inicio").count()
+    return incapacidad_maternidad
 
-    for castigo in castigos:
-        if catorcena_actual.fecha_inicial <= castigo.fecha <= catorcena_actual.fecha_final:
-            dias = contar_dias_descanso(castigo.fecha, castigo.fecha_fin, castigo.dia_inhabil_id)
-            cont_castigos += dias
-        else:
-            print("El castigo está fuera del rango de la catorcena.")
-            fecha_inicio = max(castigo.fecha, catorcena_actual.fecha_inicial)
-            fecha_fin = min(castigo.fecha_fin, catorcena_actual.fecha_final)
-            dias = contar_dias_descanso(fecha_inicio, fecha_fin, castigo.dia_inhabil_id)
-            print("Estos son los días de la catorcena:", dias)
-            cont_castigos += dias
-
-    print("Este es el total de los castigos:", cont_castigos)
-    return cont_castigos
-
-@login_required(login_url='user-login')    
-def calcular_permisos_con_goce(request,prenomina,catorcena_actual):
-    #es para llevar conteo de todos los permisos con goce de sueldo, solo lleva el conteo no se realiza ningun calculo en el
-    cont_permisos_con = 0
-    print("llamada desde de la funcion de castigos")
-    #query de los castigos que caen en la catorcena
-    permisos_con = Permiso_goce.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
-    if permisos_con.exists():
-        for permiso_con in permisos_con:
-            #solo cuenta los dias que estan en la catorcena
-            dentro_de_la_catorcena = catorcena_actual.fecha_inicial <= permiso_con.fecha <= catorcena_actual.fecha_final
-            #
-            if dentro_de_la_catorcena:
-                
-                cont_descanso = 0 #puede ser domingo o un dia entre semana
-                for i in range((permiso_con.fecha_fin - permiso_con.fecha).days + 1): #rango para el ciclo for
-                    fecha = permiso_con.fecha + timedelta(days=i) #para incrementar el dia
-                    if fecha.weekday() == (permiso_con.dia_inhabil_id - 1): #verifica si es el descanso
-                        cont_descanso += 1 # cuenta
-
-                #conteo de los dias en relacion dias de descanso
-                dias = permiso_con.fecha_fin - permiso_con.fecha
-                dias = (dias.days + 1) - cont_descanso
-                
-                cont_permisos_con = cont_permisos_con + dias
-                
-            else:
-                print("La incapacidad está fuera del rango de la catorcena.")
-                fecha_inicio = max(permiso_con.fecha, catorcena_actual.fecha_inicial)  # Selecciona la fecha más reciente entre la fecha de la incapacidad y la fecha inicial de la catorcena
-                fecha_fin = min(permiso_con.fecha_fin, catorcena_actual.fecha_final)  # Selecciona la fecha más temprana entre la fecha de fin de la incapacidad y la fecha final de la catorcena
-                
-                cont_descanso = 0 #puede ser domingo o un dia entre semana
-                for i in range((fecha_fin - fecha_inicio).days + 1): #rango para el ciclo for
-                    fecha = fecha_inicio + timedelta(days=i) #para incrementar el dia
-                    if fecha.weekday() == (permisos_con.dia_inhabil_id - 1): #verifica si es el descanso
-                        cont_descanso += 1 # cuenta
-
-                #conteo de los dias en relacion dias de descanso
-                dias = fecha_fin - fecha_inicio
-                dias = (dias.days + 1) - cont_descanso
-                print("estos son los dias de la catorcena ", dias)
-                cont_permisos_con = cont_permisos_con + dias
-                      
-        print("este es total de permisos con goce de sueldo: ", cont_permisos_con)
-    return cont_permisos_con  
-
-@login_required(login_url='user-login')    
-def calcular_permisos_sin_goce(request,prenomina,catorcena_actual):
-    #es para llevar conteo de todos los castigos
-    cont_permisos_sin = 0
-    print("llamada desde de la funcion desde permisos sin goce de sueldo")
-    #query de los castigos que caen en la catorcena
-    permisos_sin = Permiso_sin.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
-    if permisos_sin.exists():
-        for permiso_sin in permisos_sin:
-            #solo cuenta los dias que estan en la catorcena
-            dentro_de_la_catorcena = catorcena_actual.fecha_inicial <= permiso_sin.fecha <= catorcena_actual.fecha_final
-            #
-            if dentro_de_la_catorcena:
-                print("La incapacidad está dentro del rango de la catorcena.")
-                cont_descanso = 0 #puede ser domingo o un dia entre semana
-                for i in range((permiso_sin.fecha_fin - permiso_sin.fecha).days + 1): #rango para el ciclo for
-                    fecha = permiso_sin.fecha + timedelta(days=i) #para incrementar el dia
-                    if fecha.weekday() == (permiso_sin.dia_inhabil_id - 1): #verifica si es el descanso
-                        cont_descanso += 1 # cuenta
-
-                #conteo de los dias en relacion dias de descanso
-                dias = permiso_sin.fecha_fin - permiso_sin.fecha
-                dias = (dias.days + 1) - cont_descanso
-                
-                cont_permisos_sin = cont_permisos_sin + dias
-                
-            else:
-                print("La incapacidad está fuera del rango de la catorcena.")
-                fecha_inicio = max(permiso_sin.fecha, catorcena_actual.fecha_inicial)  # Selecciona la fecha más reciente entre la fecha de la incapacidad y la fecha inicial de la catorcena
-                fecha_fin = min(permiso_sin.fecha_fin, catorcena_actual.fecha_final)  # Selecciona la fecha más temprana entre la fecha de fin de la incapacidad y la fecha final de la catorcena
-                
-                #detectar el dia de descanso
-                cont_descanso = 0 #puede ser domingo o un dia entre semana
-                for i in range((fecha_fin - fecha_inicio).days + 1): #rango para el ciclo for
-                    fecha = fecha_inicio + timedelta(days=i) #para incrementar el dia
-                    if fecha.weekday() == (permiso_sin.dia_inhabil_id - 1): #verifica si es el descanso
-                        cont_descanso += 1 # cuenta
-
-                #conteo de los dias en relacion dias de descanso
-                dias = fecha_fin - fecha_inicio
-                dias = (dias.days + 1) - cont_descanso
-                print("estos son los dias de la catorcena ", dias)
-                cont_permisos_sin = cont_permisos_sin + dias
-                
-        print("este es total de los permisos sin goce de sueldo: ", cont_permisos_sin)
-    return cont_permisos_sin                            
-
-
+"""
 @login_required(login_url='user-login')    
 def calcular_incapacidades(request,prenomina,catorcena_actual):
     print("LLAMADA DESDE CALCULAR INCAPACIDADES")
@@ -1629,7 +1595,7 @@ def calcular_incapacidades(request,prenomina,catorcena_actual):
         print("susecuente", subsecuente)
             
     return cont_riesgo,cont_enfermedad,pagar_dias,cont_maternidad,tipo     
-
+"""
 @login_required(login_url='user-login')
 def Excel_estado_prenomina(request,prenominas, user_filter):
     from datetime import datetime
@@ -1785,27 +1751,39 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         print("salario: ",salario)
         
         #Contar las incidencias        
-        retardos = calcular_retardos(request,prenomina,catorcena_actual)
-        descanso = calcular_descanso(request,prenomina,catorcena_actual)
-        faltas = calcular_faltas(request,prenomina,catorcena_actual)
-        comision = calcular_comision(request,prenomina,catorcena_actual)
-        domingo = calcular_domingo(request,prenomina,catorcena_actual)
-        dia_extra = calcular_dia_extra(request,prenomina,catorcena_actual) #dia de descanso laborado
-        
-        festivos = calcular_festivos(request,prenomina,catorcena_actual) 
-        economicos = calcular_economicos(request,prenomina,catorcena_actual)
-        vacaciones = calcular_vacaciones(request,prenomina,catorcena_actual)
-            
-        castigos = calcular_castigos(request,prenomina,catorcena_actual)
-        permiso_goce = calcular_permisos_con_goce(request,prenomina,catorcena_actual)
-        permiso_sin = calcular_permisos_sin_goce(request,prenomina,catorcena_actual)
+        retardos = calcular_retardos(request, prenomina, catorcena_actual)
+        descanso = calcular_descanso(request, prenomina, catorcena_actual)
+        faltas = calcular_faltas(request, prenomina, catorcena_actual)
+        comision = calcular_comision(request, prenomina, catorcena_actual)
+        domingo = calcular_domingo(request, prenomina, catorcena_actual)
+        dia_extra = calcular_dia_extra(request, prenomina, catorcena_actual)
+        festivos = calcular_festivos(request, prenomina, catorcena_actual)
+        economicos = calcular_economicos(request, prenomina, catorcena_actual)
+
+        castigos = calcular_castigos(request, prenomina, catorcena_actual)
+        permisos_sin_goce = calcular_permisos_sin_goce(request, prenomina, catorcena_actual)
+        permisos_con_goce = calcular_permisos_con_goce(request, prenomina, catorcena_actual)
+        vacaciones = calcular_vacaciones(request, prenomina, catorcena_actual)
+
+        incapacidad_enfermedad_general = calcular_incapacidad_enfermedad_general(request, prenomina, catorcena_actual)
+        incapacidad_riesgo_laboral = calcular_incapacidad_riesgo_laboral(request, prenomina, catorcena_actual)
+        incapacidad_maternidad = calcular_incapacidad_maternidad(request, prenomina, catorcena_actual)
+        """
+        print(f"Castigos: {castigos} días")
+        print(f"Permisos sin goce: {permisos_sin_goce} días")
+        print(f"Permisos con goce: {permisos_con_goce} días")
+        print(f"Vacaciones: {vacaciones} días")
+        print(f"Incapacidad enfermedad general: {incapacidad_enfermedad_general} días")
+        print(f"Incapacidad riesgo laboral: {incapacidad_riesgo_laboral} días")
+        print(f"Incapacidad maternidad: {incapacidad_maternidad} días")
         
         incapacidades_riesgo = 0
         incapacidades_enfermedad = 0
         incapacidades_maternidad = 0
-                
-        cont_riesgo,cont_enfermedad,pagar_dias_incapacidad,cont_maternidad,tipo = calcular_incapacidades(request,prenomina,catorcena_actual)
-        
+        """
+
+        #cont_riesgo,cont_enfermedad,pagar_dias_incapacidad,cont_maternidad,tipo = calcular_incapacidades(request,prenomina,catorcena_actual)
+        """
         if tipo == 1:#riesgo de trabajo
             incapacidades_riesgo = cont_riesgo
         elif tipo == 2:#enfermedad general
@@ -1815,17 +1793,18 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         elif tipo == 3:#maternidad
             incapacidades_maternidad = cont_maternidad
             
-        #calcular el numero de vacaciones
+        calcular el numero de vacaciones
         cantidad_dias_vacacion = 0
         if vacaciones.exists():
             for vacacion in vacaciones:
                 diferencia = vacacion.fecha_fin - vacacion.fecha_inicio
                 cantidad_dias_vacacion = diferencia.days + 1        
         print("total vacaciones: ", cantidad_dias_vacacion)
-        
+        """
         #calculo de la prima se manda a llamar
-        #if cantidad_dias_vacacion > 0:
-            #calcular_prima_vacacional(cantidad_dias_vacacion)
+        if vacaciones > 0:
+            cantidad_dias_vacacion = vacaciones
+            calcular_prima_vacacional(cantidad_dias_vacacion)
             
         
         #numero de catorena
@@ -1843,8 +1822,8 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         if castigos > 0:
             incidencias = incidencias + castigos
             
-        if permiso_sin > 0:
-            incidencias = incidencias + permiso_sin
+        if permisos_sin_goce  > 0:
+            incidencias = incidencias + permisos_sin_goce 
             
         prima_dominical = 0
         pago_doble = 0  
@@ -1856,27 +1835,29 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         calulo_aguinaldo = calcular_aguinaldo(request,salario,prenomina)
         
         #calcular aguinaldo eventual - siempre se ejecutara al momento de generar el reporte
-        calcular_aguinaldo_eventual(request,salario,prenomina)
+        #calcular_aguinaldo_eventual(request,salario,prenomina)
         
         #se realiza el calculo del aguinaldo por el tiempo del contrato, se calcula en una catorcena y se paga en la siguiente
+        """
         aguinaldo_contrato = Aguinaldo_Contrato.objects.filter(empleado_id=prenomina.empleado.id).last()
         calculo_aguinaldo_eventual = 0
         if aguinaldo_contrato is not None and catorcena_actual.id == aguinaldo_contrato.catorcena:
             calculo_aguinaldo_eventual = aguinaldo_contrato.aguinaldo # se pasa el valor del aguinaldo del contrato para ser calculado en el ISR
             aguinaldo_contrato.complete = True #se actualiza el registro para definir que se ha pagado en la catorcena correspondiente
             aguinaldo_contrato.save()
-             
+        """ 
         #realiza el calculo del ISR
-        calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calculo_aguinaldo_eventual)
+        calcular_aguinaldo_eventual = 0
+        calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calcular_aguinaldo_eventual)
             
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
         #print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "incidencias_inca", incidencias_incapacidades)
-        incapacidades = incapacidades_riesgo + incapacidades_maternidad + incapacidades_enfermedad
-        print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "Incapacidades_riesgo", incapacidades_riesgo + incapacidades_maternidad, + incapacidades_enfermedad)
+        incapacidades = incapacidad_riesgo_laboral + incapacidad_maternidad  + incapacidad_enfermedad_general 
+        print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "Incapacidades_riesgo", incapacidad_riesgo_laboral + incapacidad_maternidad, + incapacidad_enfermedad_general)
         #se hace el calculo en relacion con los pagos de dias laborados
-        print("estos son los dias a pagar: ", pagar_dias_incapacidad)
-        dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + incapacidades_riesgo + incapacidades_maternidad + (incapacidades_enfermedad - pagar_dias_incapacidad))
+        #print("estos son los dias a pagar: ", pagar_dias_incapacidad)
+        dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + incapacidad_riesgo_laboral + incapacidad_maternidad + (incapacidad_enfermedad_general)) #- pagar_dias_incapacidad))
         print("estos son los dias laborados: ", dias_laborados)
         proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
         proporcion_laborados = proporcion_septimos_dias + dias_laborados
@@ -1885,15 +1866,15 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         
         
         print("ESTE ES EL APOYO PASAJES ahora: ", apoyo_pasajes)
-        apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (incidencias + incapacidades_enfermedad + incapacidades_riesgo))
+        apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (incidencias + incapacidad_enfermedad_general + incapacidad_riesgo_laboral))
           
         print("apoyos pasajes: ", apoyo_pasajes)
         print("total: ", salario_catorcenal)
         print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
         #total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + calulo_aguinaldo + calculo_aguinaldo_eventual + prima_dominical #+prima dominical
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + calulo_aguinaldo + prima_dominical +prima_dominical #+ calculo_aguinaldo_eventual
         #IMSS y el ISR
-        total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
+        total_deducciones = prestamo_infonavit + prestamo_fonacot #+ calculo_isr + calculo_imss
         pagar_nomina = (total_percepciones - total_deducciones)
         
         if retardos == 0: 
@@ -1902,11 +1883,11 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         if castigos == 0:
             castigos = ''
             
-        if permiso_goce == 0:
-            permiso_goce = ''
+        if permisos_con_goce  == 0:
+            permisos_con_goce  = ''
             
-        if permiso_sin == 0:
-            permiso_sin = ''
+        if permisos_sin_goce  == 0:
+            permisos_sin_goce  = ''
             
         if descanso == 0:
             descanso = ''
@@ -1930,8 +1911,9 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
             festivos = ''
             
         if economicos == 0:
-            economicos = ''
-            
+            economicos  = ''
+        
+        cantidad_dias_vacacion=vacaciones
         if cantidad_dias_vacacion == 0:
             cantidad_dias_vacacion = ''
             
@@ -1944,7 +1926,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
             prenomina.empleado.status.perfil.numero_de_trabajador,
             prenomina.empleado.status.perfil.distrito.distrito,
             catorcena_num,
-            prenomina.fecha,
+            str(prenomina.catorcena.fecha_inicial) + " " + str(prenomina.catorcena.fecha_final),
             prenomina.estado_general,
             str(RH),
             str(CT),
@@ -1952,8 +1934,8 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
             estado,
             retardos,
             castigos,
-            permiso_goce,
-            permiso_sin,
+            permisos_con_goce,
+            permisos_sin_goce,
             descanso,
             #str("Días anteriores: ")+str(incapacidades_anterior)+str(" Días actual: ")+str(incapacidades_actual),
             incapacidades,
@@ -2543,6 +2525,42 @@ def PdfFormatoVacaciones(request, solicitud):
     return FileResponse(buf, as_attachment=True, filename='Formato_Vacaciones.pdf')
 
 @login_required(login_url='user-login')
+def obtener_fechas_con_incidencias(request, prenomina, catorcena_actual):
+    # Crear lista de fechas entre fecha_inicial y fecha_final de la catorcena
+    dias_entre_fechas = [(catorcena_actual.fecha_inicial + timedelta(days=i)) for i in range((catorcena_actual.fecha_final - catorcena_actual.fecha_inicial).days + 1)]
+
+    # Obtener incidencias
+    incidencias = {
+        "retardos": prenomina.prenominaincidencias_set.filter(incidencia__id=1, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "descanso": prenomina.prenominaincidencias_set.filter(incidencia__id=2, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "faltas": prenomina.prenominaincidencias_set.filter(incidencia__id=3, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "comision": prenomina.prenominaincidencias_set.filter(incidencia__id=4, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "domingo": prenomina.prenominaincidencias_set.filter(incidencia__id=5, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "dia_extra": prenomina.prenominaincidencias_set.filter(incidencia__id=6, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "festivos": prenomina.prenominaincidencias_set.filter(incidencia__id=13, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "economicos": prenomina.prenominaincidencias_set.filter(incidencia__id=14, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "castigos": prenomina.prenominaincidencias_set.filter(incidencia__id=7, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "permisos_sin_goce": prenomina.prenominaincidencias_set.filter(incidencia__id=8, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "permisos_con_goce": prenomina.prenominaincidencias_set.filter(incidencia__id=9, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "vacaciones": prenomina.prenominaincidencias_set.filter(incidencia__id=15, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "incapacidad_enfermedad_general": prenomina.prenominaincidencias_set.filter(incidencia__id=10, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "incapacidad_riesgo_laboral": prenomina.prenominaincidencias_set.filter(incidencia__id=11, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "incapacidad_maternidad": prenomina.prenominaincidencias_set.filter(incidencia__id=12, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+    }
+
+    # Crear una lista con fechas y etiquetas
+    fechas_con_etiquetas = []
+    for fecha in dias_entre_fechas:
+        etiqueta = "asistencia"
+        for tipo_incidencia, incidencia_set in incidencias.items():
+            if fecha in incidencia_set.values_list('fecha', flat=True):
+                etiqueta = tipo_incidencia
+                break
+        fechas_con_etiquetas.append((fecha, etiqueta))
+
+    return fechas_con_etiquetas
+
+@login_required(login_url='user-login')
 def Excel_estado_prenomina_formato(request,prenominas, user_filter):
     from datetime import datetime
     
@@ -2667,303 +2685,23 @@ def Excel_estado_prenomina_formato(request,prenominas, user_filter):
             
         
         #contar no. de incidencias 
-        retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        #castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        #castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        castigos = Castigos.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        #permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        #permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        #permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        #permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        permiso_sin = Permiso_sin.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        #incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        #incapacidades = prenomina.incapacidades_set.filter(Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        dia_extra = prenomina.dia_extra_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).count()
-        festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
-        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]).count()
-        vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        #calular el numero de permiso con goce de sueldo
-        cantidad_dias_castigos = 0
-        if permiso_sin.exists():   
-            #checar las incapacides de la catorcena
-            for goce in permiso_sin:
-                goce_fecha = goce.fecha
-                goce_fecha_fin = goce.fecha_fin
-                
-            print("castigo INICIO", goce_fecha, "castigo FIN", goce_fecha_fin)
-            
-            #se obtiene el numero de catorcenas si esta en otras catorcenas
-            catorcenas = Catorcenas.objects.filter(Q(fecha_inicial__range=(goce_fecha, goce_fecha_fin)) |  Q(fecha_final__range=( goce_fecha,  goce_fecha_fin)))
-            numero_catorcenas_goce = catorcenas.count()
-            print("NUMERO DE CATORCENAS castigos", numero_catorcenas_goce)
-            
-            if numero_catorcenas_goce > 1:
-                print("PERTENECE A MÁS CATORCENAS")    
-                #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
-                cat1 = Catorcenas.objects.filter(fecha_inicial__lte=goce.fecha,fecha_final__gte=goce.fecha).first()
-                cat2 = Catorcenas.objects.filter(fecha_inicial__lte=goce.fecha_fin,fecha_final__gte=goce.fecha_fin).first()
-                
-                print("Actual",catorcena_actual)
-                
-                if cat1.catorcena == catorcena_actual.catorcena:
-                    print("Es la cat1 atrasada: ", cat1.catorcena)
-                    diferencia = cat1.fecha_final - goce_fecha
-                    dias = abs(diferencia.days) + 1
-                    #print("dias correspondientes",dias)
-                    permiso_sin = dias
-                                    
-                elif cat2.catorcena == catorcena_actual.catorcena:
-                        
-                    cat2_diferencia = goce.fecha_fin - cat2.fecha_inicial
-                    dias_dos = abs(cat2_diferencia.days) + 1
-                    print("dias correspondientes cat 2 Actual",dias_dos)
-                    permiso_sin = dias_dos
-                                                  
-            else:#EL CALCULO LO HACE CORRECTO
-                print("AQUI HACE EL BRINCO A LA CATORCENA")
-                print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LOS CASTIGOS")
-                for goce in permiso_sin:
-                    diferencia = goce.fecha_fin - goce.fecha
-                    permiso_sin = diferencia.days + 1
-                    
-        else: 
-            permiso_sin = 0
-            print("NO TIENE CASTIGOS: ",castigos)
-        
-        """
-        if permiso_sin.exists():
-            for goce in permiso_sin:
-                diferencia = goce.fecha_fin - goce.fecha
-                permiso_sin = diferencia.days + 1
-        else:
-            permiso_sin = 0
-        """
-        
-        #calular el numero de permiso con goce de sueldo
-        cantidad_dias_castigos = 0
-        """
-        if permiso_goce.exists():
-            for goce in permiso_goce:
-                diferencia = goce.fecha_fin - goce.fecha
-                permiso_goce = diferencia.days + 1
-        else:
-            permiso_goce = 0
-        """
-        if permiso_goce.exists():   
-            #checar las incapacides de la catorcena
-            for goce in permiso_goce:
-                goce_fecha = goce.fecha
-                goce_fecha_fin = goce.fecha_fin
-                
-            print("castigo INICIO", goce_fecha, "castigo FIN", goce_fecha_fin)
-            
-            #se obtiene el numero de catorcenas si esta en otras catorcenas
-            catorcenas = Catorcenas.objects.filter(Q(fecha_inicial__range=(goce_fecha, goce_fecha_fin)) |  Q(fecha_final__range=( goce_fecha,  goce_fecha_fin)))
-            numero_catorcenas_goce = catorcenas.count()
-            print("NUMERO DE CATORCENAS castigos", numero_catorcenas_goce)
-            
-            if numero_catorcenas_goce > 1:
-                print("PERTENECE A MÁS CATORCENAS")    
-                #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
-                cat1 = Catorcenas.objects.filter(fecha_inicial__lte=goce.fecha,fecha_final__gte=goce.fecha).first()
-                cat2 = Catorcenas.objects.filter(fecha_inicial__lte=goce.fecha_fin,fecha_final__gte=goce.fecha_fin).first()
-                
-                print("Actual",catorcena_actual)
-                
-                if cat1.catorcena == catorcena_actual.catorcena:
-                    print("Es la cat1 atrasada: ", cat1.catorcena)
-                    diferencia = cat1.fecha_final - goce_fecha
-                    dias = abs(diferencia.days) + 1
-                    #print("dias correspondientes",dias)
-                    permiso_goce = dias
-                                    
-                elif cat2.catorcena == catorcena_actual.catorcena:
-                        
-                    cat2_diferencia = goce.fecha_fin - cat2.fecha_inicial
-                    dias_dos = abs(cat2_diferencia.days) + 1
-                    print("dias correspondientes cat 2 Actual",dias_dos)
-                    permiso_goce = dias_dos
-                                                  
-            else:#EL CALCULO LO HACE CORRECTO
-                print("AQUI HACE EL BRINCO A LA CATORCENA")
-                print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LOS CASTIGOS")
-                for goce in permiso_goce:
-                    diferencia = goce.fecha_fin - goce.fecha
-                    permiso_goce = diferencia.days + 1
-                    
-        else: 
-            permiso_goce = 0
-            print("NO TIENE CASTIGOS: ",castigos)
-            
-            
-        #calular el numero de castigos
-        cantidad_dias_castigos = 0
-        if castigos.exists():   
-            #checar las incapacides de la catorcena
-            for castigo in castigos:
-                castigo_fecha = castigo.fecha
-                castigo_fecha_fin = castigo.fecha_fin
-                        
-            print("castigo INICIO", castigo_fecha, "castigo FIN", castigo_fecha_fin)
-            
-            #se obtiene el numero de catorcenas si esta en otras catorcenas
-            catorcenas = Catorcenas.objects.filter(Q(fecha_inicial__range=(castigo_fecha, castigo_fecha_fin)) |  Q(fecha_final__range=(castigo_fecha, castigo_fecha_fin)))
-            numero_catorcenas_castigos = catorcenas.count()
-            print("NUMERO DE CATORCENAS castigos", numero_catorcenas_castigos)
-            
-            if numero_catorcenas_castigos > 1:
-                print("PERTENECE A MÁS CATORCENAS")    
-                #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
-                cat1 = Catorcenas.objects.filter(fecha_inicial__lte=castigo.fecha,fecha_final__gte=castigo.fecha).first()
-                cat2 = Catorcenas.objects.filter(fecha_inicial__lte=castigo.fecha_fin,fecha_final__gte=castigo.fecha_fin).first()
-                
-                print("Actual",catorcena_actual)
-                
-                if cat1.catorcena == catorcena_actual.catorcena:
-                    print("Es la cat1 atrasada: ", cat1.catorcena)
-                    diferencia = cat1.fecha_final - castigo_fecha
-                    dias = abs(diferencia.days) + 1
-                    #print("dias correspondientes",dias)
-                    castigos = dias
-                                    
-                elif cat2.catorcena == catorcena_actual.catorcena:
-                        
-                    cat2_diferencia = castigo.fecha_fin - cat2.fecha_inicial
-                    dias_dos = abs(cat2_diferencia.days) + 1
-                    print("dias correspondientes cat 2 Actual",dias_dos)
-                    castigos = dias_dos
-                                                  
-            else:#EL CALCULO LO HACE CORRECTO
-                print("AQUI HACE EL BRINCO A LA CATORCENA")
-                print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LOS CASTIGOS")
-                for castigo in castigos:
-                    diferencia = castigo.fecha_fin - castigo.fecha
-                    castigos = diferencia.days + 1
-                    
-        else: 
-            castigos = 0
-            print("NO TIENE CASTIGOS: ",castigos)
-                
-        #calular el numero de incapacidades    
-        cantidad_dias_incapacides = 0
-        incidencias_incapacidades_pasajes = 0
-        incidencias_incapacidades = 0
-        incapacidades_anterior = 0
-        incapacidades_actual = 0
-        if incapacidades.exists():   
-            
-            print("estas son las incapacidades: ", incapacidades)
-            
-            
-            #checar las incapacides de la catorcena
-            for incapacidad in incapacidades:
-                incapacidad_fecha = incapacidad.fecha
-                incapacidad_fecha_fin = incapacidad.fecha_fin
-            #status y por la fecha, 
-            #si se quieren traer las incapacidades que estan en boolean = True, False no se pagan, 
-            #en la parte de las incidencias en la primera incapacidad boolean = True 
-            #si se hace otra incapacidad se detecta que es la continuacion de una que se paga, esta sera False
-                        
-            print("INCAPACIDAD INICIO", incapacidad_fecha, "INCAPACIDAD FIN", incapacidad_fecha_fin)
-            
-            #se obtiene el numero de catorcenas si esta en otras catorcenas
-            catorcenas = Catorcenas.objects.filter(Q(fecha_inicial__range=(incapacidad_fecha, incapacidad_fecha_fin)) |  Q(fecha_final__range=(incapacidad_fecha, incapacidad_fecha_fin)))
-            numero_catorcenas_incapacidades = catorcenas.count()
-            print("NUMERO DE CATORCENAS INCAPACIDADES", numero_catorcenas_incapacidades)
-            
-            #Pertenece a mas de una catorcena
-            if numero_catorcenas_incapacidades > 1:
-                print("PERTENECE A MÁS CATORCENAS")    
-                #print("INCAPACIDAD INICIO", incapacidad.fecha, "INCAPACIDAD FIN", incapacidad.fecha_fin)
-                cat1 = Catorcenas.objects.filter(fecha_inicial__lte=incapacidad.fecha,fecha_final__gte=incapacidad.fecha).first()
-                cat2 = Catorcenas.objects.filter(fecha_inicial__lte=incapacidad.fecha_fin,fecha_final__gte=incapacidad.fecha_fin).first()
-                
-                print("Actual",catorcena_actual)
-                
-                if cat1.catorcena == catorcena_actual.catorcena:
-                    print("Es la cat1 atrasada: ", cat1.catorcena)
-                    diferencia = cat1.fecha_final - incapacidad_fecha
-                    dias = abs(diferencia.days) + 1
-                    #print("dias correspondientes",dias)
-                    incapacidades = dias
-                    
-                    #realiza el calculo de la incapacidad
-                    if incapacidades > 0:
-                        incidencias_incapacidades_pasajes = incapacidades
-                        if incapacidades > 3:
-                            incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
-                            print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
-                    
-                    incapacidades_anterior = 0
-                    incapacidades_actual = incapacidades
-                    
-                elif cat2.catorcena == catorcena_actual.catorcena:
-                    print("Es la cat2 actual: ", cat2.catorcena)
-                
-                    cat1_diferencia = cat1.fecha_final - incapacidad.fecha
-                    dias_uno = abs(cat1_diferencia.days) + 1
-                    print("dias correspondientes cat 1 Atrasada",dias_uno)
-                    
-                    cat2_diferencia = incapacidad.fecha_fin - cat2.fecha_inicial
-                    dias_dos = abs(cat2_diferencia.days) + 1
-                    print("dias correspondientes cat 2 Actual",dias_dos)
-                    
-                    incapacidades = dias_uno + dias_dos
-                    #incapacidades = dias_dos
+        retardos = calcular_retardos(request, prenomina, catorcena_actual)
+        descanso = calcular_descanso(request, prenomina, catorcena_actual)
+        faltas = calcular_faltas(request, prenomina, catorcena_actual)
+        comision = calcular_comision(request, prenomina, catorcena_actual)
+        domingo = calcular_domingo(request, prenomina, catorcena_actual)
+        dia_extra = calcular_dia_extra(request, prenomina, catorcena_actual)
+        festivos = calcular_festivos(request, prenomina, catorcena_actual)
+        economicos = calcular_economicos(request, prenomina, catorcena_actual)
 
-                    incapacidades_anterior = dias_uno
-                    incapacidades_actual = dias_dos
-                
-                    #realiza el calculo de la incapacidad
-                    if incapacidades > 0:
-                        incidencias_incapacidades_pasajes = incapacidades
-                        if incapacidades > 3:
-                            incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
-                            print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
-                                                  
-            else:#Pertenece a solo una catorcena
-                print("PERTENECE A LA CATORCENA ACTUAL Y CALCULA LAS INCAPACIDADES")
-                for incapacidad in incapacidades:
-                    diferencia = incapacidad.fecha_fin - incapacidad.fecha
-                    incapacidades = diferencia.days + 1
-                    
-                #realiza el calculo de la incapacidad
-                if incapacidades > 0:
-                    incidencias_incapacidades_pasajes = incapacidades
-                    if incapacidades > 3:
-                        incidencias_incapacidades = incidencias_incapacidades + (incapacidades - 3) #3 dias se pagan
-                        print("ESTAS SON LAS INCIDENCAS INCAPACIDADES", incidencias_incapacidades)
-                
-                incapacidades_anterior = 0
-                incapacidades_actual = incapacidades
-                
-        else: 
-            incapacidades = 0
-            print("NO TIENE INCAPACIDADES: ",incapacidades)
-                
-        #calcular el numero de vacaciones
-        cantidad_dias_vacacion = 0
-        if vacaciones.exists():
-            for vacacion in vacaciones:
-                diferencia = vacacion.fecha_fin - vacacion.fecha_inicio
-                cantidad_dias_vacacion = diferencia.days + 1
-                
-        print("total vacaciones: ", cantidad_dias_vacacion)
+        castigos = calcular_castigos(request, prenomina, catorcena_actual)
+        permisos_sin_goce = calcular_permisos_sin_goce(request, prenomina, catorcena_actual)
+        permisos_con_goce = calcular_permisos_con_goce(request, prenomina, catorcena_actual)
+        vacaciones = calcular_vacaciones(request, prenomina, catorcena_actual)
+
+        incapacidad_enfermedad_general = calcular_incapacidad_enfermedad_general(request, prenomina, catorcena_actual)
+        incapacidad_riesgo_laboral = calcular_incapacidad_riesgo_laboral(request, prenomina, catorcena_actual)
+        incapacidad_maternidad = calcular_incapacidad_maternidad(request, prenomina, catorcena_actual)
         
         #numero de catorena
         catorcena_num = catorcena_actual.catorcena 
@@ -2982,18 +2720,20 @@ def Excel_estado_prenomina_formato(request,prenominas, user_filter):
             incidencias = incidencias + castigos
             print("Castigos incidencias contadas", castigos)
         
-        if permiso_sin > 0:
-            incidencias = incidencias + permiso_sin
+        if permisos_sin_goce  > 0:
+            incidencias = incidencias + permisos_sin_goce
         
         pago_doble = 0  
         if dia_extra > 0:
             pago_doble = Decimal(dia_extra * salario)
         
         incapacidad = str("")   
-                            
+        incidencias_incapacidades = 0 #Modificar
+        incidencias_incapacidades_pasajes = 0          
+        incapacidades = 0         
+        cantidad_dias_vacacion = 0
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
-        print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "incidencias_inca", incidencias_incapacidades)
         dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + incidencias_incapacidades)
         proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
         proporcion_laborados = proporcion_septimos_dias + dias_laborados
@@ -3021,11 +2761,11 @@ def Excel_estado_prenomina_formato(request,prenominas, user_filter):
         if castigos == 0:
             castigos = ''
             
-        if permiso_goce == 0:
-            permiso_goce = ''
+        if permisos_con_goce == 0:
+            permisos_con_goce = ''
             
-        if permiso_sin == 0:
-            permiso_sin = ''
+        if permisos_sin_goce == 0:
+            permisos_sin_goce = ''
             
         if descanso == 0:
             descanso = ''
@@ -3053,74 +2793,40 @@ def Excel_estado_prenomina_formato(request,prenominas, user_filter):
             
         if cantidad_dias_vacacion == 0:
             cantidad_dias_vacacion = ''
-        
-        #obtener factores de días asociados a cada prenomina
-        prenomina.retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.permiso_goce = prenomina.permiso_goce_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.permiso_sin = prenomina.permiso_sin_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.extra = prenomina.dia_extra_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        #fechas con factores
-        fechas_con_retardos = [retardo.fecha for retardo in prenomina.retardos]
-        fechas_con_descanso = [descans.fecha for descans in prenomina.descanso]
-        fechas_con_faltas = [falta.fecha for falta in prenomina.faltas]
-        fechas_con_comision = [comisio.fecha for comisio in prenomina.comision]
-        fechas_con_domingo = [doming.fecha for doming in prenomina.domingo]
-        fechas_con_extra = [extra.fecha for extra in prenomina.extra]
-        fechas_con_festivos = [festivo.dia_festivo for festivo in festivos]
-        fechas_con_economicos = [economico.fecha for economico in economicos]
-        #lista de tuplas con la fecha y su etiqueta
-        fechas_con_etiquetas = [(fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
-                                else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
-                                else (fecha, "permiso_goce", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
-                                else (fecha, "permiso_sin", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
-                                else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
-                                else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
-                                #else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
-                                else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
-                                else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario if fecha in fechas_con_comision else "") if fecha in fechas_con_comision
-                                else (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
-                                else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario if fecha in fechas_con_extra else "") if fecha in fechas_con_extra
-                                else (fecha, "economico", "") if fecha in fechas_con_economicos
-                                else (fecha, "festivo", "") if fecha in fechas_con_festivos
-                                else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and fecha != vacacion.dia_inhabil for vacacion in vacaciones)
-                                else (fecha, "asistencia", "") for fecha in dias_entre_fechas]
-        abreviaciones = {
-            "economico": "D/E",
-            "castigo": "CAS",
-            "retardo": "R",
-            "vacaciones": "V",
-            "comision": "C",
-            "faltas": "F",
-            "permiso_goce": "PGS",
-            "festivo": "FE",
-            "incapacidades": "I",
-            "permiso_sin": "PSS",
-            "descanso": "DEZ",
-            "asistencia": "x"
-        }
-        abreviaciones_colores_cortas = {
-            "D/E": "FF92d050",    # Verde claro
-            "CAS": "FF948a54",    # Marrón
-            "R": "FFe26b0a",      # Naranja
-            "V": "FF00b0f0",      # Azul claro
-            "C": "FF538dd5",      # Azul
-            "F": "FFFF0000",      # Rojo
-            "PGS": "FFfcd5b4",    # Beige
-            "FE": "FFb1a0c7",     # Púrpura claro
-            "I": "FF963634",      # Rojo oscuro
-            "PSS": "FFc00000",    # Rojo oscuro
-            "DEZ": "FF00b050",     # Verde
-            "x": "FFFFFF"       # Blanco
-        }
-        #estados_por_dia = [estado for _, estado, _ in fechas_con_etiquetas]
-        estados_por_dia = [abreviaciones.get(estado, estado) for _, estado, _ in fechas_con_etiquetas]
-        # Agregar los valores a la lista rows para cada prenomina
+    abreviaciones = {
+        "economico": "D/E",
+        "castigo": "CAS",
+        "retardos": "R",
+        "vacaciones": "V",
+        "comision": "C",
+        "faltas": "F",
+        "permisos_con_goce": "PGS",
+        "festivo": "FE",
+        "incapacidades": "I",
+        "permisos_sin_goce": "PSS",
+        "descanso": "DEZ",
+        "asistencia": "x",
+        "domingo": "D",
+    }
+    abreviaciones_colores_cortas = {
+        "D/E": "FF92d050",    # Verde claro
+        "CAS": "FF948a54",    # Marrón
+        "R": "FFe26b0a",      # Naranja
+        "V": "FF00b0f0",      # Azul claro
+        "C": "FF538dd5",      # Azul
+        "F": "FFFF0000",      # Rojo
+        "PGS": "FFfcd5b4",    # Beige
+        "FE": "FFb1a0c7",     # Púrpura claro
+        "I": "FF963634",      # Rojo oscuro
+        "PSS": "FFc00000",    # Rojo oscuro
+        "DEZ": "FF00b050",    # Verde
+        "x": "FFFFFF",         # Blanco
+        "D": "FFFF00"         # Amarillo
+    }
+    rows = []
+    for prenomina in prenominas:
+        fechas_con_etiquetas = obtener_fechas_con_incidencias(request, prenomina, catorcena_actual)
+        estados_por_dia = [abreviaciones.get(estado, estado) for _, estado in fechas_con_etiquetas]
         row = (
             prenomina.empleado.status.perfil.numero_de_trabajador,
             prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
@@ -3130,7 +2836,7 @@ def Excel_estado_prenomina_formato(request,prenominas, user_filter):
             *estados_por_dia,  # Desempaquetar estados_por_dia aquí
             salario_catorcenal_costo,
             salario_catorcenal,
-            apoyo_pasajes, #Prevision social pasajes
+            apoyo_pasajes,  # Prevision social pasajes
             total_bonos,
             total_percepciones,
             prestamo_infonavit,
@@ -3138,7 +2844,7 @@ def Excel_estado_prenomina_formato(request,prenominas, user_filter):
             total_deducciones,
             pagar_nomina,
             salario,
-            ((proporcion_septimos_dias*salario)/2)
+            ((proporcion_septimos_dias * salario) / 2)
         )
         rows.append(row)
         

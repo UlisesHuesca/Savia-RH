@@ -87,6 +87,10 @@ class EconoAdmin(admin.ModelAdmin):
     list_display = ('id','status')
     search_fields = ('status__perfil__nombres'),
 
+class Dia_vacacionAdmin(admin.ModelAdmin):
+    ordering = ['id']
+    list_display = ('id','nombre', 'numero')
+
 class PuestoAdmin(admin.ModelAdmin):
     search_fields = ('puesto'),
     ordering = ['puesto']
@@ -115,7 +119,7 @@ admin.site.register(Civil)
 admin.site.register(Banco)
 #Tabla niveles del empleado
 admin.site.register(Nivel)
-admin.site.register(Dia_vacacion)
+admin.site.register(Dia_vacacion, Dia_vacacionAdmin)
 #Tabla ISR
 admin.site.register(DatosISR)
 #Tabla vacaciones
