@@ -7,7 +7,7 @@ from prenomina import views
 urlpatterns = [
     path('Prenomina', views.Tabla_prenomina, name='Prenomina'),
     path('revisar/<int:pk>/', views.PrenominaRevisar, name='Prenomina_revisar'),
-    path('programar_incidencias/<int:pk>', views.crear_rango_incidencias, name='crear_rango_incidencias')
+    path('registrar_rango_incidencias/<int:pk>/', views.registrar_rango_incidencias, name='registrar_rango_incidencias')
     
     #path('programar_incidencias/<int:pk>/',views.programar_incidencias, name="programar_incidencias"),
     #path('programar_incapacidades/<int:pk>/',views.programar_incapacidades, name="programar_incapacidades")
