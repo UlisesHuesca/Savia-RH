@@ -1,4 +1,5 @@
 {% extends 'partials/base.html' %}
+{% load static %}
 {% load date_filters %}
 {% load widget_tweaks %}
 {% load tt_extras %}
@@ -45,23 +46,63 @@
         <div class="column is-half is-offset-one-quarter">
             <h4 class="title is-size-2">Prenomina del empleado</h4>
             <div class="d-flex justify-content-end my-0">
-                
-                <a class="btn btn-primary" href="{% url 'crear_rango_incidencias' costo.id %}" title="Agregar incidencias por rango"><i class="fas fa-plus"></i> Incidencias</a>
-
+                {% comment %} Agregar incidencias rango{% endcomment %}
                 <!-- Button trigger modal -->
-                <button type="button" class="btn btn-primary btn-sm mx-3" data-bs-toggle="modal" data-bs-target="#incapacidades-modal">
-                    Incapacidades
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#incidenciasModal">
+                    <i class="fas fa-plus"></i> Incidencias
                 </button>
-                 <!-- Modal programar INDIDENCIAS-->
-                 <div class="modal fade" id="programar-incidencias" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                
+                <!-- Modal -->
+                <div class="modal fade" id="incidenciasModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
                     <div class="modal-dialog">
-                   
+                    <div class="modal-content">
+                        <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel"><i class="fas fa-plus"></i> Agregar Incidencias</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form method="post" action="{% url 'registrar_rango_incidencias' costo.id %}" enctype="multipart/form-data" id="incidencias-form">
+                            <div class="modal-body">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="">Incidencia</label>
+                                    {% render_field incidencia_rango_form.incidencia class="form-select"%}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="">Fecha Inicio</label>
+                                    {% render_field incidencia_rango_form.fecha_inicio class="form-control" type="date"%}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="">Fecha Fin</label>
+                                    {% render_field incidencia_rango_form.fecha_fin class="form-control" type="date"%}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="">Subsecuente</label>
+                                    {% render_field incidencia_rango_form.subsecuente class="form-select"%}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="">Dia Inhabil</label>
+                                    {% render_field incidencia_rango_form.dia_inhabil class="form-select"%}
+                                </div>
+                               <div class="mb-3">
+                                    <label for="">Comentario</label>
+                                    {% render_field incidencia_rango_form.comentario class="form-control"%}
+                               </div>
+                                <div class="mb-3">
+                                    <label for="">Soporte</label>
+                                    {% render_field incidencia_rango_form.soporte class="form-control" accept=".png, .jpg, .jpeg, .pdf, .xlsx, .xls,"%}
+                                </div>
+                                <input type="hidden" name="" id="costo-id" value="{{costo.id}}">
+                            </div>
+                            <div class="modal-footer d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button id="btn-programar" type="submit" class="btn btn-primary">Guardar</button>
+                            </div>
+                        </form>
+                    </div>
                     </div>
                 </div>
-                <!-- Button trigger modal -->
-                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#programar-incidencias">
-                    Incidencias
-                </button>
+
 
             </div>
             <span class="h4">{{cos.nombres}} {{empleado.apellidos}}</span>
@@ -87,7 +128,7 @@
                             {% endcomment %}
                             <th>Comentario</th>
                             <th>Subir Soporte</th>
-                            <th></th>
+                            <th>Eliminar</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -95,7 +136,7 @@
                         {% for prenomina_form in prenomina_incidencias_form%} 
                         <tr>
                             <td>
-                                {% render_field prenomina_form.fecha style="border: none; background: none;" class="form-control" readonly="True"%}
+                                {% render_field prenomina_form.fecha style="border: none; background: none;" class="form-control" %}
                             </td>
                             <td>
                                 {% render_field prenomina_form.incidencia class="form-select select2-bootstrap"%}
@@ -107,12 +148,21 @@
                                 {% render_field prenomina_form.comentario class="form-control"%}
                             </td>
                             <td>
-                                
-                                {% render_field prenomina_form.soporte class="form-control form-control-sm"%}
+                                {% if prenomina_form.soporte.value %}
+                                    <small><a title="click para ver el soporte" class="btn btn-success btn-sm" href="{{ prenomina_form.soporte.value.url }}" target="_blank"><i class="fas fa-download"></i></a> Ver Soporte</small>
+                                    
+                                {% else %}
+                                    <span class="text-muted">Sin soporte</span>
+                                {% endif %}
                             </td>
                                
                             <td>
-                                <button class="btn btn-danger btn-sm" title="Eliminar incidencia"><i class="fas fa-minus"></i></button>
+                                <div class="form-check">
+                                    {% render_field prenomina_form.DELETE class="form-check-input"%}
+                                    {{prenomina_form.id}}
+                                    {{prenomina_form.rango_id}}
+                                </div>
+                               
                             </td>
                         </tr>
                         {% endfor %}
@@ -136,5 +186,11 @@
     </div>
 </div>
 {% endblock %}
+
+
+{% block js %}
+<script src="{% static 'js/prenomina/revisar_validaciones.js' %}"></script>
+{% endblock js %}
+
 </body>
 </html>
