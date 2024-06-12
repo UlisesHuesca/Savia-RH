@@ -1389,7 +1389,7 @@ def Costo_revisar(request, pk):
     bonototal = sum_bonos['monto__sum']
     if bonototal == None:
         bonototal = 0
-    prenomina = Prenomina.objects.filter(empleado=costo,fecha__range=[catorcena.fecha_inicial, catorcena.fecha_final]).first()
+    prenomina = Prenomina.objects.filter(empleado=costo,catorcena=catorcena).first()
     autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia", estado__tipo="aprobado").first()
     if autorizacion is not None:
         existe = 1
@@ -1449,7 +1449,7 @@ def Costo_revisar(request, pk):
         return reporte_pdf_costo_detalles(costo)
     
     if request.method =='POST' and 'Pdf2' in request.POST:
-        return reporte_pdf_costo_incidencias(costo,bonototal)
+        return reporte_pdf_costo_incidencias(request,costo,bonototal)
 
     context = {'costo':costo,
                'bonototal':bonototal,
@@ -3837,11 +3837,11 @@ def reporte_pdf_costo_detalles(costo):
     return FileResponse(buf, as_attachment=True, filename='CostoDetalle.pdf')
 
 @login_required(login_url='user-login')
-def reporte_pdf_costo_incidencias(costo,bonototal):
+def reporte_pdf_costo_incidencias(request,costo,bonototal):
     costo = Costo.objects.get(id = costo.id)
     now = datetime.date.today()
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=now, fecha_final__gte=now).first()
-    prenomina = Prenomina.objects.get(empleado=costo, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
+    prenomina = Prenomina.objects.get(empleado=costo,catorcena=catorcena_actual)
         
     sub_salario_catorcenal_costo = Decimal(0.00) #Valor de referencia del costo
     sub_salario_catorcenal = Decimal(0.00)

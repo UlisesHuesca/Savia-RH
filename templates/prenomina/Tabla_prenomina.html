@@ -108,10 +108,6 @@
                         <th scope="col">ID prenomina</th>
                         <th scope="col">No. de trabajador</th>
                         <th scope="col">Nombre</th>
-                        <!-- Aquí las incidencias -->
-                        {% for incidencia in prenominas.first.incidencias.all %}
-                            <th style="white-space: nowrap;">{{ incidencia.fecha|date:"d F Y" }}</th>
-                        {% endfor %}
                         <th scope="col">Estado general</th>
                         <th scope="col">Estado</th>
                         <th scope="col">Actualizar</th>

@@ -150,7 +150,7 @@ def registrar_rango_incidencias(request,pk):
             if economicos:
                 return JsonResponse({'poscondicion': 'Ya existen economicos dentro del rango de fechas especificado'}, status=422)
             
-            incidencias = PrenominaIncidencias.objects.filter(fecha__range=[fecha_start, fecha_end]).values('id').exists()    
+            incidencias = PrenominaIncidencias.objects.filter(prenomina__empleado_id=pk,fecha__range=[fecha_start, fecha_end]).values('id').exists()   
             if incidencias:
                 return JsonResponse({'poscondicion': 'Ya existen incidencias dentro del rango de fechas especificado'}, status=422)
             
@@ -159,6 +159,7 @@ def registrar_rango_incidencias(request,pk):
             #Cumple la validacion
             incidencia_rango = incidencias_form.save(commit=False)
             incidencia_rango.soporte = request.FILES['soporte'] 
+            incidencia_rango.empleado_id = pk #este es el id del costo del empleado
             incidencia_rango.save()  
             
             fecha_actual = incidencia_rango.fecha_inicio#punto de inicio
@@ -192,9 +193,6 @@ def registrar_rango_incidencias(request,pk):
                 )
                 fecha_actual += timedelta(days=1)
                 
-                
-
-            
             return JsonResponse({'success': 'Agregado correctamente'}, status=200)
         #error
         else:
@@ -348,19 +346,61 @@ def Tabla_prenomina(request):
 def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
     if request.user.is_authenticated:
         nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
-        for prenomina in prenominas:
-            #obtener los queries para su posterior llenado
-            festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
+        festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
+        for prenomina in prenominas:    
+            incidencias = PrenominaIncidencias.objects.filter(
+                    prenomina__empleado_id = prenomina.empleado_id, 
+                    fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+            if not incidencias.exists(): 
+                #obtener los queries para su posterior llenado
+                incidencias_rango = IncidenciaRango.objects.filter(empleado_id=prenomina.empleado_id,fecha_inicio__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
+
+                if incidencias_rango:
+                    #si te das cuenta siempre al brincar a una catorcena simpre sera de una incidencia es decir que si de castigo se brinca a la otra cat, solo habra de castigo y no puedes registrar dos rangos en una
+                    for incidencia_rango in incidencias_rango:
+                        fecha_actual = incidencia_rango.fecha_fin
+                        fecha_fin = incidencia_rango.fecha_fin
+                                    
+                    fecha_actual = incidencia_rango.fecha_inicio #punto de inicio
+                    fecha_fin = min(incidencia_rango.fecha_fin, prenomina.catorcena.fecha_final)#toma la fecha mas chica entre las dos fechas
+                    
+                    while fecha_actual <= fecha_fin:
+                        incidencia = incidencia_rango.incidencia_id
+                        comentario = incidencia_rango.comentario
+                        soporte = incidencia_rango.soporte
+                        
+                        if fecha_actual.weekday() == (incidencia_rango.dia_inhabil_id - 1): 
+                            #print(fecha_actual.weekday())
+                            if (incidencia_rango.dia_inhabil_id - 1) == 6:# se resta 1 para obtener el dia domingo
+                                incidencia = 5 #domingo
+                                comentario = None
+                                soporte = None
+                            else:
+                                incidencia = 2 #descanso
+                                comentario = None
+                                soporte = None
+                                
+                        registro_prenomina, creado = PrenominaIncidencias.objects.update_or_create(
+                        prenomina=prenomina,
+                            fecha=fecha_actual,
+                            defaults={
+                                'comentario': comentario, 
+                                'soporte': soporte,
+                                'incidencia_id': incidencia,
+                                'incidencia_rango':incidencia_rango,                        
+                            }
+                        )
+                        fecha_actual += timedelta(days=1)
+                for festivo in festivos:
+                    registro, created = PrenominaIncidencias.objects.update_or_create(
+                        prenomina_id=prenomina.id,
+                        fecha=festivo.dia_festivo,
+                        defaults={
+                            'incidencia_id': 13 #festivo
+                        }
+                    )
             economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final], complete = False)
-            vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
-            for festivo in festivos:
-                registro, created = PrenominaIncidencias.objects.update_or_create(
-                    prenomina_id=prenomina.id,
-                    fecha=festivo.dia_festivo,
-                    defaults={
-                        'incidencia_id': 13 #festivo
-                    }
-                )
+            vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial) 
             for economico in economicos:
                 registro, created = PrenominaIncidencias.objects.update_or_create(
                     prenomina_id=prenomina.id,
@@ -369,6 +409,7 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                         'incidencia_id': 14 # economico
                     }
                 )
+
             for vacacion in vacaciones:
                     #se ajusta la fecha de acuerdo a la catorcena
                     fecha_inicio = max(vacacion.fecha_inicio, prenomina.catorcena.fecha_inicial)
@@ -390,18 +431,59 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                                     incidencia = 2 #descanso
                             elif fecha_inicio in [festivo.dia_festivo for festivo in festivos]:
                                 incidencia = 13 #festivo:
-                        print("fecha: ",fecha, "incidencia: ", incidencia)
                         registro, created = PrenominaIncidencias.objects.update_or_create(
                             prenomina_id=prenomina.id,
                             fecha=fecha,
                             defaults={
-                             'incidencia_id': incidencia
+                            'incidencia_id': incidencia
                             }
                         )  
-                           
+                        
                         #se agregar un dia para realizar el recorrido de la fecha          
                         fecha_inicio += timedelta(days=1)
                         fecha +=   timedelta(days=1)
+            descansos = PrenominaIncidencias.objects.filter(
+                prenomina__empleado_id=prenomina.empleado_id, 
+                incidencia__id__in=[6, 5, 2],
+                fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+            
+            if not descansos.exists():
+                domingos = []
+                fecha = catorcena_actual.fecha_inicial
+                while fecha <= catorcena_actual.fecha_final:
+                    if fecha.weekday() == 6:  # Domingo
+                        domingos.append(fecha)
+                    fecha += timedelta(days=1)
+
+                for domingo in domingos[:2]:  #dos domingos
+                    PrenominaIncidencias.objects.create(
+                        prenomina=prenomina,
+                        fecha=domingo,
+                        incidencia_id=5,  # Domingo
+                        comentario=None,
+                        soporte=None,
+                        incidencia_rango=None
+                    )
+            else:
+                if descansos.count() == 1:
+                    descanso = descansos.first()
+                    dia_semana = descanso.fecha.weekday()
+
+                    for i in range((catorcena_actual.fecha_final - catorcena_actual.fecha_inicial).days + 1):
+                        fecha = catorcena_actual.fecha_inicial + timedelta(days=i)
+                        if fecha.weekday() == dia_semana and fecha != descanso.fecha:
+                            PrenominaIncidencias.objects.create(
+                                prenomina=prenomina,
+                                fecha=fecha,
+                                incidencia_id=descanso.incidencia_id,  # Mismo tipo de incidencia
+                                comentario=None,
+                                soporte=None,
+                                incidencia_rango=None
+                            )
+                            break
+
+
+                
 
             revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo) #Checa si existe autorización de su perfil y si no lo crea 
             revisado.estado = Estado.objects.get(tipo="aprobado")
@@ -1006,6 +1088,7 @@ def crear_formsets():
     
 @login_required(login_url='user-login')
 def PrenominaRevisar(request, pk):
+        
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id == 4: #Perfil RH
         start_time = time.time()  # Registrar el tiempo de inicio
@@ -1032,9 +1115,11 @@ def PrenominaRevisar(request, pk):
                         # Si el formulario está marcado para eliminación, eliminar el registro
                         if form.cleaned_data['id']:
                             #ELIMINAR LO QUE SON CREADOS EN LA PRENOMINA, NO ELIMINAR SI SON DE PRENOMANIA ANTERIOR Verifica si el registro es del antes de la cat, si esta dentro o igual a la cat actual
-                            print("")
-                            #print("es es el id pero de id registro", form.cleaned_data['id'])
-                            #print("es es el id pero del rango", form.cleaned_data['incidencia'].id)
+                            print("se presiono el boton eliminar")
+                            print("ID", form.cleaned_data['id'])
+                            print("Incidencia: ", form.cleaned_data['incidencia'])
+                            print("incidencia-ID", form.cleaned_data['incidencia'].id)
+                            PrenominaIncidencias.objects.filter(pk=form.cleaned_data['id']).delete()
                             
                             #PrenominaIncidencias.objects.filter(incidencia_rango_id=form.cleaned_data['id']).delete()
                             #IncidenciaRango.objects.filter(pk=2).delete()
@@ -1089,21 +1174,57 @@ def PrenominaRevisar(request, pk):
             #                incidencia = incidencia
             #            )
         else:
+            
+            
+            
+            
+            
+            
             #EJEUCUTA LOS QUERIES FESTIVOS, ECONOMICOS, FESTIVOS, RANGOS Y GUARDA LOS DATOS
             catorcena = obtener_catorcena()
             #obtener los queries para su posterior llenado
             festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
             economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final], complete = False)
             vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
-            #incidencias_rango = IncidenciaRango.objects.filter(
-            #    prenominaincidencias__prenomina__empleado__status=prenomina.empleado.status,
-            #    fecha_inicio__lte=catorcena.fecha_final,
-            #    fecha_fin__gte=catorcena.fecha_inicial
-            #).all()
-            incidencias_rango = IncidenciaRango.objects.filter(
-                prenominaincidencias__prenomina__empleado__status=prenomina.empleado.status
-            )
-            print(incidencias_rango)
+            incidencias_rango = IncidenciaRango.objects.filter(empleado_id=prenomina.empleado_id,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
+            
+            if incidencias_rango:
+                #si te das cuenta siempre al brincar a una catorcena simpre sera de una incidencia es decir que si de castigo se brinca a la otra cat, solo habra de castigo y no puedes registrar dos rangos en una
+                for incidencia_rango in incidencias_rango:
+                    fecha_actual = incidencia_rango.fecha_fin
+                    fecha_fin = incidencia_rango.fecha_fin
+                                
+                fecha_actual = incidencia_rango.fecha_inicio #punto de inicio
+                fecha_fin = min(incidencia_rango.fecha_fin, prenomina.catorcena.fecha_final)#toma la fecha mas chica entre las dos fechas
+                
+                while fecha_actual <= fecha_fin:
+                    incidencia = incidencia_rango.incidencia_id
+                    comentario = incidencia_rango.comentario
+                    soporte = incidencia_rango.soporte
+                    
+                    if fecha_actual.weekday() == (incidencia_rango.dia_inhabil_id - 1): 
+                        #print(fecha_actual.weekday())
+                        if (incidencia_rango.dia_inhabil_id - 1) == 6:# se resta 1 para obtener el dia domingo
+                            incidencia = 5 #domingo
+                            comentario = None
+                            soporte = None
+                        else:
+                            incidencia = 2 #descanso
+                            comentario = None
+                            soporte = None
+                            
+                    registro_prenomina, creado = PrenominaIncidencias.objects.update_or_create(
+                    prenomina=prenomina,
+                        fecha=fecha_actual,
+                        defaults={
+                            'comentario': comentario, 
+                            'soporte': soporte,
+                            'incidencia_id': incidencia,
+                            'incidencia_rango':incidencia_rango,                        
+                        }
+                    )
+                    fecha_actual += timedelta(days=1)
+                        
             for festivo in festivos:
                 registro, created = PrenominaIncidencias.objects.update_or_create(
                     prenomina_id=prenomina.id,
@@ -1143,7 +1264,6 @@ def PrenominaRevisar(request, pk):
                                     incidencia = 2 #descanso
                             elif fecha_inicio in [festivo.dia_festivo for festivo in festivos]:
                                 incidencia = 13 #festivo:
-                        print("fecha: ",fecha, "incidencia: ", incidencia)
                         registro, created = PrenominaIncidencias.objects.update_or_create(
                             prenomina_id=prenomina.id,
                             fecha=fecha,
@@ -1187,7 +1307,17 @@ def PrenominaRevisar(request, pk):
                         
             prenomina_incidencias_form = PrenominaIncidenciasFormSet(initial=datos_iniciales)
             incidencia_rango_form = IncidenciaRangoForm()
- 
+
+            #es para guardar la autorizacion
+            """
+            revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
+            revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
+            perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+            revisado_rh.perfil=perfil_rh
+            revisado_rh.comentario="Revisado por RH"
+            revisado_rh.save()
+            """
+                     
             context = {
                 'prenomina':prenomina,
                 'costo':costo,
@@ -1542,16 +1672,20 @@ def calcular_dias_interseccion(fecha_inicio_rango, fecha_fin_rango, fecha_inicio
         return total_dias, dias_inhabiles_count
 """    
 @login_required(login_url='user-login')
+
+
 def calcular_retardos(request, prenomina, catorcena_actual):
-    retardos = prenomina.prenominaincidencias_set.filter(
-        incidencia__id = 1,  # Filtra por tipo de incidencia
+    retardos = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
+        incidencia_id = 1, #retardo
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
-    ).values("fecha").count()
+        ).values('id').count()
     return retardos
 
 @login_required(login_url='user-login')
 def calcular_descanso(request, prenomina, catorcena_actual):
-    descanso = prenomina.prenominaincidencias_set.filter(
+    descanso = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id = 2,  # Filtra por tipo de incidencia
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("fecha").count()
@@ -1559,15 +1693,18 @@ def calcular_descanso(request, prenomina, catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_faltas(request, prenomina, catorcena_actual):
-    faltas = prenomina.prenominaincidencias_set.filter(
+    faltas = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id = 3,  # Filtra por tipo de incidencia
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("fecha").count()
     return faltas
 
+
 @login_required(login_url='user-login')
 def calcular_comision(request, prenomina, catorcena_actual):
-    comision = prenomina.prenominaincidencias_set.filter(
+    comision = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id = 4,  # Filtra por tipo de incidencia
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("fecha").count()
@@ -1575,7 +1712,8 @@ def calcular_comision(request, prenomina, catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_domingo(request, prenomina, catorcena_actual):
-    domingo = prenomina.prenominaincidencias_set.filter(
+    domingo = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id = 5,  # Filtra por tipo de incidencia
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("fecha").count()
@@ -1583,7 +1721,8 @@ def calcular_domingo(request, prenomina, catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_dia_extra(request, prenomina, catorcena_actual):
-    dia_extra = prenomina.prenominaincidencias_set.filter(
+    dia_extra = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id = 6,  # Filtra por tipo de incidencia
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("fecha").count()
@@ -1591,7 +1730,8 @@ def calcular_dia_extra(request, prenomina, catorcena_actual):
  
 @login_required(login_url='user-login')    
 def calcular_festivos(request,prenomina,catorcena_actual):
-    festivos = prenomina.prenominaincidencias_set.filter(
+    festivos = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id = 13,  # Filtra por tipo de incidencia
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("fecha").count()
@@ -1599,7 +1739,8 @@ def calcular_festivos(request,prenomina,catorcena_actual):
 
 @login_required(login_url='user-login')    
 def calcular_economicos(request,prenomina,catorcena_actual):
-    economicos = prenomina.prenominaincidencias_set.filter(
+    economicos = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id = 14,  # Filtra por tipo de incidencia
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("fecha").count()
@@ -1607,7 +1748,8 @@ def calcular_economicos(request,prenomina,catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_castigos(request, prenomina, catorcena_actual):
-    castigos = prenomina.prenominaincidencias_set.filter(
+    castigos = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id=7,
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("incidencia_rango__fecha_inicio").count()
@@ -1615,7 +1757,8 @@ def calcular_castigos(request, prenomina, catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_permisos_sin_goce(request, prenomina, catorcena_actual):
-    permisos_sin_goce = prenomina.prenominaincidencias_set.filter(
+    permisos_sin_goce = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id=8,
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("incidencia_rango__fecha_inicio").count()
@@ -1623,7 +1766,8 @@ def calcular_permisos_sin_goce(request, prenomina, catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_permisos_con_goce(request, prenomina, catorcena_actual):
-    permisos_con_goce = prenomina.prenominaincidencias_set.filter(
+    permisos_con_goce = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id=9,
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("incidencia_rango__fecha_inicio").count()
@@ -1631,7 +1775,8 @@ def calcular_permisos_con_goce(request, prenomina, catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_vacaciones(request, prenomina, catorcena_actual):
-    vacaciones = prenomina.prenominaincidencias_set.filter(
+    vacaciones = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id=15,
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("incidencia_rango__fecha_inicio").count()
@@ -1639,7 +1784,8 @@ def calcular_vacaciones(request, prenomina, catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_incapacidad_enfermedad_general(request, prenomina, catorcena_actual):
-    incapacidad_enfermedad_general = prenomina.prenominaincidencias_set.filter(
+    incapacidad_enfermedad_general = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id=10,
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("incidencia_rango__fecha_inicio").count()
@@ -1647,7 +1793,8 @@ def calcular_incapacidad_enfermedad_general(request, prenomina, catorcena_actual
 
 @login_required(login_url='user-login')
 def calcular_incapacidad_riesgo_laboral(request, prenomina, catorcena_actual):
-    incapacidad_riesgo_laboral = prenomina.prenominaincidencias_set.filter(
+    incapacidad_riesgo_laboral = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id=11,
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("incidencia_rango__fecha_inicio").count()
@@ -1655,7 +1802,8 @@ def calcular_incapacidad_riesgo_laboral(request, prenomina, catorcena_actual):
 
 @login_required(login_url='user-login')
 def calcular_incapacidad_maternidad(request, prenomina, catorcena_actual):
-    incapacidad_maternidad = prenomina.prenominaincidencias_set.filter(
+    incapacidad_maternidad = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
         incidencia__id=12,
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("incidencia_rango__fecha_inicio").count()
@@ -2709,21 +2857,21 @@ def obtener_fechas_con_incidencias(request, prenomina, catorcena_actual):
 
     # Obtener incidencias
     incidencias = {
-        "retardos": prenomina.prenominaincidencias_set.filter(incidencia__id=1, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "descanso": prenomina.prenominaincidencias_set.filter(incidencia__id=2, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "faltas": prenomina.prenominaincidencias_set.filter(incidencia__id=3, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "comision": prenomina.prenominaincidencias_set.filter(incidencia__id=4, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "domingo": prenomina.prenominaincidencias_set.filter(incidencia__id=5, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "dia_extra": prenomina.prenominaincidencias_set.filter(incidencia__id=6, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "festivos": prenomina.prenominaincidencias_set.filter(incidencia__id=13, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "economicos": prenomina.prenominaincidencias_set.filter(incidencia__id=14, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "castigos": prenomina.prenominaincidencias_set.filter(incidencia__id=7, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "permisos_sin_goce": prenomina.prenominaincidencias_set.filter(incidencia__id=8, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "permisos_con_goce": prenomina.prenominaincidencias_set.filter(incidencia__id=9, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "vacaciones": prenomina.prenominaincidencias_set.filter(incidencia__id=15, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "incapacidad_enfermedad_general": prenomina.prenominaincidencias_set.filter(incidencia__id=10, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "incapacidad_riesgo_laboral": prenomina.prenominaincidencias_set.filter(incidencia__id=11, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
-        "incapacidad_maternidad": prenomina.prenominaincidencias_set.filter(incidencia__id=12, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
+        "retardos": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=1, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "descanso": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=2, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "faltas": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=3, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "comision": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=4, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "domingo": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=5, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "dia_extra": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=6, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "festivo": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=13, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "economicos": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=14, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "castigos": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=7, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "permisos_sin_goce": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=8, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "permisos_con_goce": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=9, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "vacaciones": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=15, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "incapacidad_enfermedad_general": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=10, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "incapacidad_riesgo_laboral": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=11, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)),
+        "incapacidad_maternidad": PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id, incidencia__id=12, incidencia_rango__isnull=True, fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
     }
 
     # Crear una lista con fechas y etiquetas
