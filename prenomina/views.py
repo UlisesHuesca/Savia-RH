@@ -150,7 +150,7 @@ def registrar_rango_incidencias(request,pk):
             if economicos:
                 return JsonResponse({'poscondicion': 'Ya existen economicos dentro del rango de fechas especificado'}, status=422)
             
-            incidencias = PrenominaIncidencias.objects.filter(fecha__range=[fecha_start, fecha_end]).values('id').exists()    
+            incidencias = PrenominaIncidencias.objects.filter(prenomina__empleado_id=pk,fecha__range=[fecha_start, fecha_end]).values('id').exists()   
             if incidencias:
                 return JsonResponse({'poscondicion': 'Ya existen incidencias dentro del rango de fechas especificado'}, status=422)
             
@@ -159,6 +159,7 @@ def registrar_rango_incidencias(request,pk):
             #Cumple la validacion
             incidencia_rango = incidencias_form.save(commit=False)
             incidencia_rango.soporte = request.FILES['soporte'] 
+            incidencia_rango.empleado_id = pk #este es el id del costo del empleado
             incidencia_rango.save()  
             
             fecha_actual = incidencia_rango.fecha_inicio#punto de inicio
@@ -192,9 +193,6 @@ def registrar_rango_incidencias(request,pk):
                 )
                 fecha_actual += timedelta(days=1)
                 
-                
-
-            
             return JsonResponse({'success': 'Agregado correctamente'}, status=200)
         #error
         else:
@@ -961,6 +959,7 @@ def crear_formsets():
     
 @login_required(login_url='user-login')
 def PrenominaRevisar(request, pk):
+        
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id == 4: #Perfil RH
         start_time = time.time()  # Registrar el tiempo de inicio
@@ -987,9 +986,11 @@ def PrenominaRevisar(request, pk):
                         # Si el formulario está marcado para eliminación, eliminar el registro
                         if form.cleaned_data['id']:
                             #ELIMINAR LO QUE SON CREADOS EN LA PRENOMINA, NO ELIMINAR SI SON DE PRENOMANIA ANTERIOR Verifica si el registro es del antes de la cat, si esta dentro o igual a la cat actual
-                            print("")
-                            #print("es es el id pero de id registro", form.cleaned_data['id'])
-                            #print("es es el id pero del rango", form.cleaned_data['incidencia'].id)
+                            print("se presiono el boton eliminar")
+                            print("ID", form.cleaned_data['id'])
+                            print("Incidencia: ", form.cleaned_data['incidencia'])
+                            print("incidencia-ID", form.cleaned_data['incidencia'].id)
+                            PrenominaIncidencias.objects.filter(pk=form.cleaned_data['id']).delete()
                             
                             #PrenominaIncidencias.objects.filter(incidencia_rango_id=form.cleaned_data['id']).delete()
                             #IncidenciaRango.objects.filter(pk=2).delete()
@@ -1038,13 +1039,57 @@ def PrenominaRevisar(request, pk):
             #                incidencia = incidencia
             #            )
         else:
+            
+            
+            
+            
+            
+            
             #EJEUCUTA LOS QUERIES FESTIVOS, ECONOMICOS, FESTIVOS, RANGOS Y GUARDA LOS DATOS
             catorcena = obtener_catorcena()
             #obtener los queries para su posterior llenado
             festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
             economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final], complete = False)
             vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
+            incidencias_rango = IncidenciaRango.objects.filter(empleado_id=prenomina.empleado_id,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
             
+            if incidencias_rango:
+                #si te das cuenta siempre al brincar a una catorcena simpre sera de una incidencia es decir que si de castigo se brinca a la otra cat, solo habra de castigo y no puedes registrar dos rangos en una
+                for incidencia_rango in incidencias_rango:
+                    fecha_actual = incidencia_rango.fecha_fin
+                    fecha_fin = incidencia_rango.fecha_fin
+                                
+                fecha_actual = incidencia_rango.fecha_inicio #punto de inicio
+                fecha_fin = min(incidencia_rango.fecha_fin, prenomina.catorcena.fecha_final)#toma la fecha mas chica entre las dos fechas
+                
+                while fecha_actual <= fecha_fin:
+                    incidencia = incidencia_rango.incidencia_id
+                    comentario = incidencia_rango.comentario
+                    soporte = incidencia_rango.soporte
+                    
+                    if fecha_actual.weekday() == (incidencia_rango.dia_inhabil_id - 1): 
+                        #print(fecha_actual.weekday())
+                        if (incidencia_rango.dia_inhabil_id - 1) == 6:# se resta 1 para obtener el dia domingo
+                            incidencia = 5 #domingo
+                            comentario = None
+                            soporte = None
+                        else:
+                            incidencia = 2 #descanso
+                            comentario = None
+                            soporte = None
+                            
+                    registro_prenomina, creado = PrenominaIncidencias.objects.update_or_create(
+                    prenomina=prenomina,
+                        fecha=fecha_actual,
+                        defaults={
+                            'comentario': comentario, 
+                            'soporte': soporte,
+                            'incidencia_id': incidencia,
+                            'incidencia_rango':incidencia_rango,                        
+                        }
+                    )
+                    fecha_actual += timedelta(days=1)
+                        
             for festivo in festivos:
                 registro, created = PrenominaIncidencias.objects.update_or_create(
                     prenomina_id=prenomina.id,
@@ -1084,7 +1129,6 @@ def PrenominaRevisar(request, pk):
                                     incidencia = 2 #descanso
                             elif fecha_inicio in [festivo.dia_festivo for festivo in festivos]:
                                 incidencia = 13 #festivo:
-                        print("fecha: ",fecha, "incidencia: ", incidencia)
                         registro, created = PrenominaIncidencias.objects.update_or_create(
                             prenomina_id=prenomina.id,
                             fecha=fecha,
@@ -1130,14 +1174,14 @@ def PrenominaRevisar(request, pk):
             incidencia_rango_form = IncidenciaRangoForm()
 
             #es para guardar la autorizacion
-            
+            """
             revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
             revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
             perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
             revisado_rh.perfil=perfil_rh
             revisado_rh.comentario="Revisado por RH"
             revisado_rh.save()
-            
+            """
                      
             context = {
                 'prenomina':prenomina,
@@ -1493,12 +1537,24 @@ def calcular_dias_interseccion(fecha_inicio_rango, fecha_fin_rango, fecha_inicio
         return total_dias, dias_inhabiles_count
 """    
 @login_required(login_url='user-login')
+
+
+def calcular_retardos(request, prenomina, catorcena_actual):
+    retardos = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id = prenomina.empleado_id, 
+        incidencia_id = 1, #retardo
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+        ).values('id').count()
+    return retardos
+
+"""
 def calcular_retardos(request, prenomina, catorcena_actual):
     retardos = prenomina.prenominaincidencias_set.filter(
         incidencia__id = 1,  # Filtra por tipo de incidencia
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     ).values("fecha").count()
     return retardos
+"""
 
 @login_required(login_url='user-login')
 def calcular_descanso(request, prenomina, catorcena_actual):
@@ -2075,7 +2131,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
             dia_extra,
             festivos,
             economicos,
-            cantidad_dias_vacacion,
+            vacaciones,
             salario_catorcenal,
             apoyo_pasajes,
             total_bonos,

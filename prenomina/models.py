@@ -33,6 +33,7 @@ class Incidencia(models.Model):
     
 class IncidenciaRango(models.Model):
     incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
+    empleado = models.ForeignKey(Costo, on_delete = models.CASCADE, null=True)
     fecha_inicio = models.DateField(null=False, db_index=True)
     fecha_fin = models.DateField(null=False, db_index=True)
     dia_inhabil = models.ForeignKey(Dia_vacacion, on_delete=models.CASCADE, null=False)

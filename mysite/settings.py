@@ -120,10 +120,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         #'NAME': 'incapacidades',
-        'NAME': 'v2',
+        'NAME': 'ultima',
         #'NAME': 'sql',
         'USER': 'root',
-        'PASSWORD': 'Root',
+        'PASSWORD': '12345678',
         'HOST': 'localhost',
         'PORT': '',
     }
