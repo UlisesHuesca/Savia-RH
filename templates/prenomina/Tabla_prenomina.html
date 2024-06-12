@@ -124,11 +124,6 @@
                             <td>{{costo.id}}</td>
                             <td>{{costo.empleado.status.perfil.numero_de_trabajador}}</td>
                             <td>{{costo.empleado.status.perfil.nombres}} {{costo.empleado.status.perfil.apellidos}}</td>
-                                            <!-- Mostrar incidencias -->
-                            {% for incidencia in costo.incidencias.all %}
-                                <td>{{ incidencia.incidencia }}</td>
-                            {% endfor %}
-
                             <td>{{costo.estado_general}}</td> 
                             {% if costo.estado_general == "RH pendiente (rechazado por Controles técnicos)" or costo.estado_general == "RH pendiente (rechazado por Gerencia)" or costo.estado_general == "Sin autorizaciones"%}
                                 <td><span class="badge bg-warning text-dark fs-6">Pendiente</span></td>

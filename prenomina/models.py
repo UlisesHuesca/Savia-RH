@@ -42,9 +42,9 @@ class IncidenciaRango(models.Model):
     complete = models.BooleanField(default=None,null=True, blank=True) 
 
 class PrenominaIncidencias(models.Model):
-    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False)
-    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)
-    incidencia_rango = models.ForeignKey(IncidenciaRango, on_delete=models.CASCADE, null=True, blank=True)
+    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False, related_name = "incidencias")
+    incidencia = models.ForeignKey(Incidencia, on_delete=models.CASCADE, null=False)    
+    incidencia_rango = models.ForeignKey(IncidenciaRango, on_delete=models.CASCADE, null=True, blank=True, related_name='prenominaincidencias')
     fecha = models.DateField(null=False, db_index=True)
     comentario = models.CharField(max_length=100, null=True, blank=True)
     soporte = models.FileField(upload_to="prenomina/",null=True,blank=True,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf','png','jpg','jpeg','xlsx','xls'])])    
