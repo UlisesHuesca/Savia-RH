@@ -58,7 +58,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                         <h1 class="modal-title fs-5" id="exampleModalLabel"><i class="fas fa-plus"></i> Agregar Incidencias</h1>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button title="Cierra la ventana pero no borra los datos" type="button" class="btn-close" style="background-color: white;" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <form method="post" action="{% url 'registrar_rango_incidencias' costo.id %}" enctype="multipart/form-data" id="incidencias-form">
                             <div class="modal-body">
@@ -76,7 +76,7 @@
                                     {% render_field incidencia_rango_form.fecha_fin class="form-control" type="date"%}
                                 </div>
                                 
-                                <div class="mb-3">
+                                <div class="mb-3" id="id-subsecuente">
                                     <label for="">Subsecuente</label>
                                     {% render_field incidencia_rango_form.subsecuente class="form-select"%}
                                 </div>
@@ -95,8 +95,8 @@
                                 <input type="hidden" name="" id="costo-id" value="{{costo.id}}">
                             </div>
                             <div class="modal-footer d-flex justify-content-between">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button id="btn-programar" type="submit" class="btn btn-primary">Guardar</button>
+                                <button type="reset" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button id="btn-programar" name="rango-incidencia" type="submit" class="btn btn-primary">Guardar</button>
                             </div>
                         </form>
                     </div>
@@ -157,11 +157,14 @@
                             </td>
                                
                             <td>
-                                <div class="form-check">
-                                    {% render_field prenomina_form.DELETE class="form-check-input"%}
-                                    {{prenomina_form.id}}
-                                    {{prenomina_form.rango_id}}
+                              
+                                <div class="form-check form-switch">
+                                    {% render_field prenomina_form.DELETE class="form-check-input" role="switch"%}
                                 </div>
+                                    
+                                    {{prenomina_form.id}}
+                                    {{prenomina_form.id_rango}}
+                               
                                
                             </td>
                         </tr>
@@ -170,7 +173,11 @@
                        
                     </tbody>
                 </table>
-                <button type="submit" name="guardar_cambios" class="btn btn-primary">Guardar Cambios</button>
+                <div class="col-12 d-flex justify-content-between">
+                    <button id="enviar" type="submit" name="enviar_prenomina" class="btn btn-success">Enviar</button>
+                    <button id="guardar" type="submit" name="guardar_cambios" class="btn btn-primary"> Guardar</button>
+                </div>
+               
                 <br></br>
                 </form>
                 <hr>
@@ -180,7 +187,7 @@
                 {% else %}
                 <div>
                 {% endif %}
-                <a href="{% url 'Prenomina' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
+                <a href="{% url 'Prenomina' %}" class="btn btn-outline-info"><i class="fa-solid fa-arrow-left"></i></a>
             </div>
         </div>
     </div>
@@ -189,7 +196,7 @@
 
 
 {% block js %}
-<script src="{% static 'js/prenomina/revisar_validaciones.js' %}"></script>
+<script src="{% static 'js/prenomina/formulario_revisar.js' %}"></script>
 {% endblock js %}
 
 </body>

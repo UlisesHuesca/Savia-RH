@@ -18,6 +18,31 @@ class IncidenciaRangoForm(forms.ModelForm):
     class Meta:
         model = IncidenciaRango
         fields = ['fecha_inicio','fecha_fin','comentario','soporte','subsecuente','dia_inhabil','incidencia']
+        error_messages = {
+            'fecha_inicio': {
+                'required': 'Campo requerido',
+            },
+            'fecha_fin': {
+                'required': 'Campo requerido',
+            },
+            'comentario': {
+                'required': 'Campo requerido',
+            },
+            'soporte': {
+                'required': 'Campo requerido',
+                'invalid_extension': 'Sube un archivo con extensión válida: .pdf, .png, .jpg, .jpeg, .xlsx y .xls'
+            },
+            'subsecuente': {
+                'required': 'Campo requerido',
+            },
+            'dia_inhabil': {
+                'required': 'Campo requerido',
+            },
+            'incidencia': {
+                'required': 'Campo requerido',
+            },
+            
+        }
         
     
     def __init__(self, *args, **kwargs):
