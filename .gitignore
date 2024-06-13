@@ -1,7 +1,7 @@
 /env
 _pycache_/
 *.pyc
-
+/venv
 mysite/settings.py
 /mysite/settings.py
 **/settings.py 

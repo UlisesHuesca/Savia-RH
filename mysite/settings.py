@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 from pathlib import Path
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,7 +25,7 @@ SECRET_KEY = 'django-insecure-r9fy(pk86$+m$yra4u*dua2%u(8xp9e-t^(3q3ibft-oj6c+zk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True #True es para ver la pantalla amarilla, False para ver el 404
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['www.vordcab.cloud','vordcab.cloud']
 
 
 # Application definition
@@ -101,11 +102,11 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 DATABASES = {
    'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vicjosh$default',
-        'USER': 'vicjosh',
-        'PASSWORD': 'mimi2000',
-        'HOST': 'vicjosh.mysql.pythonanywhere-services.com',
-        'PORT': '',  # Deja este campo vacío
+        'NAME': 'saviaRH',
+        'USER': 'root',
+        'PASSWORD': '*$HbAq*/4528*',
+        'HOST': 'localhost',
+        'PORT': '3306',  # Deja este campo vacío
         'OPTIONS': {
             'charset': 'utf8mb4',
         },
@@ -169,7 +170,10 @@ STATIC_ROOT = (BASE_DIR/'assert/')
 
 LOGIN_REDIRECT_URL ='index'
 
+ 
 
+
+#FORCE_SCRIPT_NAME = '/RH'
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
