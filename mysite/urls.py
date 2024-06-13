@@ -27,6 +27,7 @@ urlpatterns = [
     path('esquema/',include('esquema.urls')), #bonos
     path('prenomina/', include('prenomina.urls')),#prenominas
     path('revisar/',include('revisar.urls')), #autorizaciones
+    path('calculos/',include('calculos.urls')), #calculos
     path('proyecto/', include('proyecto.urls')),
     path('user/', include('user.urls')),
     path('admin/', admin.site.urls),

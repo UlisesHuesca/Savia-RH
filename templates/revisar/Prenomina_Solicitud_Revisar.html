@@ -62,54 +62,30 @@
                     <thead class="text-black" style="background-color: #F5F5F5;">
                         <tr style="background-color:#2A628F;color:#ffffff;">
                             <th>Fecha</th>
-                            <th>Estado actual</th>
+                            <th>Incidencia</th>
                             <th>Comentario</th>
-                            <th>Estado</th>
                             <th>Soporte</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for fecha, etiqueta, comentario, archivo in fechas_con_etiquetas %}
-                            <tr>
-                                <td>{{ fecha|date:'Y-m-d' }}</td>
-                                <td>{{ etiqueta }}</td>
+                        {% for incidencia in incidencias %}
+                        <tr>
+                            <td>{{incidencia.fecha|date:"d/F/Y"}}</td>
+                            <td>{{incidencia.incidencia}}</td>
+                            <td>{{incidencia.comentario}}</td>
+                            {% if incidencia.soporte %}
                                 <td>
-                                    {% if etiqueta == "festivo" %}
-                                        Festivo
-                                    
-                                    {% else %}
-                                        <label for="comentario_{{ fecha|date:'Y-m-d' }}">{{ comentario }}</label>
-                                    {% endif %}
+                                    <small><a title="click para ver el soporte" class="btn btn-success btn-sm" href="{{ incidencia.soporte.url }}" target="_blank"><i class="fas fa-download"></i></a> Ver Soporte</small>
                                 </td>
-                                <td>
-                                    {% if etiqueta == "festivo" %}
-                                        Festivo
-                                    {% elif etiqueta == "economico" %}
-                                        Economico
-                                        <button type="submit" name="economico_pdf" class="btn btn-outline-danger" value="{{ fecha }}">
-                                            <i class="fa-solid fa-file-pdf fa-2xl"></i>
-                                        </button>
-                                    {% elif etiqueta == "vacaciones" %}
-                                        Vacaciones
-                                        <button type="submit" name="vacaciones_pdf" class="btn btn-outline-danger" value="{{ fecha }}">
-                                            <i class="fa-solid fa-file-pdf fa-2xl"></i>
-                                        </button>
-                                    {% else %}
-                                        <label for="estado_{{ fecha|date:'Y-m-d' }}">{{ etiqueta }}</label>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if archivo %}
-                                       
-                                        <p><a href="{{ archivo.url }}" target="_blank" class="btn btn-success btn-sm"><i class="fa-solid fa-download"></i></a> 
-                                            <small class="text-muted"> {{archivo}} </small>
-                                        </p>
-                                    
-                                    {% else %}
-                                        Sin soporte
-                                    {% endif %}
-                                </td>
-                            </tr>
+                               
+                            {% else %}
+                                <td>No hay soporte</td>
+                            {% endif %}
+                           
+                            
+                            
+                        </tr>
+
                         {% endfor %}
                     </tbody>
                 </table>

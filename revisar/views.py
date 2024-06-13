@@ -6,6 +6,7 @@ from esquema.forms import AutorizarSolicitudesUpdateForm
 from .models import AutorizarSolicitudes
 from esquema.models import BonoSolicitado
 from proyecto.models import UserDatos,Perfil,Status,Costo,Catorcenas,SalarioDatos,Empresa
+from prenomina.models import PrenominaIncidencias
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.shortcuts import redirect
@@ -74,6 +75,7 @@ import math
 from prenomina.views import Excel_estado_prenomina, obtener_catorcena
 
 from prenomina.filters import PrenominaFilter
+from prenomina.views import obtener_catorcena
 
 #BONOS
 def asignarBonoCosto(solicitud):
@@ -341,15 +343,45 @@ def Prenomina_Solicitud_Revisar(request, pk):
         ahora = datetime.date.today()
         #ahora = datetime.date.today() + timedelta(days=10)
         costo = Costo.objects.get(id=pk)
-        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        prenomina = Prenomina.objects.get(empleado=costo,catorcena=catorcena_actual)
+        #se trae la funcion desde Prenomina.view para obtener la catorcena actual
+        catorcena_actual=obtener_catorcena()
+        prenomina = Prenomina.objects.get(empleado=costo,catorcena_id=catorcena_actual.id)
         verificado_rh = AutorizarPrenomina.objects.filter(prenomina=prenomina).first()
-
-        festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
-        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
-        vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
+        
+        fecha_inicio = catorcena_actual.fecha_inicial
+        fecha_fin = catorcena_actual.fecha_final
+        fechas = []
+        while fecha_inicio <= fecha_fin:
+            fechas.append(fecha_inicio)
+            fecha_inicio += timedelta(days=1)
+                        
+                                          
+        
+        #for incidencia, fecha in enumerate(14):
+        #    if fecha == incidencia.fecha:
+        #        print("fecha1: ",incidencia.fecha,"incidencia: ", incidencia.incidencia)
+        #    else:
+        #        print("fecha2: ", fecha,'Incidencia: ', "Asistencia")
+            #print(fecha, incidencia.fecha, incidencia.incidencia)
+        
+        
+        
+        
+        
+                    
+        #festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
+        #economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
+        #vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
+        
         autorizacion1 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Control Tecnico").first()
         autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
+        
+
+        
+        
+        
+        
+        
         """
         #obtener factores de días asociados a cada prenomina
         prenomina.retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
@@ -460,6 +492,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
             'autorizacion1':autorizacion1,
             'autorizacion2':autorizacion2,
             'catorcena_actual':catorcena_actual,
+            'incidencias':incidencias,
             #'fechas_con_etiquetas': fechas_con_etiquetas,
             }
 

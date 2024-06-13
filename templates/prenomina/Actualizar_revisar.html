@@ -25,6 +25,14 @@
                     "icon":"error",
                 })
                 </script>
+                {% elif message.tags == "info" %}
+                <script>
+                Swal.fire({
+                    "title":"Alerta",
+                    "text":"{{message}}",
+                    "icon":"warning",
+                })
+                </script>
                 {% else %}
                 <script>
                 Swal.fire({

@@ -72,43 +72,6 @@ def obtener_catorcena():
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
     return catorcena_actual
 
-def generar_prenomina(prenomina,catorcena,festivos):
-        #crear_registro_prenomina(prenomina, prenomina.catorcena)
-        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=(catorcena.fecha_inicial, catorcena.fecha_final))
-        vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
-
-        incidencias = [] #es una lista de objectos que lleva los 14 dias con incidencias de la prenomina
-        incidencia = 0 #se inicializa la incidencia
-        fecha_incidencia = catorcena.fecha_inicial
-        
-        for i in range(1,15):
-            fecha = fecha_incidencia
-            incidencia = 16 #asistencia
-            if fecha.weekday() == 6:  
-                incidencia = 5 #domingo
-            elif fecha in [festivo.dia_festivo for festivo in festivos]:
-                incidencia = 13 #festivo:
-            elif fecha in [economico.fecha for economico in economicos]:
-                incidencia = 14 #economico            
-            
-            #Itera y saca la fecha de inicio y la fecha fin
-
-            #se prepara el objecto PrenominaIncidencia para posterior ser almacenado en la BD
-            crear_incidencia = PrenominaIncidencias(
-                prenomina_id=prenomina.id,
-                fecha=fecha,
-                incidencia_id=incidencia  
-            )
-            
-            #se inserta a la lista de las incidencias         
-            incidencias.append(crear_incidencia)     
-            #se agregar un dia para realizar el recorrido
-            fecha_incidencia += timedelta(days=1)
-            
-        #se insertan todos los objecto en una sola consulta
-        PrenominaIncidencias.objects.bulk_create(incidencias, batch_size=14)
-
-#CODIGO FUNCIONAL
 def registrar_rango_incidencias(request,pk):    
     if request.method == 'POST':
         #catorcena
@@ -215,43 +178,6 @@ def registrar_rango_incidencias(request,pk):
             #Se envia los errores de validaciones al cliente
             return JsonResponse(response_data, status=422)
         
-def actualizar_prenomina(prenominas,catorcena,festivos):
-    print("aqui se debe actualizar la prenomina")
-    cont = 0
-    for prenomina in prenominas:
-        cont = cont + 1
-        print("contador ",cont)
-        economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=(catorcena.fecha_inicial, catorcena.fecha_final))
-        vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
-        
-        # Para los días económicos - registrados en el tiempo de la prenomina
-        for economico in economicos:
-            PrenominaIncidencias.objects.filter(
-                prenomina=prenomina,
-                fecha=economico.fecha
-            ).update(
-                comentario=None,
-                soporte=None,
-                incidencia_id=14 #economico
-            )
-                  
-        # Para los días de vacaciones registrados en el tiempo de la prenomina
-        for vacacion in vacaciones:
-            # Buscar las incidencias correspondientes en la prenomina actual
-            incidencias_vacaciones = PrenominaIncidencias.objects.filter(prenomina=prenomina,fecha__range=(vacacion.fecha_inicio, vacacion.fecha_fin))
-            for incidencia_vacacion in incidencias_vacaciones:
-                if incidencia_vacacion.incidencia_id == 16:#asistencia
-                    incidencia_vacacion.incidencia_id = 15#vacacion
-                elif incidencia_vacacion.fecha.weekday() == (int(vacacion.dia_inhabil_id) - 1):
-                    if (int(vacacion.dia_inhabil_id) - 1) == 6:# se resta 1 para obtener el dia domingo
-                        incidencia_vacacion.incidencia_id = 5 #domingo
-                    else:
-                        incidencia_vacacion.incidencia_id = 2 #descanso
-                incidencia_vacacion.save()
-        
-        
-       
-
 @login_required(login_url='user-login')
 def Tabla_prenomina(request):
     start_time = time.time()  # Registrar el tiempo de inicio
@@ -282,10 +208,7 @@ def Tabla_prenomina(request):
             #si no existe crear una nueva prenomina
             if not prenomina_existente:
                 nueva_prenomina = Prenomina(empleado=empleado, catorcena=catorcena_actual)
-                nuevas_prenominas.append(nueva_prenomina)
-                #generar_prenomina(nueva_prenomina,catorcena_actual,festivos)
-            #else:
-                #actualizar_prenomina(prenominas,catorcena_actual,festivos)  
+                nuevas_prenominas.append(nueva_prenomina) 
         if nuevas_prenominas:
             Prenomina.objects.bulk_create(nuevas_prenominas)              
         #costo_filter = CostoFilter(request.GET, queryset=costo)
@@ -484,600 +407,7 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
             revisado.save()
         messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
         return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
-
-@login_required(login_url='user-login')
-def capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,nombre,url):
-            if incidencia == '2':
-                evento_model = Castigos
-            elif incidencia == '3':
-                evento_model = Permiso_goce
-            elif incidencia == '4':
-                evento_model = Permiso_sin
-            dias_semana = {
-                            'Lunes': 0,
-                            'Martes': 1,
-                            'Miércoles': 2,
-                            'Jueves': 3,
-                            'Viernes': 4,
-                            'Sábado': 5,
-                            'Domingo': 6
-                        }
-            if evento_model:
-                if url:
-                    obj, created = evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil,prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
-                    obj.url = url
-                    obj.save()
-                    # Obtener el día de la semana del día inhabil
-                    dia_semana = dia_inhabil.nombre
-                    dia_semana = dias_semana[dia_semana]
-
-                    # Definir el tipo de modelo basado en el día de la semana
-                    if dia_semana == 6:  # Domingo
-                        descanso_model = Domingo
-                    else:
-                        descanso_model = Descanso
-                    # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
-                    for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
-                        if fecha_iter.weekday() == dia_semana:
-                            # Crear el objeto correspondiente
-                            descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
-                            descanso.save()
-                else:
-                    evento_model.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
-                    # Obtener el día de la semana del día inhabil
-                    dia_semana = dia_inhabil.nombre
-                    dia_semana = dias_semana[dia_semana]
-
-                    # Definir el tipo de modelo basado en el día de la semana
-                    if dia_semana == 6:  # Domingo
-                        descanso_model = Domingo
-                    else:
-                        descanso_model = Descanso
-                    # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
-                    for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
-                        if fecha_iter.weekday() == dia_semana:
-                            # Crear el objeto correspondiente
-                            descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
-                            descanso.save()
-            else:
-                #  donde nuevo_estado no tiene un mapeo en el diccionario
-                print(f"Error: nuevo_estado desconocido")
-            
-            messages.success(request, 'Cambios guardados exitosamente')
-            
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-@login_required(login_url='user-login')
-def capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,url,nombre,incapacidades,):
-    dias_semana = {
-                    'Lunes': 0,
-                    'Martes': 1,
-                    'Miércoles': 2,
-                    'Jueves': 3,
-                    'Viernes': 4,
-                    'Sábado': 5,
-                    'Domingo': 6
-                }
-    if incapacidades.exists() and subsecuente == True:
-        incapacidad = Incapacidades.objects.get(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=fecha_fin,fecha_fin__gte=fecha_incio,)
-        fecha_subsecuente = incapacidad.fecha_fin + timedelta(days=1)
-        if url:
-            obj, created = Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}",})
-            obj.tipo = tipo
-            obj.subsecuente = subsecuente
-            obj.dia_inhabil = dia_inhabil
-            obj.url = url
-            obj.save()
-            # Obtener el día de la semana del día inhabil
-            dia_semana = dia_inhabil.nombre
-            dia_semana = dias_semana[dia_semana]
-
-            # Definir el tipo de modelo basado en el día de la semana
-            if dia_semana == 6:  # Domingo
-                descanso_model = Domingo
-            else:
-                descanso_model = Descanso
-            # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
-            for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
-                if fecha_iter.weekday() == dia_semana:
-                    # Crear el objeto correspondiente
-                    descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
-                    descanso.save()
-        else:
-            Incapacidades.objects.update_or_create(fecha=fecha_subsecuente, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, subsecuente=True, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
-            # Obtener el día de la semana del día inhabil
-            dia_semana = dia_inhabil.nombre
-            dia_semana = dias_semana[dia_semana]
-
-            # Definir el tipo de modelo basado en el día de la semana
-            if dia_semana == 6:  # Domingo
-                descanso_model = Domingo
-            else:
-                descanso_model = Descanso
-            # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
-            for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
-                if fecha_iter.weekday() == dia_semana:
-                    # Crear el objeto correspondiente
-                    descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
-                    descanso.save()
-        messages.success(request, 'Se extendio la incapacidad')    
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        
-    else:
-        if url:
-            obj, created = Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
-            obj.tipo = tipo
-            obj.subsecuente = subsecuente
-            obj.url = url
-            obj.save()
-            # Obtener el día de la semana del día inhabil
-            dia_semana = dia_inhabil.nombre
-            dia_semana = dias_semana[dia_semana]
-
-            # Definir el tipo de modelo basado en el día de la semana
-            if dia_semana == 6:  # Domingo
-                descanso_model = Domingo
-            else:
-                descanso_model = Descanso
-            # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
-            for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
-                if fecha_iter.weekday() == dia_semana:
-                    # Crear el objeto correspondiente
-                    descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
-                    descanso.save()
-        else:
-            Incapacidades.objects.update_or_create(fecha=fecha_incio, fecha_fin=fecha_fin, dia_inhabil = dia_inhabil, prenomina=prenomina, defaults={'comentario': comentario, 'editado': f"E:{nombre.nombres} {nombre.apellidos}"})
-            # Obtener el día de la semana del día inhabil
-            dia_semana = dia_inhabil.nombre
-            dia_semana = dias_semana[dia_semana]
-
-            # Definir el tipo de modelo basado en el día de la semana
-            if dia_semana == 6:  # Domingo
-                descanso_model = Domingo
-            else:
-                descanso_model = Descanso
-            # Iterar sobre cada día correspondiente al día de la semana dentro del rango de fechas
-            for fecha_iter in (fecha_incio + timedelta(days=d) for d in range((fecha_fin - fecha_incio).days + 1)):
-                if fecha_iter.weekday() == dia_semana:
-                    # Crear el objeto correspondiente
-                    descanso, created = descanso_model.objects.get_or_create(prenomina=prenomina, fecha=fecha_iter, defaults={'comentario': "generado automaticamente", 'editado': "sistema"})
-                    descanso.save()
-        messages.success(request, 'Se guardo correctamente')    
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-
-@login_required(login_url='user-login')
-def programar_incidencias(request,pk):
-    # crea el nuevo dato según el nuevo estado o comentario
-    if request.method == 'POST' and 'btn_incidencias' in request.POST:
-        
-        #saber catorcena
-        ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=10)
-        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        
-        #RH
-        user_filter = UserDatos.objects.get(user=request.user)
-        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-        
-        #Empleado
-        costo = Costo.objects.get(id=pk)
-        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
-        
-        #Se trae el formulario de las incapacidades para ser validado
-        form_incidencias = IncapacidadesForm(request.POST, request.FILES)
-        
-        if form_incidencias.is_valid():
-            incidencia = form_incidencias.cleaned_data.get('incidencias')
-            fecha_incio = form_incidencias.cleaned_data['fecha']
-            fecha_fin = form_incidencias.cleaned_data['fecha_fin']
-            dia_inhabil = form_incidencias.cleaned_data['dia_inhabil']
-            comentario = form_incidencias.cleaned_data['comentario']    
-            url = form_incidencias.cleaned_data['url']       
-            
-            #VALIDACIONES
-            if fecha_incio > fecha_fin:
-                print("La fecha de inicio es posterior a la fecha final.")
-                messages.error(request, 'La fecha de inicio debe ser menor a la fecha final')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            if not incidencia:
-                messages.error(request, 'Debes seleccionar una incidencia')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            if fecha_incio < catorcena_actual.fecha_inicial:
-                messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[fecha_incio, fecha_fin]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[fecha_incio, fecha_fin]))
-            if vacaciones.exists():
-                messages.error(request, 'Ya existen vacaciones dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[fecha_incio, fecha_fin])
-            if economicos.exists():            
-                messages.error(request, 'Ya existen economicos dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            festivos = TablaFestivos.objects.filter(dia_festivo__range=[fecha_incio, fecha_fin])
-            if festivos.exists():
-                messages.error(request, 'Ya existen festivos dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
-            
-            
-            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,nombre,url)
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        
-        else:
-            for field, errors in form_incidencias.errors.items():
-                for error in errors:
-                    messages.error(request,error)
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-
-@login_required(login_url='user-login')
-def programar_incidencias(request,pk):
-    # crea el nuevo dato según el nuevo estado o comentario
-    if request.method == 'POST' and 'btn_incidencias' in request.POST:
-        
-        #saber catorcena
-        ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=10)
-        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        
-        #RH
-        user_filter = UserDatos.objects.get(user=request.user)
-        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-        
-        #Empleado
-        costo = Costo.objects.get(id=pk)
-        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
-        
-        #Se trae el formulario de las incapacidades para ser validado
-        form_incidencias = IncapacidadesForm(request.POST, request.FILES)
-        
-        if form_incidencias.is_valid():
-            incidencia = form_incidencias.cleaned_data.get('incidencias')
-            fecha_incio = form_incidencias.cleaned_data['fecha']
-            fecha_fin = form_incidencias.cleaned_data['fecha_fin']
-            dia_inhabil = form_incidencias.cleaned_data['dia_inhabil']
-            comentario = form_incidencias.cleaned_data['comentario']    
-            url = form_incidencias.cleaned_data['url']       
-            
-            #VALIDACIONES
-            if fecha_incio > fecha_fin:
-                print("La fecha de inicio es posterior a la fecha final.")
-                messages.error(request, 'La fecha de inicio debe ser menor a la fecha final')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            if not incidencia:
-                messages.error(request, 'Debes seleccionar una incidencia')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            if fecha_incio < catorcena_actual.fecha_inicial:
-                messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[fecha_incio, fecha_fin]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[fecha_incio, fecha_fin]))
-            if vacaciones.exists():
-                messages.error(request, 'Ya existen vacaciones dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[fecha_incio, fecha_fin])
-            if economicos.exists():            
-                messages.error(request, 'Ya existen economicos dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            festivos = TablaFestivos.objects.filter(dia_festivo__range=[fecha_incio, fecha_fin])
-            if festivos.exists():
-                messages.error(request, 'Ya existen festivos dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
-            
-            #VALIDAR INCIDENCIAS - EDITAR UNA INCIDENCIA QUE ESTE DENTRO DEL RANGO DE LA CAT Y VERIFICAR QUE EXISTA EN LA CAT ANTERIOIR
-            incapacidades = Incapacidades.objects.filter(
-                prenomina__empleado_id=prenomina.empleado.id,
-                fecha__lte=fecha_fin,  # La fecha de inicio de la incapacidad debe ser menor o igual a la fecha fin del rango proporcionado
-                fecha_fin__gte=fecha_incio,   # La fecha fin de la incapacidad debe ser mayor o igual a la fecha inicio del rango proporcionado
-            )
-            
-            castigos = Castigos.objects.filter(
-                prenomina__empleado_id=prenomina.empleado.id,
-                fecha__lte=fecha_fin,
-                fecha_fin__gte=fecha_incio,
-            )
-            
-            permisos_goce = Permiso_goce.objects.filter(
-                prenomina__empleado_id=prenomina.empleado.id,
-                fecha__lte=fecha_fin,
-                fecha_fin__gte=fecha_incio,
-            )
-            
-            permisos_sin = Permiso_sin.objects.filter(
-                prenomina__empleado_id=prenomina.empleado.id,
-                fecha__lte=fecha_fin,
-                fecha_fin__gte=fecha_incio,
-            )
-            
-            #elimina una incapacidad y es remplazada por otra en caso que sea de la misma catorcena
-            if incapacidades.exists():
-                if incapacidades.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
-                    messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
-                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
-                else:
-                    #se elimina el soporte asociado
-                    soporte = incapacidades.first()
-                    os.remove(soporte.url.path)
-                    #se elima la incapacidad de la BD
-                    incapacidades.delete()
-                    
-            if castigos.exists():
-                if castigos.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
-                    messages.error(request, 'Ya existen castigos de la catorcena anterior')
-                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
-                else:
-                    # Se elimina el soporte asociado
-                    soporte = castigos.first()
-                    os.remove(soporte.url.path)
-                    # Se elimina el castigo de la BD
-                    castigos.delete()
-            
-            if permisos_goce.exists():
-                if permisos_goce.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
-                    messages.error(request, 'Ya existen permisos de goce de sueldo de la catorcena anterior')
-                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
-                else:
-                    # Se elimina el soporte asociado
-                    soporte = permisos_goce.first()
-                    os.remove(soporte.url.path)
-                    # Se elimina el permiso de goce de la BD
-                    permisos_goce.delete()
-            
-            if permisos_sin.exists():
-                if permisos_sin.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
-                    messages.error(request, 'Ya existen permisos sin goce de sueldo de la catorcena anterior')
-                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
-                else:
-                    # Se elimina el soporte asociado
-                    soporte = permisos_sin.first()
-                    os.remove(soporte.url.path)
-                    # Se elimina el permiso sin goce de la BD
-                    permisos_sin.delete()        
-            
-            capturarIncidencias(request, incidencia,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,nombre,url)
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        
-        else:
-            for field, errors in form_incidencias.errors.items():
-                for error in errors:
-                    messages.error(request,error)
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        
-@login_required(login_url='user-login')
-def programar_incapacidades(request,pk):
-    # crea el nuevo dato según el nuevo estado o comentario
-    if request.method == 'POST' and 'btn_incapacidades' in request.POST:
-        
-        #saber catorcena
-        ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=10)
-        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        
-        #RH
-        user_filter = UserDatos.objects.get(user=request.user)
-        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-        
-        #Empleado
-        costo = Costo.objects.get(id=pk)
-        prenomina = Prenomina.objects.get(empleado=costo,fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
-        
-        #Se trae el formulario de las incapacidades para ser validado
-        form_incapacidades = IncapacidadesTipoForm(request.POST, request.FILES)
-        
-        if form_incapacidades.is_valid():
-            #'tipo','subsecuente','fecha','fecha_fin','comentario','url'
-            tipo = form_incapacidades.cleaned_data['tipo']
-            subsecuente = form_incapacidades.cleaned_data['subsecuente']
-            fecha_incio = form_incapacidades.cleaned_data['fecha']
-            fecha_fin = form_incapacidades.cleaned_data['fecha_fin']
-            dia_inhabil = form_incapacidades.cleaned_data['dia_inhabil']
-            comentario = form_incapacidades.cleaned_data['comentario']
-            url = form_incapacidades.cleaned_data['url']       
-                        
-            #VALIDACIONES
-            if fecha_incio > fecha_fin:
-                print("La fecha de inicio es posterior a la fecha final.")
-                messages.error(request, 'La fecha de inicio debe ser menor a la fecha final')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-                        
-            if fecha_incio < catorcena_actual.fecha_inicial:
-                messages.error(request, 'No puedes agregar una fecha anterior de la catorcena actual')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[fecha_incio, fecha_fin]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[fecha_incio, fecha_fin]))
-            if vacaciones.exists():
-                messages.error(request, 'Ya existen vacaciones dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[fecha_incio, fecha_fin])
-            if economicos.exists():            
-                messages.error(request, 'Ya existen economicos dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-            
-            festivos = TablaFestivos.objects.filter(dia_festivo__range=[fecha_incio, fecha_fin])
-            if festivos.exists():
-                messages.error(request, 'Ya existen festivos dentro del rango de fechas especificado')
-                return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
-            
-            #VALIDAR INCIDENCIAS - EDITAR UNA INCIDENCIA QUE ESTE DENTRO DEL RANGO DE LA CAT Y VERIFICAR QUE EXISTA EN LA CAT ANTERIOIR
-            incapacidades = Incapacidades.objects.filter(
-                prenomina__empleado_id=prenomina.empleado.id,
-                fecha__lte=fecha_fin,  # La fecha de inicio de la incapacidad debe ser menor o igual a la fecha fin del rango proporcionado
-                fecha_fin__gte=fecha_incio,   # La fecha fin de la incapacidad debe ser mayor o igual a la fecha inicio del rango proporcionado
-            )
-            
-            castigos = Castigos.objects.filter(
-                prenomina__empleado_id=prenomina.empleado.id,
-                fecha__lte=fecha_fin,
-                fecha_fin__gte=fecha_incio,
-            )
-            
-            permisos_goce = Permiso_goce.objects.filter(
-                prenomina__empleado_id=prenomina.empleado.id,
-                fecha__lte=fecha_fin,
-                fecha_fin__gte=fecha_incio,
-            )
-            
-            permisos_sin = Permiso_sin.objects.filter(
-                prenomina__empleado_id=prenomina.empleado.id,
-                fecha__lte=fecha_fin,
-                fecha_fin__gte=fecha_incio,
-            )
-            
-            #elimina una incapacidad y es remplazada por otra en caso que sea de la misma catorcena
-            if incapacidades.exists() and subsecuente is False:
-                if incapacidades.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
-                    messages.error(request, 'Ya existen incapacidades de la catorcena anterior')
-                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
-                else:
-                    #Traer la ultima incapacidad
-                    ultima_incapacidad = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha_fin__gte=fecha_fin,).last()
-                    if ultima_incapacidad is not None:
-                        #Traer incidencias 
-                        eliminar_subsecuentes = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=ultima_incapacidad.fecha_fin,fecha_fin__gte=fecha_incio,)
-                        #se elimina el soporte asociado
-                        soporte = eliminar_subsecuentes.first()
-                        os.remove(soporte.url.path)
-                        #se elima la incapacidad de la BD
-                        eliminar_subsecuentes.delete()
-                    #se elimina el soporte asociado
-                    #soporte = incapacidades.first()
-                    #os.remove(soporte.url.path)
-                    #se elima la incapacidad de la BD
-                    #incapacidades.delete()
-                    
-            if castigos.exists():
-                if castigos.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
-                    messages.error(request, 'Ya existen castigos de la catorcena anterior')
-                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
-                else:
-                    # Se elimina el soporte asociado
-                    soporte = castigos.first()
-                    os.remove(soporte.url.path)
-                    # Se elimina el castigo de la BD
-                    castigos.delete()
-            
-            if permisos_goce.exists():
-                if permisos_goce.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
-                    messages.error(request, 'Ya existen permisos de goce de sueldo de la catorcena anterior')
-                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
-                else:
-                    # Se elimina el soporte asociado
-                    soporte = permisos_goce.first()
-                    os.remove(soporte.url.path)
-                    # Se elimina el permiso de goce de la BD
-                    permisos_goce.delete()
-            
-            if permisos_sin.exists():
-                if permisos_sin.filter(fecha__lt=catorcena_actual.fecha_inicial).exists():
-                    messages.error(request, 'Ya existen permisos sin goce de sueldo de la catorcena anterior')
-                    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))   
-                else:
-                    # Se elimina el soporte asociado
-                    soporte = permisos_sin.first()
-                    os.remove(soporte.url.path)
-                    # Se elimina el permiso sin goce de la BD
-                    permisos_sin.delete()        
-            capturarIncapacidades(request, tipo,subsecuente,fecha_incio,fecha_fin,dia_inhabil,prenomina,comentario,url,nombre, incapacidades)
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        
-        else:
-            for field, errors in form_incapacidades.errors.items():
-                for error in errors:
-                    messages.error(request,error)
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))        
     
-@login_required(login_url='user-login')
-def crear_rango_incidencias_dos(request,pk):
-    # crea el nuevo dato según el nuevo estado o comentario
-    if request.method == 'POST' and 'btn_incidencias' in request.POST:        
-        #catorcena
-        catorcena_actual = obtener_catorcena()
-        #RH
-        user_filter = UserDatos.objects.get(user=request.user)
-        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-        #Empleado
-        costo = Costo.objects.get(id=pk)
-        prenomina = Prenomina.objects.get(empleado=costo,catorcena = catorcena_actual.id)
-        
-        #Se trae el formulario de las incapacidades para ser validado
-        incidencias_form = IncidenciasRangoForm(request.POST, request.FILES)
-        
-        if incidencias_form.is_valid():    
-            incidencia_rango = incidencias_form.save(commit=False)  # Guarda el formulario pero no en la base de datos aún
-            if incidencia_rango.fecha_inicio > incidencia_rango.fecha_fin:
-                return JsonResponse({'poscondicion': 'La fecha de inicio debe ser menor a la fecha final'}, status=422)
-            
-            
-            
-            incidencia_rango.soporte = request.FILES['soporte']  # Asigna el archivo adjunto al campo 'soporte' de la incidencia
-            print("es la foto ", incidencia_rango.soporte)
-            incidencia_rango.save()  
-            
-            incidencias = PrenominaIncidencias.objects.filter(prenomina = prenomina,fecha__range=[incidencia_rango.fecha_inicio,incidencia_rango.fecha_fin])
-            for incidencia in incidencias:
-              
-                incidencia.soporte =   incidencia_rango.soporte
-                incidencia.incidencia = incidencia_rango.incidencia
-                incidencia.comentario = incidencia_rango.comentario
-                incidencia.incidencias_rango = incidencia_rango
-                incidencia.save()
-                
-            print(incidencia_rango.id)
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        else:
-            for field, errors in incidencias_form.errors.items():
-                for error in errors:
-                    messages.error(request,error)
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-def crear_registro_prenomina(prenomina,catorcena):
-    # Lista de las incidencias de la prenomina a crear
-    incidencias_prenomina = []
-    
-    # Crear las 14 incidencias por defecto considerando domingo
-    for i in range(14):
-        objeto = PrenominaIncidencias(
-            prenomina=prenomina,
-            fecha=catorcena.fecha_inicial + timedelta(days=i),
-            comentario=None,
-            soporte=None,
-            # 5 = domingo, 16 = asistencia, 6 y 13 == dia semana domingo
-            incidencia_id = 5 if i == 6 or i == 13 else 16
-        )
-        incidencias_prenomina.append(objeto)
-    
-    PrenominaIncidencias.objects.bulk_create(incidencias_prenomina)
- 
-def crear_formsets():
-    from django.forms import formset_factory
-    from .forms import PrenominaIncidenciasForm
-    # Crear el formset factory
-    FormSet = formset_factory(PrenominaIncidenciasForm, extra=14)
-    
-    # Definir la fecha inicial
-    fecha_inicial = date(2024, 6, 1)  # Fecha inicial
-
-    # Lista para almacenar los formsets
-    formsets = []
-
-    # Generar los 14 formsets con fechas iniciales consecutivas
-    for i in range(14):
-        nueva_fecha = fecha_inicial + timedelta(days=i)
-        formset = FormSet(initial=[{'fecha': nueva_fecha.strftime('%Y-%m-%d')}])
-        formsets.append(formset)
-
-    return formsets
-
-#CODIGO FUNCIONAL
 @login_required(login_url='user-login')
 def PrenominaRevisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
@@ -1140,6 +470,10 @@ def PrenominaRevisar(request, pk):
                                     if os.path.exists(archivo):
                                         os.remove(archivo)
                                     buscar_rango.delete()
+                                else:
+                                    messages.info(request,"No se puede eliminar estas incidencias, se registraron desde la prenomina anterior")         
+                                    return redirect(request.META.get('HTTP_REFERER'))
+                                    
                             else:
                                 PrenominaIncidencias.objects.filter(pk=id).delete()
                                 
@@ -1324,16 +658,7 @@ def determinar_estado_general(request, ultima_autorizacion):
 
     return 'Estado no reconocido'
 
-
-@login_required(login_url='user-login')
-def conteo_incidencias_aguinaldo(request,prenomina,fecha_inicio,fecha_fin):
-    #incidencias es una variable que lleva el conteo de todas las incidencias para el aguinaldo y se retorna  
-    incidencias = 0
-    faltas = Faltas.objects.filter(prenomina__empleado = prenomina.empleado.id,fecha__range=(fecha_inicio,fecha_fin)).count()
-    incidencias = faltas
-    print("este es el recuento totoal de las faltas ", faltas)
-    return incidencias
-
+#CODIGO EJEMPLO
 @login_required(login_url='user-login')
 def calcular_aguinaldo_eventual(request,salario,prenomina):
     """
@@ -1390,7 +715,8 @@ def calcular_aguinaldo_eventual(request,salario,prenomina):
                 mes = mes
             )
             aguinaldo_contrato.save()
-              
+
+#CODIGO EJEMPLO        
 @login_required(login_url='user-login')
 def calcular_aguinaldo(request,salario,prenomina):
     aguinaldo = Decimal(0.00)
@@ -1470,7 +796,8 @@ def calcular_aguinaldo(request,salario,prenomina):
     else:
         print("no corresponde pago del aguinaldo")
         return aguinaldo
-    
+
+#CODIGO EJEMPLO
 @login_required(login_url='user-login')
 def calcular_prima_dominical(request,dia_extra,salario):
     dato = SalarioDatos.objects.get()
@@ -1480,6 +807,7 @@ def calcular_prima_dominical(request,dia_extra,salario):
     print("prima dominical", Decimal(prima_dominical))
     return Decimal(prima_dominical)
 
+#CODIGO EJEMPLO
 @login_required(login_url='user-login')
 def calcular_cuotas_imss(request,sdi_imss):
     variables_patronal = Variables_imss_patronal.objects.get()
@@ -1505,6 +833,7 @@ def calcular_cuotas_imss(request,sdi_imss):
     print("Este es el calculo IMSS: ", calculo_imss)
     return calculo_imss
 
+#CODIGO EJEMPLO
 @login_required(login_url='user-login')
 def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calculo_aguinaldo_eventual_isr):   
     salario_datos = SalarioDatos.objects.get()
@@ -1573,6 +902,7 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calcul
     
     return isr_catorcenal
 
+#CODIGO EJEMPLO - INCOMPLETO
 @login_required(login_url='user-login')
 def calcular_prima_vacacional(request,salario,prenomina):
     
@@ -1622,22 +952,10 @@ def calcular_prima_vacacional(request,salario,prenomina):
 
     else:#No calcula la prima
         print("esta es la prima ", prima_vacacional)
-        return prima_vacacional 
-"""    
-def calcular_dias_interseccion(fecha_inicio_rango, fecha_fin_rango, fecha_inicio_catorcena, fecha_fin_catorcena, dias_inhabiles):
-    inicio = max(fecha_inicio_rango, fecha_inicio_catorcena)
-    fin = min(fecha_fin_rango, fecha_fin_catorcena)
-    if inicio > fin:
-        return 0, 0
-    else:
-        total_dias = (fin - inicio).days + 1
-        dias_inhabiles_count = sum(1 for day in range(total_dias)
-                                   if (inicio + timedelta(days=day)).weekday() in dias_inhabiles)
-        return total_dias, dias_inhabiles_count
-"""    
+        return prima_vacacional  
+
+#CONTEO INCIDENCIAS
 @login_required(login_url='user-login')
-
-
 def calcular_retardos(request, prenomina, catorcena_actual):
     retardos = PrenominaIncidencias.objects.filter(
         prenomina__empleado_id = prenomina.empleado_id, 
@@ -1773,120 +1091,6 @@ def calcular_incapacidad_maternidad(request, prenomina, catorcena_actual):
     ).values("incidencia_rango__fecha_inicio").count()
     return incapacidad_maternidad
 
-"""
-@login_required(login_url='user-login')    
-def calcular_incapacidades(request,prenomina,catorcena_actual):
-    print("LLAMADA DESDE CALCULAR INCAPACIDADES")
-    #LLeva el conteo de las incapacidades
-    cont_maternidad = 0
-    cont_riesgo = 0
-    cont_enfermedad = 0
-    tipo = 0 #se guarda el tipo del id de la incapacidad
-    #subsecuente = False #se llevar un contador 
-    cont_descanso = 0 #cuenta los dias si son domingo o dias de descanso
-    fecha = None #es un contador para incrementar el ciclo en el for del rango de fechas
-    dias = 0 #cuenta los dias correspondientes de incapacidades
-    pagar_dias = 0 #lleva el conteo de pagar los dias de la incapacidad 1,2 ó 3 dias
-    cont_subsecuente = False #se lleva un contador para controlar el pago de los dias de la incapacidad de enfermedad
-
-    
-    #Query de las incapacidades que caen en la catorcena actual
-    incapacidades = Incapacidades.objects.filter(prenomina__empleado_id=prenomina.empleado.id,fecha__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
-    if incapacidades.exists():
-        for incapacidad in incapacidades:
-            #solo cuenta los dias que estan en la catorcena
-            dentro_de_la_catorcena = catorcena_actual.fecha_inicial <= incapacidad.fecha <= catorcena_actual.fecha_final
-            
-            if dentro_de_la_catorcena:
-                print("La incapacidad está dentro del rango de la catorcena.")                
-                #detectar el dia de descanso
-                cont_descanso = 0 #puede ser domingo o un dia entre semana
-                for i in range((incapacidad.fecha_fin - incapacidad.fecha).days + 1): #rango para el ciclo for
-                    fecha = incapacidad.fecha + timedelta(days=i) #para incrementar el dia
-                    if fecha.weekday() == (incapacidad.dia_inhabil_id - 1): #verifica si es el descanso
-                        cont_descanso += 1 # cuenta los dias de descanso
-                        
-                #conteo de los dias en relacion dias de descanso
-                dias = incapacidad.fecha_fin - incapacidad.fecha
-                dias = (dias.days + 1) - cont_descanso
-                
-                if incapacidad.tipo_id == 1 :#riesgo
-                    cont_riesgo = cont_riesgo + dias
-                    tipo = incapacidad.tipo_id
-                    subsecuente = incapacidad.subsecuente
-                    print("dias de incapadidad riesgo ", cont_riesgo)
-                
-                elif incapacidad.tipo_id == 2: #enfermedad
-                    cont_enfermedad = cont_enfermedad + dias
-                    tipo = incapacidad.tipo_id
-                    subsecuente = incapacidad.subsecuente
-                    print("dias de incapadidad riesgo ", cont_enfermedad)
-                    
-                    if incapacidad.subsecuente == False and cont_subsecuente == False:
-                        print("solo se ejecuta 1 vez")
-                        cont_subsecuente == True
-                        for i in range(min(3, (incapacidad.fecha_fin - incapacidad.fecha).days + 1)): #rango para el ciclo for
-                            fecha_actual = incapacidad.fecha + timedelta(days=i) #para incrementar el dia
-                            if catorcena_actual.fecha_inicial <= fecha_actual <= catorcena_actual.fecha_final:
-                                # Verifica si el día actual es un día inhabilitado
-                                if fecha_actual.weekday() == (incapacidad.dia_inhabil_id - 1):
-                                    cont_descanso += 1
-                                else:
-                                    pagar_dias += 1
-                                                                                     
-                elif incapacidad.tipo_id == 3: #maternidad
-                    cont_maternidad = cont_maternidad + dias
-                    tipo = incapacidad.tipo_id
-                    subsecuente = incapacidad.subsecuente
-                    print("dias de incapadidad maternidad ", cont_maternidad)
-                    
-            else:
-                  
-                print("La incapacidad está fuera del rango de la catorcena.")
-                fecha_inicio = max(incapacidad.fecha, catorcena_actual.fecha_inicial)  # Selecciona la fecha más reciente entre la fecha de la incapacidad y la fecha inicial de la catorcena
-                fecha_fin = min(incapacidad.fecha_fin, catorcena_actual.fecha_final)  # Selecciona la fecha más temprana entre la fecha de fin de la incapacidad y la fecha final de la catorcena
-                
-                print("esta es la fecha de inicio pero de? ", fecha_inicio)
-                print("esta es la fecha fin de pero de? ", fecha_fin)
-                
-                #detectar el dia de descanso
-                cont_descanso = 0 #puede ser domingo o un dia entre semana
-                for i in range((fecha_fin - fecha_inicio).days + 1): #rango para el ciclo for
-                    fecha = fecha_inicio + timedelta(days=i) #para incrementar el dia
-                    if fecha.weekday() == (incapacidad.dia_inhabil_id - 1): #verifica si es el descanso
-                        cont_descanso += 1 # cuentas
-
-                #conteo de los dias en relacion dias de descanso
-                dias = fecha_fin - fecha_inicio
-                dias = (dias.days + 1) - cont_descanso
-                print("estos son los dias de la catorcena ", dias)
-                
-                
-                if incapacidad.tipo_id == 1 :#riesgo
-                    cont_riesgo = cont_riesgo + dias
-                    tipo = incapacidad.tipo_id
-                    print("dias de incapadidad riesgo ", cont_riesgo)
-                
-                elif incapacidad.tipo_id == 2: #enfermedad
-                    cont_enfermedad = cont_enfermedad + dias
-                    print("esta es la cont enfermedad: ", cont_enfermedad)
-                    tipo = incapacidad.tipo_id
-                    subsecuente = incapacidad.subsecuente
-                     
-                elif incapacidad.tipo_id == 3: #maternidad
-                    cont_maternidad = cont_maternidad + dias
-                    tipo = incapacidad.tipo_id
-                    subsecuente = incapacidad.subsecuente
-                    print("dias de incapadidad maternidad ", cont_enfermedad)
-                        
-        print("Total de días de incapacidad por riesgo: ", cont_riesgo)
-        print("Total de días de incapacidad por enfermedad: ", cont_enfermedad)
-        print("Total de días de incapacidad por maternidad: ", cont_maternidad) 
-        print("tipo",tipo)
-        print("susecuente", subsecuente)
-            
-    return cont_riesgo,cont_enfermedad,pagar_dias,cont_maternidad,tipo     
-"""
 @login_required(login_url='user-login')
 def Excel_estado_prenomina(request,prenominas, user_filter):
     from datetime import datetime
@@ -2059,39 +1263,9 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         incapacidad_enfermedad_general = calcular_incapacidad_enfermedad_general(request, prenomina, catorcena_actual)
         incapacidad_riesgo_laboral = calcular_incapacidad_riesgo_laboral(request, prenomina, catorcena_actual)
         incapacidad_maternidad = calcular_incapacidad_maternidad(request, prenomina, catorcena_actual)
-        """
-        print(f"Castigos: {castigos} días")
-        print(f"Permisos sin goce: {permisos_sin_goce} días")
-        print(f"Permisos con goce: {permisos_con_goce} días")
-        print(f"Vacaciones: {vacaciones} días")
-        print(f"Incapacidad enfermedad general: {incapacidad_enfermedad_general} días")
-        print(f"Incapacidad riesgo laboral: {incapacidad_riesgo_laboral} días")
-        print(f"Incapacidad maternidad: {incapacidad_maternidad} días")
         
-        incapacidades_riesgo = 0
-        incapacidades_enfermedad = 0
-        incapacidades_maternidad = 0
-        """
-
         #cont_riesgo,cont_enfermedad,pagar_dias_incapacidad,cont_maternidad,tipo = calcular_incapacidades(request,prenomina,catorcena_actual)
-        """
-        if tipo == 1:#riesgo de trabajo
-            incapacidades_riesgo = cont_riesgo
-        elif tipo == 2:#enfermedad general
-            incapacidades_enfermedad = cont_enfermedad 
-            print("este es el main ENFERMEDAD ", incapacidades_enfermedad)
-            print("este es el man ENFERMEDAD PAGAR", pagar_dias_incapacidad)           
-        elif tipo == 3:#maternidad
-            incapacidades_maternidad = cont_maternidad
-            
-        calcular el numero de vacaciones
-        cantidad_dias_vacacion = 0
-        if vacaciones.exists():
-            for vacacion in vacaciones:
-                diferencia = vacacion.fecha_fin - vacacion.fecha_inicio
-                cantidad_dias_vacacion = diferencia.days + 1        
-        print("total vacaciones: ", cantidad_dias_vacacion)
-        """
+       
         #calculo de la prima se manda a llamar
         #if vacaciones > 0:
         #    cantidad_dias_vacacion = vacaciones
@@ -2207,9 +1381,6 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         if vacaciones == 0:
             vacaciones = ''
             
-        
-            
-        
         # Agregar los valores a la lista rows para cada prenomina
         row = (
             prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
@@ -2280,7 +1451,6 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
                 ws.cell(row=row_num, column=col_num, value=value).style = body_style
 
     #sumar las columnas
-    
     #print("Salario neto cartocelnal", salario_catorcenal)
     #sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
     #print("subtotal catorcenal",sub_salario_catorcenal)
@@ -2312,12 +1482,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
     for row in ws.iter_rows(min_row=ws.max_row, max_row=ws.max_row):
         for cell in row:
             cell.style = bold_money_style
-
-    
-    #referencia_celda = f'{"x"}{"24"}'
-    #celda = ws[referencia_celda]
-    #celda.value = 'Laravel'
-    
+            
     sheet = wb['Sheet']
     wb.remove(sheet)
     wb.save(response)
