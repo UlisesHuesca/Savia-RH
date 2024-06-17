@@ -956,12 +956,6 @@ def calcular_prima_vacacional(request,salario,prenomina):
 
 #CONTEO INCIDENCIAS
 @login_required(login_url='user-login')
-<<<<<<< HEAD
-def calcular_retardos(request, prenomina, catorcena_actual):
-    retardos = PrenominaIncidencias.objects.filter(
-        prenomina__empleado_id = prenomina.empleado_id, 
-        incidencia_id = 1, #retardo
-=======
 def calcular_incidencias(request, prenomina, catorcena_actual):
     # Contadores para cada tipo de incidencia
     retardos = 0
@@ -983,7 +977,6 @@ def calcular_incidencias(request, prenomina, catorcena_actual):
     # Obtener todas las incidencias en una sola consulta
     incidencias = PrenominaIncidencias.objects.filter(
         prenomina__empleado_id=prenomina.empleado_id,
->>>>>>> bf7dd8ac05d509359c88945ac9d181c62db54eff
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
     )
 
@@ -1185,17 +1178,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         #Contar las incidencias        
         retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad_general= calcular_incidencias(request, prenomina, catorcena_actual)
 
-<<<<<<< HEAD
-        castigos = calcular_castigos(request, prenomina, catorcena_actual)
-        permisos_sin_goce = calcular_permisos_sin_goce(request, prenomina, catorcena_actual)
-        permisos_con_goce = calcular_permisos_con_goce(request, prenomina, catorcena_actual)
-        vacaciones = calcular_vacaciones(request, prenomina, catorcena_actual)
         
-        incapacidad_enfermedad_general = calcular_incapacidad_enfermedad_general(request, prenomina, catorcena_actual)
-        incapacidad_riesgo_laboral = calcular_incapacidad_riesgo_laboral(request, prenomina, catorcena_actual)
-        incapacidad_maternidad = calcular_incapacidad_maternidad(request, prenomina, catorcena_actual)
-=======
-        """
         print(f"Castigos: {castigos} días")
         print(f"Permisos sin goce: {permisos_sin_goce} días")
         print(f"Permisos con goce: {permisos_con_goce} días")
@@ -1203,7 +1186,6 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         print(f"Incapacidad enfermedad general: {incapacidad_enfermedad_general} días")
         print(f"Incapacidad riesgo laboral: {incapacidad_riesgo_laboral} días")
         print(f"Incapacidad maternidad: {incapacidad_maternidad} días")
->>>>>>> bf7dd8ac05d509359c88945ac9d181c62db54eff
         
         #cont_riesgo,cont_enfermedad,pagar_dias_incapacidad,cont_maternidad,tipo = calcular_incapacidades(request,prenomina,catorcena_actual)
        
@@ -1244,18 +1226,20 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         #calcular_aguinaldo_eventual(request,salario,prenomina)
         
         #se realiza el calculo del aguinaldo por el tiempo del contrato, se calcula en una catorcena y se paga en la siguiente
-        """
-        aguinaldo_contrato = Aguinaldo_Contrato.objects.filter(empleado_id=prenomina.empleado.id).last()
-        calculo_aguinaldo_eventual = 0
-        if aguinaldo_contrato is not None and catorcena_actual.id == aguinaldo_contrato.catorcena:
-            calculo_aguinaldo_eventual = aguinaldo_contrato.aguinaldo # se pasa el valor del aguinaldo del contrato para ser calculado en el ISR
-            aguinaldo_contrato.complete = True #se actualiza el registro para definir que se ha pagado en la catorcena correspondiente
-            aguinaldo_contrato.save()
-        """ 
+        
+        #aguinaldo_contrato = Aguinaldo_Contrato.objects.filter(empleado_id=prenomina.empleado.id).last()
+        #calculo_aguinaldo_eventual = 0
+        #if aguinaldo_contrato is not None and catorcena_actual.id == aguinaldo_contrato.catorcena:
+        #    calculo_aguinaldo_eventual = aguinaldo_contrato.aguinaldo # se pasa el valor del aguinaldo del contrato para ser calculado en el ISR
+        #    aguinaldo_contrato.complete = True #se actualiza el registro para definir que se ha pagado en la catorcena correspondiente
+        #    aguinaldo_contrato.save()
+        
         #realiza el calculo del ISR
         calcular_aguinaldo_eventual = 0
         calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calcular_aguinaldo_eventual)
             
+        
+
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
         #print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "incidencias_inca", incidencias_incapacidades)
@@ -1321,11 +1305,7 @@ def Excel_estado_prenomina(request,prenominas, user_filter):
         
         if vacaciones == 0:
             vacaciones = ''
-<<<<<<< HEAD
-            
-=======
         
->>>>>>> bf7dd8ac05d509359c88945ac9d181c62db54eff
         # Agregar los valores a la lista rows para cada prenomina
         row = (
             prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
