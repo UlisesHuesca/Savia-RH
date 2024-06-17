@@ -72,14 +72,17 @@
                         <tr>
                             <td>{{incidencia.fecha|date:"d/F/Y"}}</td>
                             <td>{{incidencia.incidencia}}</td>
-                            <td>{{incidencia.comentario}}</td>
+                            <td>
+                                {% if incidencia.comentario %}
+                                    {{incidencia.comentario}}
+                                {% endif %}
+                            </td>
                             {% if incidencia.soporte %}
                                 <td>
                                     <small><a title="click para ver el soporte" class="btn btn-success btn-sm" href="{{ incidencia.soporte.url }}" target="_blank"><i class="fas fa-download"></i></a> Ver Soporte</small>
                                 </td>
-                               
                             {% else %}
-                                <td>No hay soporte</td>
+                                <td><span class="text-muted"> No hay soporte</span></td>
                             {% endif %}
                            
                             
@@ -92,7 +95,7 @@
                 <!-- Campo Comentario como un input independiente -->
                 <div class="row my-2 align-items-center">
                     <label for="comentario_id" class="col-auto col-form-label my-1"><strong>Comentario:</strong></label>
-                    <div class="col-8">
+                    <div class="col-8 my-3">
                         <input type="text" name="comentario" id="comentario_id" class="form-control" maxlength="250">
                     </div>
                 </div>

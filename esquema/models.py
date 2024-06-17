@@ -61,7 +61,7 @@ class BonoSolicitado(models.Model):
     puesto = models.ForeignKey(Puesto,on_delete=models.CASCADE,null=False)
     distrito = models.ForeignKey(Distrito,on_delete=models.CASCADE,null=False)
     cantidad = models.DecimalField(max_digits=10,decimal_places=2,null=False) 
-    fecha = models.DateTimeField(null=False,auto_now_add=True)
+    fecha = models.DateTimeField(null=False,auto_now_add=True, db_index=True)
 
 def validar_size(value):
     filesize = value.size
