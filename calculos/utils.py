@@ -600,6 +600,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
             aguinaldo_contrato.save()
         """ 
         
+        
         #realiza el calculo del ISR
         calcular_aguinaldo_eventual = 0
         calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calcular_aguinaldo_eventual)

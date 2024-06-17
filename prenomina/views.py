@@ -495,6 +495,20 @@ def PrenominaRevisar(request, pk):
                 messages.success(request, 'Se ha enviado la prenomina para revisión')  
                 return redirect("Prenomina")
             
+            if request.method =='POST' and 'economico_pdf' in request.POST:
+                fecha_economico = request.POST['economico_pdf']
+                fecha_economico = parser.parse(fecha_economico).date()
+                solicitud= Solicitud_economicos.objects.get(status=costo.status,fecha=fecha_economico)
+                return PdfFormatoEconomicos(request, solicitud)
+                #return redirect(request.META.get('HTTP_REFERER'))
+            
+            if request.method =='POST' and 'vacaciones_pdf' in request.POST:
+                fecha_vacaciones = request.POST['vacaciones_pdf']
+                fecha_vacaciones = parser.parse(fecha_vacaciones).date()
+                solicitud = Solicitud_vacaciones.objects.filter(status=costo.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
+                return PdfFormatoVacaciones(request, solicitud)
+                #return redirect(request.META.get('HTTP_REFERER'))
+            
         else:
             
             #EJEUCUTA LOS QUERIES FESTIVOS, ECONOMICOS, FESTIVOS, RANGOS Y GUARDA LOS DATOS
@@ -618,7 +632,6 @@ def PrenominaRevisar(request, pk):
                         
             prenomina_incidencias_form = PrenominaIncidenciasFormSet(initial=datos_iniciales)
             incidencia_rango_form = IncidenciaRangoForm()
-                      
             context = {
                 'prenomina':prenomina,
                 'costo':costo,
@@ -660,6 +673,150 @@ def determinar_estado_general(request, ultima_autorizacion):
         return 'RH pendiente (rechazado por Gerencia)'
 
     return 'Estado no reconocido'
+
+def PdfFormatoEconomicos(request, solicitud):
+    solicitud= Solicitud_economicos.objects.get(id=solicitud.id)
+    now = date.today()
+    fecha = solicitud.fecha
+    periodo = str(fecha.year)
+    economico = 0
+    if not Economicos.objects.filter(status=solicitud.status):
+        economico = 0
+    else:
+        last_economico = Economicos.objects.filter(status=solicitud.status).last()
+        economico = last_economico.dias_disfrutados
+    #Para ubicar el dia de regreso en un dia habil (Puede caer en día festivo)
+    #if status.regimen.regimen == 'L-V':
+    #    inhabil1 = 6
+    #    inhabil2 = 7
+    #elif status.regimen.regimen == 'L-S':
+    #    inhabil1 = 7
+    #    inhabil2 = None
+    regreso = fecha + timedelta(days=1)
+    #if regreso.isoweekday() == inhabil1:
+    #    regreso = regreso + timedelta(days=1)
+    #if regreso.isoweekday() == inhabil2:
+    #    regreso = regreso + timedelta(days=1)
+
+
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=letter)
+
+    #Colores utilizados
+    azul = Color(0.16015625,0.5,0.72265625)
+    rojo = Color(0.59375, 0.05859375, 0.05859375)
+
+    c.setFillColor(black)
+    c.setLineWidth(.2)
+    c.setFont('Helvetica-Bold',16)
+    c.drawCentredString(305,765,'GRUPO VORCAB SA DE CV')
+    c.setFont('Helvetica-Bold',11)
+    c.drawCentredString(305,750,'SOLICITUD DE DIA ECONOMICO')
+    if solicitud.autorizar == False:
+        c.setFillColor(rojo)
+        c.setFont('Helvetica-Bold',16)
+        c.drawCentredString(305,725,'SOLICITUD NO AUTORIZADA')
+    c.setFillColor(black)
+    c.setFont('Helvetica-Bold',11)
+    c.drawString(40,690,'NOMBRE:')
+    c.line(95,688,325,688)
+    espacio = ' '
+    nombre_completo = str(solicitud.status.perfil.nombres + espacio + solicitud.status.perfil.apellidos)
+    c.drawString(100,690,nombre_completo)
+    c.drawString(40,670,'PUESTO:')
+    c.line(95,668,325,668)
+    c.drawString(100,670,solicitud.status.puesto.puesto)
+    c.drawString(335,670,'TELEFONO PARTICULAR:')
+    c.line(475,668,580,668)
+    c.drawString(485,670,solicitud.status.telefono)
+    c.drawString(40,620,'FECHA DE PLANTA:')
+    if solicitud.status.fecha_planta != None:
+        dia = str(solicitud.status.fecha_planta.day)
+        mes = str(solicitud.status.fecha_planta.month)
+        año = str(solicitud.status.fecha_planta.year)
+    else:
+        dia = "NR"
+        mes = "NR"
+        año = "NR"
+    #rect(x, y, alto, ancho, stroke=1, fill=0)
+    c.rect(185,600, 150, 50)
+    c.line(185,618,335,618)
+    c.line(185,638,335,638)
+    c.line(230,650,230,600)
+    c.line(290,650,290,600)
+    c.drawCentredString(210,620,dia)
+    c.drawCentredString(260,620,mes)
+    c.drawCentredString(310,620,año)
+    c.drawString(40,600,'FECHA DE SOLICITUD:')
+    c.drawCentredString(210,605,str(now.day))
+    c.drawCentredString(260,605,str(now.month))
+    c.drawCentredString(310,605,str(now.year))
+    c.drawString(200,640,'DIA')
+    c.drawString(250,640,'MES')
+    c.drawString(300,640,'AÑO')
+    c.drawString(400,600,'FIRMA DEL SOLICITANTE')
+    c.rect(390,598, 155, 50)
+    c.line(390,610,545,610)
+    c.drawString(40,540,'PERIODO CORRESPONDIENTE:')
+    c.drawCentredString(450,540, periodo)
+    c.rect(35,538, 255, 12)
+    c.rect(360,538, 190, 12)
+    c.drawCentredString(385,520,'1')
+    c.drawCentredString(435,520,'2')
+    c.drawCentredString(485,520,'3')
+
+    c.drawString(40,500,'NO. DE DIA ECONOMICO:')
+    c.rect(35,498, 175, 12)
+    c.rect(360,498, 150, 12)
+    c.line(410,510,410,498)
+    c.line(460,510,460,498)
+    c.setFillColorRGB(0.8, 0.8, 0.8)  # Color de relleno
+    if economico == 1:
+        c.rect(360,498, 50, 12, stroke = 1, fill = 1)
+    elif economico == 2:
+        c.rect(410,498, 50, 12, stroke = 1, fill = 1)
+    elif economico == 3:
+        c.rect(460,498, 50, 12, stroke = 1, fill = 1)
+    c.setFillColor(black)
+    c.drawString(40,480,'CON GOCE DE SUELDO:')
+    c.rect(35,478, 140, 12)
+    c.drawString(380,480,'SI')
+    c.rect(360,478, 50, 12)
+    c.drawString(425,480,'NO')
+    c.rect(410,478, 50, 12)
+    c.drawString(40,460,'FECHA QUE DESEA SALIR DEL PERMISO:')
+    c.drawCentredString(450,460,str(fecha))
+    c.rect(35,458, 250, 12)
+    c.rect(360,458, 190, 12)
+    c.drawString(40,440,'FECHA DE REGRESO A LABORES:')
+    c.drawCentredString(450,440,str(regreso))
+    c.rect(35,438, 195, 12)
+    c.rect(360,438, 190, 12)
+    #c.drawCentredString(305,370,'OBSERVACIONES')
+    text = solicitud.comentario
+    x = 40
+    y = 385
+    c.setFillColor(black)
+    c.setFont('Helvetica-Bold',12)
+    c.drawCentredString(310, y - 15, 'OBSERVACIONES')
+    c.setFont('Helvetica', 9)
+    lines = textwrap.wrap(text, width=100)
+    for line in lines:
+        c.drawString(x + 10, y - 30, line)
+        y -= 25
+    c.rect(40,368, 530, 12)
+    c.rect(40,300, 530, 68)
+    c.drawCentredString(170,125,'FIRMA GERENCIA')
+    c.rect(70,123, 200, 12)
+    c.rect(70,135, 200, 50)
+    c.drawCentredString(440,125,'FIRMA DE JEFE INMEDIATO')
+    c.rect(330,123, 210, 12)
+    c.rect(330,135, 210, 50)
+    c.save()
+    c.showPage()
+    buf.seek(0)
+
+    return FileResponse(buf, as_attachment=True, filename='Formato_Economico.pdf')
 
 @login_required(login_url='user-login')
 def PdfFormatoVacaciones(request, solicitud):
