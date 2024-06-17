@@ -72,7 +72,8 @@ from django.core.files.base import ContentFile
 import math
 
 #importar reporte Excel prenomina
-from prenomina.views import Excel_estado_prenomina, obtener_catorcena
+from prenomina.views import obtener_catorcena
+from calculos.utils import excel_estado_prenomina
 
 from prenomina.filters import PrenominaFilter
 from prenomina.views import obtener_catorcena
@@ -302,7 +303,7 @@ def Tabla_solicitudes_prenomina(request):
                 prenomina.ultima = ultima_rechazada.tipo_perfil.nombre
             prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
         if request.method =='POST' and 'Excel' in request.POST:
-            return Excel_estado_prenomina(prenominas, user_filter)
+            return excel_estado_prenomina(request,prenominas, user_filter)
 
         if request.method =='POST' and 'Autorizar' in request.POST:
             if user_filter.tipo.nombre ==  "Control Tecnico":
@@ -340,130 +341,54 @@ def Tabla_solicitudes_prenomina(request):
 def Prenomina_Solicitud_Revisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
-        ahora = datetime.date.today()
+        #ahora = datetime.date.today()
         #ahora = datetime.date.today() + timedelta(days=10)
         costo = Costo.objects.get(id=pk)
         #se trae la funcion desde Prenomina.view para obtener la catorcena actual
         catorcena_actual=obtener_catorcena()
-        prenomina = Prenomina.objects.get(empleado=costo,catorcena_id=catorcena_actual.id)
-        verificado_rh = AutorizarPrenomina.objects.filter(prenomina=prenomina).first()
+        prenomina = Prenomina.objects.get(empleado_id=costo.id,catorcena_id=catorcena_actual.id)
+        verificado_rh = AutorizarPrenomina.objects.filter(prenomina_id=prenomina.id).first()
         
+        #Se crean las fechas para ser mostradas en el template
         fecha_inicio = catorcena_actual.fecha_inicial
         fecha_fin = catorcena_actual.fecha_final
+
+        # Generamos la lista de fechas
         fechas = []
         while fecha_inicio <= fecha_fin:
             fechas.append(fecha_inicio)
             fecha_inicio += timedelta(days=1)
-                        
-                                          
+
+        # Obtenemos las incidencias
+        get_incidencias = PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id)
         
-        #for incidencia, fecha in enumerate(14):
-        #    if fecha == incidencia.fecha:
-        #        print("fecha1: ",incidencia.fecha,"incidencia: ", incidencia.incidencia)
-        #    else:
-        #        print("fecha2: ", fecha,'Incidencia: ', "Asistencia")
-            #print(fecha, incidencia.fecha, incidencia.incidencia)
+        # Creamos un diccionario de incidencias indexado por fecha
+        incidencias_dict = {incidencia.fecha: incidencia for incidencia in get_incidencias}
         
+        # Preparamos los datos para el template
+        incidencias = []
+        for fecha in fechas:
+            if fecha in incidencias_dict:
+                incidencia = incidencias_dict[fecha]
+                incidencias.append({
+                    'fecha': incidencia.fecha,
+                    'incidencia': incidencia.incidencia,
+                    'comentario': incidencia.comentario,
+                    'soporte': incidencia.soporte
+                })
+            else:
+                incidencias.append({
+                    'fecha': fecha,
+                    'incidencia': 'Asistencia',
+                    'comentario':None,
+                    'soporte': None
+                })
         
-        
-        
-        
-                    
-        #festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
-        #economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])
-        #vacaciones = Vacaciones_dias_tomados.objects.filter(Q(prenomina__status=prenomina.empleado.status, fecha_inicio__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) | Q(prenomina__status=prenomina.empleado.status, fecha_fin__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final])) #Comparar con la fecha final tambien
-        
+           
         autorizacion1 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Control Tecnico").first()
         autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
         
-
-        
-        
-        
-        
-        
-        """
-        #obtener factores de días asociados a cada prenomina
-        prenomina.retardos = prenomina.retardos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        #prenomina.castigos = prenomina.castigos_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.castigos = Castigos.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        prenomina.permiso_goce = Permiso_goce.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        prenomina.permiso_sin = Permiso_sin.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        prenomina.descanso = prenomina.descanso_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        #prenomina.incapacidades = prenomina.incapacidades_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.incapacidades = Incapacidades.objects.filter(Q(prenomina__empleado_id=prenomina.empleado.id),Q(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)) | Q(fecha_fin__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)))
-        prenomina.faltas = prenomina.faltas_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.comision = prenomina.comision_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.domingo = prenomina.domingo_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        prenomina.extra = prenomina.dia_extra_set.filter(fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
-        fechas_con_economicos = [economico.fecha for economico in economicos]
-
-        #fechas con factores
-        fechas_con_retardos = [retardo.fecha for retardo in prenomina.retardos]
-        fechas_con_castigos = [castigo.fecha for castigo in prenomina.castigos]
-        fechas_con_permiso_goce = [permiso_goc.fecha for permiso_goc in prenomina.permiso_goce]
-        fechas_con_permiso_sin = [permiso_si.fecha for permiso_si in prenomina.permiso_sin]
-        fechas_con_descanso = [descans.fecha for descans in prenomina.descanso]
-        fechas_con_incapacidades = [incapacidade.fecha for incapacidade in prenomina.incapacidades]
-        fechas_con_faltas = [falta.fecha for falta in prenomina.faltas]
-        fechas_con_comision = [comisio.fecha for comisio in prenomina.comision]
-        fechas_con_domingo = [doming.fecha for doming in prenomina.domingo]
-        fechas_con_extra = [extra.fecha for extra in prenomina.extra]
-
-        fechas_con_festivos = [festivo.dia_festivo for festivo in festivos]
-        fechas_con_economicos = [economico.fecha for economico in economicos]
-
-        # todas las fechas de la catorcena actual
-        delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
-        dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
-        dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-
-        #lista de tuplas con la fecha y su etiqueta
-        fechas_con_etiquetas = [ #Por los condicionales prioriza en orden ascendente
-            (fecha, "domingo", prenomina.domingo.filter(fecha=fecha).first().comentario if fecha in fechas_con_domingo else "") if fecha in fechas_con_domingo
-            #descanso dato general
-            else (fecha, "descanso", prenomina.descanso.filter(fecha=fecha).first().comentario if fecha in fechas_con_descanso else "") if fecha in fechas_con_descanso
-            else (fecha, "festivo", "") if fecha in fechas_con_festivos
-            else (fecha, "retardo", prenomina.retardos.filter(fecha=fecha).first().comentario if fecha in fechas_con_retardos else "") if fecha in fechas_con_retardos
-            #descanso castigo
-            else (fecha, "descanso incidencia", "") if any(castigos.fecha <= fecha <= castigos.fecha_fin and dias_semana[fecha.weekday()] == castigos.dia_inhabil.nombre for castigos in prenomina.castigos)
-            else (fecha, "castigo", prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.castigos.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos) else "") if any(castigos.fecha <= fecha <= castigos.fecha_fin for castigos in prenomina.castigos)
-            #descanso permiso con goce de sueldo
-            else (fecha, "descanso incidencia", "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin and dias_semana[fecha.weekday()] == permiso_goce.dia_inhabil.nombre for permiso_goce in prenomina.permiso_goce)
-            else (fecha, "permiso con goce de sueldo", prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_goce.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce) else "") if any(permiso_goce.fecha <= fecha <= permiso_goce.fecha_fin for permiso_goce in prenomina.permiso_goce)
-            #descanso permiso sin goce de sueldo
-            else (fecha, "descanso incidencia", "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin and dias_semana[fecha.weekday()] == permiso_sin.dia_inhabil.nombre for permiso_sin in prenomina.permiso_sin)
-            else (fecha, "permiso sin goce de sueldo", prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.permiso_sin.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin) else "") if any(permiso_sin.fecha <= fecha <= permiso_sin.fecha_fin for permiso_sin in prenomina.permiso_sin)
-            #descanso incapacidad
-            else (fecha, "descanso incidencia", "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin and dias_semana[fecha.weekday()] == incapacidad.dia_inhabil.nombre for incapacidad in prenomina.incapacidades)
-            else (fecha, "incapacidades", prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().comentario, prenomina.incapacidades.filter(fecha__lte=fecha, fecha_fin__gte=fecha).first().url if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades) else "") if any(incapacidad.fecha <= fecha <= incapacidad.fecha_fin for incapacidad in prenomina.incapacidades)
-            else (fecha, "faltas",prenomina.faltas.filter(fecha=fecha).first().comentario if fecha in fechas_con_faltas else "") if fecha in fechas_con_faltas
-            else (fecha, "comision", prenomina.comision.filter(fecha=fecha).first().comentario, prenomina.comision.filter(fecha=fecha).first().url if fecha in fechas_con_comision and prenomina.comision.filter(fecha=fecha).first().url else "") if fecha in fechas_con_comision
-            else (fecha, "día extra", prenomina.extra.filter(fecha=fecha).first().comentario, prenomina.extra.filter(fecha=fecha).first().url if fecha in fechas_con_extra and prenomina.extra.filter(fecha=fecha).first().url else "") if fecha in fechas_con_extra
-            else (fecha, "economico", "") if fecha in fechas_con_economicos
-            #descanso vacaciones
-            else (fecha, "descanso incidencia", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin and dias_semana[fecha.weekday()] == vacacion.dia_inhabil.nombre for vacacion in vacaciones)
-            else (fecha, "vacaciones", "") if any(vacacion.fecha_inicio <= fecha <= vacacion.fecha_fin for vacacion in vacaciones)
-            else (fecha, "asistencia", "") for fecha in dias_entre_fechas
-        ]
-        fechas_con_etiquetas = [
-            item + ('',) if len(item) == 3 else item for item in fechas_con_etiquetas
-        ]
-
-        if catorcena_actual:
-            delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
-            dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
-        if request.method =='POST' and 'economico_pdf' in request.POST:
-            fecha_economico = request.POST['economico_pdf']
-            fecha_economico = parser.parse(fecha_economico).date()
-            solicitud= Solicitud_economicos.objects.get(status=costo.status,fecha=fecha_economico)
-            return PdfFormatoEconomicos(request, solicitud)
-        if request.method =='POST' and 'vacaciones_pdf' in request.POST:
-            fecha_vacaciones = request.POST['vacaciones_pdf']
-            fecha_vacaciones = parser.parse(fecha_vacaciones).date()
-            solicitud = Solicitud_vacaciones.objects.filter(status=costo.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
-            return PdfFormatoVacaciones(request, solicitud)
-        """
+        #Enviar autorizacion
         if request.method == 'POST' and 'aprobar' or request.method == 'POST' and 'rechazar' in request.POST:
             if 'aprobar' in request.POST:
                 estado = 'aprobado'
@@ -485,7 +410,6 @@ def Prenomina_Solicitud_Revisar(request, pk):
             else:
                 messages.error(request,'No se pudo procesar el estado intentalo de nuevo')
         context = {
-            #'dias_entre_fechas': dias_entre_fechas, #Dias de la catorcena
             'prenomina':prenomina,
             'verificado_rh':verificado_rh,
             'costo':costo,
@@ -493,7 +417,7 @@ def Prenomina_Solicitud_Revisar(request, pk):
             'autorizacion2':autorizacion2,
             'catorcena_actual':catorcena_actual,
             'incidencias':incidencias,
-            #'fechas_con_etiquetas': fechas_con_etiquetas,
+            'fechas':fechas,
             }
 
         return render(request, 'revisar/Prenomina_Solicitud_Revisar.html',context)
