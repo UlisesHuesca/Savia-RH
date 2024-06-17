@@ -387,6 +387,18 @@ def Prenomina_Solicitud_Revisar(request, pk):
            
         autorizacion1 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Control Tecnico").first()
         autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
+
+        if request.method =='POST' and 'economico_pdf' in request.POST:
+            fecha_economico = request.POST['economico_pdf']
+            fecha_economico = parser.parse(fecha_economico).date()
+            solicitud= Solicitud_economicos.objects.get(status=costo.status,fecha=fecha_economico)
+            return PdfFormatoEconomicos(request, solicitud)
+        
+        if request.method =='POST' and 'vacaciones_pdf' in request.POST:
+            fecha_vacaciones = request.POST['vacaciones_pdf']
+            fecha_vacaciones = parser.parse(fecha_vacaciones).date()
+            solicitud = Solicitud_vacaciones.objects.filter(status=costo.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
+            return PdfFormatoVacaciones(request, solicitud)
         
         #Enviar autorizacion
         if request.method == 'POST' and 'aprobar' or request.method == 'POST' and 'rechazar' in request.POST:
