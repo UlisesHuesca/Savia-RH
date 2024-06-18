@@ -367,9 +367,10 @@ def calcular_incidencias(request, prenomina, catorcena_actual):
     permisos_sin_goce = 0
     permisos_con_goce = 0
     vacaciones = 0
-    incapacidad_enfermedad_general = 0  # Excluido
     incapacidad_riesgo_laboral = 0
     incapacidad_maternidad = 0
+    incapacidad_enfermedad = 0
+    incapacidad_dias_pago = 0
 
     # Obtener todas las incidencias en una sola consulta
     incidencias = PrenominaIncidencias.objects.filter(
@@ -379,6 +380,7 @@ def calcular_incidencias(request, prenomina, catorcena_actual):
 
     # Contar las incidencias por tipo
     for incidencia in incidencias:
+        checar = incidencia # se utiliza para verificar el complete de los dias pagados de incapacidad enfermedad
         incidencia = incidencia.incidencia.id
         if incidencia == 1:
             retardos += 1
@@ -399,7 +401,9 @@ def calcular_incidencias(request, prenomina, catorcena_actual):
         elif incidencia == 9:
             permisos_con_goce += 1
         elif incidencia == 10:
-            incapacidad_enfermedad_general += 1
+            incapacidad_enfermedad +=1
+            if checar.complete == True: #se hace el conteo de los dias pagados
+                incapacidad_dias_pago +=1
         elif incidencia == 11:
             incapacidad_riesgo_laboral += 1
         elif incidencia == 12:
@@ -413,7 +417,7 @@ def calcular_incidencias(request, prenomina, catorcena_actual):
 
     return (retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, 
             permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, 
-            incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad_general)
+            incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago, festivos, economicos, vacaciones)
     
 #GENERAR REPORTE PRENOMINA ACTUAL
 @login_required(login_url='user-login')
@@ -453,7 +457,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
     dato_style.font = Font(name="Arial Narrow", size = 11)
         
     columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce de sueldo',
-               'Permiso sin goce de sueldo','Descansos','Incapacidades','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Economicos','Vacaciones','Salario Cartocenal',
+               'Permiso sin goce de sueldo','Descansos','Incapacidades','Incapacidad Enfermedad','Incapacidad Riesgo Laboral','Incapacidad Maternidad','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Economicos','Vacaciones','Salario Cartocenal',
                'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','IMSS','Fonacot','ISR Retenido','Total deducciones','Neto a pagar en nomina']
 
     for col_num in range(len(columns)):
@@ -551,9 +555,8 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         print("salario: ",salario)
         
         #Extrar el conteo de las incidencias de la funcion      
-        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad_general = calcular_incidencias(request, prenomina, catorcena_actual)
-        #cont_riesgo,cont_enfermedad,pagar_dias_incapacidad,cont_maternidad,tipo = calcular_incapacidades(request,prenomina,catorcena_actual)
-       
+        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones = calcular_incidencias(request, prenomina, catorcena_actual)
+        
         #calculo de la prima se manda a llamar
         #if vacaciones > 0:
         #    cantidad_dias_vacacion = vacaciones
@@ -564,19 +567,23 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         catorcena_num = catorcena_actual.catorcena 
         
         incidencias = 0
-        incidencias_retardos = 0
+        incapacidades = 0
+        descuento_pasajes = 0
         
         if faltas > 0:
             incidencias = incidencias + faltas
+            descuento_pasajes = descuento_pasajes + faltas
             
         if retardos > 0:
-            incidencias_retardos = retardos // 3 # Tres retardos se descuenta 1 dia
+            incidencias = retardos // 3 # Tres retardos se descuenta 1 dia
             
         if castigos > 0:
             incidencias = incidencias + castigos
+            descuento_pasajes = descuento_pasajes + castigos
             
         if permisos_sin_goce  > 0:
-            incidencias = incidencias + permisos_sin_goce 
+            incidencias = incidencias + permisos_sin_goce
+            descuento_pasajes = descuento_pasajes + permisos_sin_goce 
             
         prima_dominical = 0
         pago_doble = 0  
@@ -584,6 +591,16 @@ def excel_estado_prenomina(request,prenominas, user_filter):
             pago_doble = Decimal(dia_extra * (salario * 2))
             prima_dominical = calcular_prima_dominical(request,dia_extra,salario)
             
+        if incapacidad_maternidad > 0:
+            descuento_pasajes = incapacidad_maternidad
+            
+        if incapacidad_riesgo_laboral > 0:
+            descuento_pasajes = incapacidad_riesgo_laboral
+            
+        if incapacidad_enfermedad > 0:
+            incidencias = incapacidad_enfermedad - incapacidad_dias_pago
+            descuento_pasajes = incapacidad_enfermedad
+                 
         #calcular aguinaldo - siempre de ejecutara al momento de generar al reporte - verifica si es diciembre
         calulo_aguinaldo = calcular_aguinaldo(request,salario,prenomina)
          
@@ -607,12 +624,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
             
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
-        #print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "incidencias_inca", incidencias_incapacidades)
-        incapacidades = incapacidad_riesgo_laboral + incapacidad_maternidad  + incapacidad_enfermedad_general 
-        print("incidencias", incidencias, "incidencias_retarods", incidencias_retardos, "Incapacidades_riesgo", incapacidad_riesgo_laboral + incapacidad_maternidad, + incapacidad_enfermedad_general)
-        #se hace el calculo en relacion con los pagos de dias laborados
-        #print("estos son los dias a pagar: ", pagar_dias_incapacidad)
-        dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + incapacidañd_riesgo_laboral + incapacidad_maternidad + (incapacidad_enfermedad_general)) #- pagar_dias_incapacidad))
+        dias_laborados = dias_de_pago - incidencias
         print("estos son los dias laborados: ", dias_laborados)
         proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
         proporcion_laborados = proporcion_septimos_dias + dias_laborados
@@ -621,17 +633,17 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         
         
         print("ESTE ES EL APOYO PASAJES ahora: ", apoyo_pasajes)
-        apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (incidencias + incapacidad_enfermedad_general + incapacidad_riesgo_laboral))
+        apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (descuento_pasajes))
           
         print("apoyos pasajes: ", apoyo_pasajes)
         print("total: ", salario_catorcenal)
         print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
         #total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + calulo_aguinaldo + prima_dominical +prima_dominical #+ calculo_aguinaldo_eventual
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos # + calulo_aguinaldo + prima_dominical + prima_dominical
         #IMSS y el ISR
         total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
         pagar_nomina = (total_percepciones - total_deducciones)
-        
+               
         if retardos == 0: 
             retardos = ''
         
@@ -652,7 +664,16 @@ def excel_estado_prenomina(request,prenominas, user_filter):
                     
         if incapacidades == 0:
             incapacidades = ''
-        
+            
+        if incapacidad_enfermedad == 0:
+            incapacidad_enfermedad = ''
+            
+        if incapacidad_riesgo_laboral == 0:
+            incapacidad_riesgo_laboral = ''
+            
+        if incapacidad_maternidad == 0:
+            incapacidad_maternidad = ''
+            
         if faltas == 0:
             faltas = ''
         
@@ -688,8 +709,10 @@ def excel_estado_prenomina(request,prenominas, user_filter):
             permisos_con_goce,
             permisos_sin_goce,
             descansos,
-            #str("Días anteriores: ")+str(incapacidades_anterior)+str(" Días actual: ")+str(incapacidades_actual),
             incapacidades,
+            incapacidad_enfermedad,
+            incapacidad_riesgo_laboral,
+            incapacidad_maternidad,
             faltas,
             comisiones,
             domingos,
@@ -705,14 +728,12 @@ def excel_estado_prenomina(request,prenominas, user_filter):
             calculo_imss,
             prestamo_fonacot,
             calculo_isr,
-            #
-            #
             total_deducciones,
             pagar_nomina,
         )
         rows.append(row)
         
-        #sub_salario_catorcenal_costo = sub_salario_catorcenal_costo + salario_catorcenal_costo
+        #es la suma del total de cada columna
         sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
         sub_apoyo_pasajes = sub_apoyo_pasajes + apoyo_pasajes
         sub_total_bonos = sub_total_bonos + total_bonos
@@ -724,8 +745,6 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         sub_total_deducciones = sub_total_deducciones + total_deducciones
         sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
         
-        
-                 
     # Ahora puedes usar la lista rows como lo estás haciendo actualmente en tu código
     for row_num, row in enumerate(rows, start=2):
         for col_num, value in enumerate(row, start=1):
@@ -739,21 +758,9 @@ def excel_estado_prenomina(request,prenominas, user_filter):
                 ws.cell(row=row_num, column=col_num, value=value).style = money_style
             else:
                 ws.cell(row=row_num, column=col_num, value=value).style = body_style
-
-    #sumar las columnas
-    #print("Salario neto cartocelnal", salario_catorcenal)
-    #sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
-    #print("subtotal catorcenal",sub_salario_catorcenal)
-    #sub_apoyo_pasajes = Decimal(sub_apoyo_pasajes) + apoyo_pasajes
-    #sub_total_bonos = sub_total_bonos + total_bonos
-    #sub_total_percepciones = sub_total_percepciones + total_percepciones
-    #sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
-    #sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
-    #sub_total_deducciones = sub_total_deducciones + total_deducciones
-    #sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
-    
-    
-    add_last_row = ['Total','','','','','','','','','','','','','','','','','','','','','','',
+       
+    #Muestra la suma total de cada columna             
+    add_last_row = ['Total','','','','','','','','','','','','','','','','','','','','','','','','','',
                     #sub_salario_catorcenal_costo,
                     sub_salario_catorcenal,
                     sub_apoyo_pasajes,

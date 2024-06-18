@@ -114,7 +114,7 @@ def registrar_rango_incidencias(request,pk):
                 return JsonResponse({'poscondicion': 'Ya existen dias festivos dentro del rango de fechas especificado'}, status=422) 
             
             #Busca si existe al menos un dia economico en el rango de fechas: inicio - fin y valida
-            economicos = Economicos_dia_tomado.objects.filter(fecha__range=[fecha_start, fecha_end]).values('id').exists()  
+            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status,fecha__range=[fecha_start, fecha_end]).values('id').exists()  
             if economicos:
                 return JsonResponse({'poscondicion': 'Ya existen economicos dentro del rango de fechas especificado'}, status=422)
             
@@ -132,12 +132,21 @@ def registrar_rango_incidencias(request,pk):
             fecha_actual = incidencia_rango.fecha_inicio #punto de inicio
             fecha_fin = min(incidencia_rango.fecha_fin, prenomina.catorcena.fecha_final) #toma la fecha fin mas chica entre las dos fechas para que solo se registren las que caen en la cat
             
+            contador = 0
+            estado = None
             #se empieza a extraer los datos de IncidenciaRango para almacenarlos en el modelo PrenominaIncidencias
             while fecha_actual <= fecha_fin:
                 incidencia = incidencia_rango.incidencia_id
                 comentario = incidencia_rango.comentario
                 soporte = incidencia_rango.soporte
                 
+                if incidencia == 10 and incidencia_rango.subsecuente != True:
+                    if contador < 3:
+                        estado = True
+                    else:
+                        estado = False
+                    contador +=1
+                                    
                 if fecha_actual.weekday() == (incidencia_rango.dia_inhabil_id - 1): 
                     if (incidencia_rango.dia_inhabil_id - 1) == 6:# se resta 1 para obtener el dia domingo
                         incidencia = 5 #domingo
@@ -155,7 +164,8 @@ def registrar_rango_incidencias(request,pk):
                         'comentario': comentario, 
                         'soporte': soporte,
                         'incidencia_id': incidencia,
-                        'incidencia_rango':incidencia_rango,                        
+                        'incidencia_rango':incidencia_rango,
+                        'complete':estado,                    
                     }
                 )
                 fecha_actual += timedelta(days=1)
@@ -500,14 +510,12 @@ def PrenominaRevisar(request, pk):
                 fecha_economico = parser.parse(fecha_economico).date()
                 solicitud= Solicitud_economicos.objects.get(status=costo.status,fecha=fecha_economico)
                 return PdfFormatoEconomicos(request, solicitud)
-                #return redirect(request.META.get('HTTP_REFERER'))
             
             if request.method =='POST' and 'vacaciones_pdf' in request.POST:
                 fecha_vacaciones = request.POST['vacaciones_pdf']
                 fecha_vacaciones = parser.parse(fecha_vacaciones).date()
                 solicitud = Solicitud_vacaciones.objects.filter(status=costo.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
                 return PdfFormatoVacaciones(request, solicitud)
-                #return redirect(request.META.get('HTTP_REFERER'))
             
         else:
             
