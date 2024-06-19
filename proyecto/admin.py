@@ -23,7 +23,7 @@ from .models import Ropa
 from .models import Uniforme
 from .models import Seleccion
 from .models import Vacaciones_anteriores_Batch
-
+from .models import TablaSubsidio
 
 from .models import FactorIntegracion
 from .models import SalarioDatos
@@ -122,6 +122,7 @@ admin.site.register(Nivel)
 admin.site.register(Dia_vacacion, Dia_vacacionAdmin)
 #Tabla ISR
 admin.site.register(DatosISR)
+admin.site.register(TablaSubsidio)
 #Tabla vacaciones
 admin.site.register(TablaVacaciones)
 admin.site.register(TablaFestivos)

@@ -17,7 +17,7 @@ from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect
 from django.http import HttpResponse 
 
-from proyecto.models import Catorcenas, Variables_imss_patronal, SalarioDatos, TablaVacaciones, DatosISR
+from proyecto.models import Catorcenas, Variables_imss_patronal, SalarioDatos, TablaVacaciones, DatosISR, TablaSubsidio
 from revisar.models import AutorizarPrenomina
 from esquema.models import BonoSolicitado
 from prenomina.models import PrenominaIncidencias
@@ -272,6 +272,7 @@ def calcular_aguinaldo_eventual(request,salario,prenomina):
                 mes = mes
             )
             aguinaldo_contrato.save()
+
 #CALCULAR AGUINALDO
 def calcular_aguinaldo(request,salario,prenomina):
     aguinaldo = Decimal(0.00)
@@ -351,6 +352,14 @@ def calcular_aguinaldo(request,salario,prenomina):
     else:
         print("no corresponde pago del aguinaldo")
         return aguinaldo
+
+def calcular_subsidio(request, salario_catorcenal,):
+    tabla_subsidio = TablaSubsidio.objects.all()
+    for dato in tabla_subsidio:
+        if salario_catorcenal >= dato.liminf:
+            subsidio=dato.cuota
+
+    return (subsidio)
 
 def calcular_incidencias(request, prenomina, catorcena_actual):
     # Contadores para cada tipo de incidencia

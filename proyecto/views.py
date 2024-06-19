@@ -17,7 +17,7 @@ from .models import DatosISR, Costo, TablaVacaciones, Perfil, Status, Uniformes,
 from .models import Status_Batch, Empresa, Distrito, Nivel, Contrato, Sangre, Sexo, Civil, UserDatos, Catorcenas, Uniforme, Tallas, Ropa, SubProyecto, Proyecto,Costos_Batch, Bancarios_Batch, Tallas,Economicos_dia_tomado
 from .models import Seleccion, SalarioDatos, FactorIntegracion, TablaCesantia, Solicitud_economicos, Solicitud_vacaciones, Empleado_cv
 from .models import Temas_comentario_solicitud_vacaciones, Trabajos_encomendados, Vacaciones_anteriores_Batch, Dia_vacacion, Datos_baja
-from .models import Variables_carga_social, Variables_imss_patronal, CostoAnterior
+from .models import Variables_carga_social, Variables_imss_patronal, CostoAnterior, TablaSubsidio
 from esquema.models import BonoSolicitado
 from revisar.models import AutorizarPrenomina
 from prenomina.models import Prenomina
@@ -882,6 +882,7 @@ def FormularioCosto(request):
         perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
         empleados= Status.objects.filter(~Q(fecha_ingreso=None), perfil__id__in=perfil.all(),complete = True, complete_costo = False)
     tablas = DatosISR.objects.all()
+    tabla_subsidio = TablaSubsidio.objects.all()
     tabla_vacaciones= TablaVacaciones.objects.all()
     dato = SalarioDatos.objects.get()
     variables_carga_social = Variables_carga_social.objects.get()
@@ -1033,8 +1034,11 @@ def FormularioCosto(request):
                                                                                     costo.lim_inferior = tabla.liminf
                                                                                     costo.tasa=tabla.excedente
                                                                                     costo.cuota_fija=tabla.cuota
-                                                                                if costo.lim_inferior >= tabla.p_ingresos:
-                                                                                    costo.subsidio=tabla.subsidio
+                                                                                #if costo.lim_inferior >= tabla.p_ingresos:
+                                                                                #    costo.subsidio=tabla.subsidio
+                                                                            for valor in tabla_subsidio:
+                                                                                if costo.total_percepciones_mensual >= valor.liminf:
+                                                                                    costo.subsidio=valor.cuota
                                                                             costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
                                                                             costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
                                                                             #Parte de cesantia
@@ -1134,6 +1138,7 @@ def FormularioCosto(request):
 def CostoUpdate(request, pk):
 
     tablas= DatosISR.objects.all()
+    tabla_subsidio = TablaSubsidio.objects.all()
     tabla_vacaciones= TablaVacaciones.objects.all()
     tcesantias= TablaCesantia.objects.all()
     factores = FactorIntegracion.objects.all()
@@ -1285,8 +1290,11 @@ def CostoUpdate(request, pk):
                                                                                     costo.lim_inferior = tabla.liminf
                                                                                     costo.tasa=tabla.excedente
                                                                                     costo.cuota_fija=tabla.cuota
-                                                                                if costo.lim_inferior >= tabla.p_ingresos:
-                                                                                    costo.subsidio=tabla.subsidio
+                                                                                #if costo.lim_inferior >= tabla.p_ingresos:
+                                                                                #    costo.subsidio=tabla.subsidio
+                                                                            for valor in tabla_subsidio:
+                                                                                if costo.total_percepciones_mensual >= valor.liminf:
+                                                                                    costo.subsidio=valor.cuota                             
                                                                             costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
                                                                             costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
                                                                             #Parte de cesantia
@@ -3245,6 +3253,7 @@ def upload_batch_costos(request):
     dato = SalarioDatos.objects.get()
     factores = FactorIntegracion.objects.all()
     tablas= DatosISR.objects.all()
+    tabla_subsidio = TablaSubsidio.objects.all()
     tabla_vacaciones= TablaVacaciones.objects.all()
     variables_carga_social = Variables_carga_social.objects.get()
     variables_patronal = Variables_imss_patronal.objects.get()
@@ -3342,8 +3351,11 @@ def upload_batch_costos(request):
                                 costo.lim_inferior = tabla.liminf
                                 costo.tasa=tabla.excedente
                                 costo.cuota_fija=tabla.cuota
-                            if costo.lim_inferior >= tabla.p_ingresos:
-                                costo.subsidio=tabla.subsidio
+                            #if costo.lim_inferior >= tabla.p_ingresos:
+                            #    costo.subsidio=tabla.subsidio
+                        for valor in tabla_subsidio:
+                            if costo.total_percepciones_mensual >= valor.liminf:
+                                costo.subsidio=valor.cuota
                         costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
                         costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
                         #Parte de cesantia
