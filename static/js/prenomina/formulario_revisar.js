@@ -99,17 +99,17 @@ document.addEventListener("DOMContentLoaded", function() {
     //para deshabilitar las incidencias de cada formulario revisar
     for (i = 0; i < 14; i++){
         var select = document.getElementById("id_form-"+i+"-incidencia")
-        select.options[1].disabled = true
+        //se enumeran y empieza con 1 en la lista del despegable
         select.options[2].disabled = true
         select.options[3].disabled = true
         select.options[7].disabled = true
         select.options[9].disabled = true
-        select.options[10].disabled = true
         select.options[11].disabled = true
         select.options[12].disabled = true
         select.options[13].disabled = true
         select.options[14].disabled = true
-        select.options[16].disabled = true
+        select.options[15].disabled = true
+      
     }
 
     //desmarcar las incidencias para que posteriormente se guarden, eliminen correctamente
@@ -117,17 +117,15 @@ document.addEventListener("DOMContentLoaded", function() {
     botonGuardar.addEventListener('click',function(){
         for (i = 0; i < 14; i++){
             var select = document.getElementById("id_form-"+i+"-incidencia")
-            select.options[1].disabled = false
             select.options[2].disabled = false
             select.options[3].disabled = false
             select.options[7].disabled = false
             select.options[9].disabled = false
-            select.options[10].disabled = false
             select.options[11].disabled = false
             select.options[12].disabled = false
             select.options[13].disabled = false
             select.options[14].disabled = false
-            select.options[16].disabled = false
+            select.options[15].disabled = false
         }
     })
 

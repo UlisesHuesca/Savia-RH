@@ -70,17 +70,20 @@ class PrenominaIncidenciasForm(forms.ModelForm):
         #self.fields['soporte'].widget.attrs['readonly'] = 'readonly'
         
         #se crea la cache para la consulta de las incidencias
-        cache_key = 'incidencias_cache'
-        incidencias_cache = cache.get(cache_key)
-        if not incidencias_cache:
-            incidencias_cache = Incidencia.objects.all().order_by('tipo')
-            cache.set(cache_key, incidencias_cache)
-        self.fields['incidencia'].queryset = incidencias_cache
+        #cache_key = 'incidencias_cache'
+        #incidencias_cache = cache.get(cache_key)
+        #if not incidencias_cache:
+        #    incidencias_cache = Incidencia.objects.all().order_by('tipo')
+        #    cache.set(cache_key, incidencias_cache)
+        #self.fields['incidencia'].queryset = incidencias_cache
         
         #eliminar cache
         #incidencias_cache = cache.get(cache_key)
         #cache.delete(cache_key)
         
+        
+        #Sin cache
+        self.fields['incidencia'].queryset = Incidencia.objects.all().order_by('tipo')
         
 PrenominaIncidenciasFormSet = formset_factory(PrenominaIncidenciasForm, extra=0,can_delete=True) 
         

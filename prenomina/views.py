@@ -526,7 +526,8 @@ def PrenominaRevisar(request, pk):
             economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final], complete = False)
             vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
             incidencias_rango = IncidenciaRango.objects.filter(empleado_id=prenomina.empleado_id,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
-            
+            festivos_laborados = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id,incidencia_id = 17,fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).exists()
+                            
             #se ejecuta el rango de incidencia en primer lugar - Siempre se tendra una incidencia para la siguiente catorcena
             if incidencias_rango:
                 for incidencia_rango in incidencias_rango:
@@ -565,17 +566,18 @@ def PrenominaRevisar(request, pk):
                         }
                     )
                     fecha_actual += timedelta(days=1)
-            
-            #para obtenter los festivos          
-            for festivo in festivos:
-                registro, created = PrenominaIncidencias.objects.update_or_create(
-                    prenomina_id=prenomina.id,
-                    fecha=festivo.dia_festivo,
-                    defaults={
-                        'incidencia_id': 13 #festivo
-                    }
-                )
-            
+                    
+            if festivos_laborados == False:
+                #para obtenter los festivos          
+                for festivo in festivos:
+                    registro, created = PrenominaIncidencias.objects.update_or_create(
+                        prenomina_id=prenomina.id,
+                        fecha=festivo.dia_festivo,
+                        defaults={
+                            'incidencia_id': 13 #festivo
+                        }
+                    )
+                    
             #para obtener los economicos
             for economico in economicos:
                 registro, created = PrenominaIncidencias.objects.update_or_create(
@@ -585,7 +587,7 @@ def PrenominaRevisar(request, pk):
                         'incidencia_id': 14 # economico
                     }
                 )
-
+                
             #para obtener las vacaciones
             for vacacion in vacaciones:
                     #se ajusta la fecha de acuerdo a la catorcena
@@ -628,6 +630,11 @@ def PrenominaRevisar(request, pk):
             #se filtra las incidencias por la prenomina es decir por el empleado
             incidencias = PrenominaIncidencias.objects.filter(prenomina = prenomina)
             
+            if incidencias.exclude(incidencia_id = 13):
+                fecha_inicial = catorcena_actual.fecha_inicial  # Fecha inicial
+                #16 asistencia
+                datos_iniciales = [{'fecha': fecha_inicial + timedelta(days=i),'incidencia':16} for i in range(14)] # se preparan los 14 forms con su fecha, 12 asistencias, 2 domingos
+                
             # Iterar sobre las incidencias y actualizar los datos iniciales si coinciden con la fecha - volcar el query incidencias a los formularios
             for incidencia in incidencias:
                 for data in datos_iniciales:
