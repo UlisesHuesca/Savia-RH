@@ -54,14 +54,18 @@ class PrenominaIncidencias(models.Model):
     def __str__(self):
         return f"{self.prenomina}, {self.incidencia}, {self.fecha}"
 
-"""
-class PagarIncapacidad(models.Model):
-    prenomina = models.ForeignKey(Prenomina, on_delete=models.CASCADE, null=False)
-    prenomina_rango = models.ForeignKey(IncidenciaRango, on_delete=models.CASCADE, null=False,related_name="pagar_incapacidad")
-    dias_pagados = models.IntegerField(null=False)
-    complete = models.BooleanField(default=None)
-    
+class TipoAguinaldo(models.Model):
+    tipo = models.CharField(max_length=50, null=False)
+
     def __str__(self):
-        return self.dias_pagados
-"""
-    
+        return self.tipo
+
+class Aguinaldo(models.Model):
+    empleado = models.ForeignKey(Costo, on_delete = models.CASCADE, null=True)
+    catorcena = models.ForeignKey(Catorcenas, on_delete=models.CASCADE, null=True) #la idea sumar a la catorcena actual + 1, para tener la suguiente
+    fecha = models.DateField(null=True)
+    monto = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    tipo = models.ForeignKey(TipoAguinaldo, on_delete = models.CASCADE, null=True)
+    mes = models.IntegerField(null=True,default=None)#para saber si es 1°, 2° o 3° mes
+    complete = models.BooleanField(default=False)#para saber si ya se pago
+
