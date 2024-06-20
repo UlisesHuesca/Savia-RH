@@ -206,7 +206,7 @@ def calcular_aguinaldo_eventual(request,salario,prenomina):
         calculo_fecha = relativedelta(datetime.date.today(),fecha_ingreso)
         
         #se lleva un registro de los aguinaldos que se van registrando 
-        aguinaldo_registrado = Aguinaldo_Contrato.objects.filter(empleado_id = prenomina.empleado.id).last()
+        aguinaldo_registrado = Aguinaldo.objects.filter(empleado_id = prenomina.empleado.id).last()
         
         if aguinaldo_registrado is None:
             #se realiza el calculo por los meses y por los dias laborados correspondientes a cada condicion
@@ -234,10 +234,10 @@ def calcular_aguinaldo_eventual(request,salario,prenomina):
             ahora = datetime.date.today()
             catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
             #Guardar el aguinaldo
-            aguinaldo_contrato = Aguinaldo_Contrato(
+            aguinaldo_contrato = Aguinaldo(
                 empleado = prenomina.empleado,
                 aguinaldo = aguinaldo,
-                fecha = date.today(),
+                fecha = ahora,
                 catorcena = catorcena_actual.id + 1, #el aguinaldo se paga en la cat siguiente
                 complete=False,
                 mes = mes
@@ -256,8 +256,8 @@ def calcular_aguinaldo(request,salario,prenomina):
     #print("esta es la catorcena de diciembre", catorcena_decembrina.id)
     
     #verifica si es la catorcena de diciembre para pagar el aguinaldo
-    #if catorcena_actual.id == catorcena_decembrina.id:
-    if catorcena_actual.id == 1000:
+    if catorcena_actual.id == catorcena_decembrina.id:
+    #if catorcena_actual.id == 1000:
         
         tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
         
@@ -289,7 +289,10 @@ def calcular_aguinaldo(request,salario,prenomina):
                     fin_año = datetime.date(año_actual, 12, 31)
                     
                     #llama funcion para el conteo de las incidencias necesarias para el aguinaldo
-                    total_incidencias = conteo_incidencias_aguinaldo(request,prenomina,inicio_año,fin_año)
+                    retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad, incapacidad_dias_pago = calcular_incidencias(request,prenomina,catorcena_actual)
+                    incapacidades = incapacidad_enfermedad - incapacidad_dias_pago
+                    faltas_retardos = retardos // 3
+                    total_incidencias = faltas + castigos + faltas_retardos +  incapacidades
                     #se restan las incidencias con los dias laborados proporcionales
                     dias_laborados = 365 - total_incidencias
                     
@@ -305,10 +308,13 @@ def calcular_aguinaldo(request,salario,prenomina):
                     diferencia = fecha_final - fecha 
                     dias_aguinaldo = diferencia.days #total de dias laborados
                     #fecha es la fecha de planta o anterior
-                    dias_incidencias = conteo_incidencias_aguinaldo(request,prenomina,fecha,fecha_final)
-                
+                    retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad, incapacidad_dias_pago = calcular_incidencias(request,prenomina,catorcena_actual)
+                    incapacidades = incapacidad_enfermedad - incapacidad_dias_pago
+                    faltas_retardos = retardos // 3
+                    total_incidencias = faltas + castigos + faltas_retardos +  incapacidades
+
                     #se restan las incidencias con los dias laborados proporcionales
-                    dias_laborados = dias_aguinaldo - dias_incidencias
+                    dias_laborados = dias_aguinaldo - total_incidencias
                             
                     dias_pago = Decimal((dias_laborados * 15)/365)
                     print("aguinaldo proporcional ")
@@ -323,6 +329,52 @@ def calcular_aguinaldo(request,salario,prenomina):
     else:
         print("no corresponde pago del aguinaldo")
         return aguinaldo
+    
+@login_required(login_url='user-login')
+def calcular_isr_aguinaldo(request,salario, calulo_aguinaldo_isr,calculo_aguinaldo_eventual_isr):   
+    salario_datos = SalarioDatos.objects.get()
+    #aguinaldo anual
+    if calulo_aguinaldo_isr < (salario_datos.UMA * 30):
+        #exento
+        calulo_aguinaldo_isr = 0
+    else:
+        #gravado
+        calulo_aguinaldo_isr = calulo_aguinaldo_isr - Decimal(salario_datos.UMA * 30)
+        
+    #aguinaldo eventual
+    if calculo_aguinaldo_eventual_isr < (salario_datos.UMA * 30):
+        #exento
+        calculo_aguinaldo_eventual_isr = 0
+        print("aguinaldo envetual exento", calculo_aguinaldo_eventual_isr)
+    else:
+        #gravado
+        calculo_aguinaldo_eventual_isr = calculo_aguinaldo_eventual_isr - Decimal(salario_datos.UMA * 30)
+        print("aguinaldo envetual gravado", calculo_aguinaldo_eventual_isr)
+        
+    #multiplicar el salario por 30.4
+    salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
+    #se suman la prima dominical, vacacional, los aguinaldos para despues aplicar el calculo del isr
+    #salario_catorcenal = salario_catorcenal + prima_dominical_isr + calulo_aguinaldo_isr + calculo_aguinaldo_eventual_isr
+
+     
+    #llamar la tabla de IRS
+    tabla_irs = DatosISR.objects.all()
+    
+    #obtener el valor aproximado hacia abajo para obtener las variables
+    for datos_irs in tabla_irs:
+        if salario_catorcenal >= datos_irs.liminf:
+            limite_inferior = datos_irs.liminf
+            porcentaje = datos_irs.excedente
+            cuota_fija = datos_irs.cuota
+            
+    #realizar el calculo
+    isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
+    
+    isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
+    
+    print("calculo ISR: ", isr_mensual)
+    
+    return isr_catorcenal
 
 def calcular_subsidio(request, salario_catorcenal,):
     tabla_subsidio = TablaSubsidio.objects.all()
@@ -350,6 +402,7 @@ def calcular_incidencias(request, prenomina, catorcena_actual):
     incapacidad_maternidad = 0
     incapacidad_enfermedad = 0
     festivo_laborado = 0
+
     
     #ayudan a realizar los calculos de las incidencias como variables auxiliares
     incapacidad_dias_pago = 0 #incapacidad enfermedad - 3 dias pago
