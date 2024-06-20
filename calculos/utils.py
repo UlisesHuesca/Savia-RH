@@ -68,27 +68,21 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calcul
             print("prima dominical exenta: ", prima_dominical_isr)
         else:
             #gravable
-            prima_dominical_isr = prima_dominical_isr - Decimal(salario_datos.UMA)
+            prima_dominical_isr = Decimal(prima_dominical_isr - salario_datos.UMA)
             print("prima dominical gravable: ", prima_dominical_isr)
-
+            
         #PRIMA VACACIONAL
         fecha_inicio = datetime(datetime.now().year,1,1).date()
-        vacaciones = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado.id,incidencia_id=15,fecha__range=(fecha_inicio, catorcena.fecha_final)).count()
+        num_vacaciones = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado.id,incidencia_id=15,fecha__range=(fecha_inicio, catorcena.fecha_final)).count()
+        prima_vacacional_isr = Decimal(num_vacaciones * salario) * salario_datos.prima_vacacional # 0.25
         
-        
-        
-        
-        print("este es el numero total de vacaciones ", vacaciones)
-        #for v in vacaciones:
-        #    print(v.prenomina.empleado)
-        #    print(v.fecha)
-        #    print(v.incidencia)
-        
-        
-        
-        
-        
-        
+        if prima_vacacional_isr < salario_datos.UMA * 15:
+            #exento
+            prima_vacacional_isr = 0
+        else:
+            #gravado
+            prima_vacacional_isr = Decimal(prima_vacacional_isr - (salario_datos.UMA * 15))
+            
         #AGUINALDO
         if calulo_aguinaldo_isr < (salario_datos.UMA * 30):
             #exento
@@ -117,7 +111,7 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calcul
     #multiplicar el salario por 30.4
     salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
     #se suman la prima dominical, vacacional, los aguinaldos para despues aplicar el calculo del isr
-    salario_catorcenal = salario_catorcenal + prima_dominical_isr #+ calulo_aguinaldo_isr + calculo_aguinaldo_eventual_isr
+    salario_catorcenal = salario_catorcenal + prima_dominical_isr + prima_vacacional_isr #+ calulo_aguinaldo_isr + calculo_aguinaldo_eventual_isr
 
      
     #llamar la tabla de IRS
@@ -192,13 +186,7 @@ def calcular_prima_vacacional(vacaciones,salario):
     prima_vacacional = Decimal(vacaciones * salario) * dato.prima_vacacional #0.25   
     print("Es la prima vacacional", prima_vacacional)
     return prima_vacacional
-    
-    
-    
-    
-    
-    
-    
+
 #Calcular aguinaldo enventual
 def calcular_aguinaldo_eventual(request,salario,prenomina):
     """
