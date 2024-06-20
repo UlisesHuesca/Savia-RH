@@ -135,18 +135,21 @@ def registrar_rango_incidencias(request,pk):
             contador = 0
             estado = None
             #se empieza a extraer los datos de IncidenciaRango para almacenarlos en el modelo PrenominaIncidencias
+            contador = 0
+            estado = None
             while fecha_actual <= fecha_fin:
                 incidencia = incidencia_rango.incidencia_id
                 comentario = incidencia_rango.comentario
                 soporte = incidencia_rango.soporte
-                
-                if incidencia == 10 and incidencia_rango.subsecuente != True:
+                #Para agregar el complete para saber si se paga el día de enfermedad
+                if incidencia == 10 and incidencia_rango.subsecuente != True:  # Enfermedad general y que sea subsecuente 
                     if contador < 3:
                         estado = True
                     else:
                         estado = False
-                    contador +=1
-                                    
+                    contador += 1
+                    
+
                 if fecha_actual.weekday() == (incidencia_rango.dia_inhabil_id - 1): 
                     if (incidencia_rango.dia_inhabil_id - 1) == 6:# se resta 1 para obtener el dia domingo
                         incidencia = 5 #domingo
@@ -164,8 +167,8 @@ def registrar_rango_incidencias(request,pk):
                         'comentario': comentario, 
                         'soporte': soporte,
                         'incidencia_id': incidencia,
-                        'incidencia_rango':incidencia_rango,
-                        'complete':estado,                    
+                        'incidencia_rango':incidencia_rango,   
+                        'complete': estado,                     
                     }
                 )
                 fecha_actual += timedelta(days=1)

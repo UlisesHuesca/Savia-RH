@@ -35,6 +35,8 @@ from django.db.models import Sum
 from django.core.mail import send_mail
 from django.conf import settings
 import locale
+from proyecto.models import Costo,CostoAnterior,SalarioDatos
+import calendar
 locale.setlocale( locale.LC_ALL, '' )
 
 @login_required(login_url='user-login')
@@ -61,7 +63,89 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
     #    status.complete_economicos = False
     #    status.save()
     #    dato.delete()
+    """
+    #Falta implementar la tarea que se dispare automaticamente
+    # Obtener la fecha y hora actuales
+    fecha_actual = datetime.datetime.now().date()
+    #print("fecha actual: ",fecha_actual)
 
+    # Primer día del mes
+    primer_dia_mes = datetime.datetime(datetime.datetime.now().year, datetime.datetime.now().month, 1).date()
+    print('primer dia mes: ',primer_dia_mes)
+
+    # Último día del mes actual
+    ultimo_dia_mes = datetime.datetime(datetime.datetime.now().year, datetime.datetime.now().month,
+                                        calendar.monthrange(datetime.datetime.now().year, datetime.datetime.now().month)[1]).date()
+
+    # Asegurarse de que sea la última hora del último día del mes
+    #ultimo_dia_mes = datetime.datetime.combine(ultimo_dia_mes, datetime.time.max)
+    print("ultimo dia: ",ultimo_dia_mes)
+
+    #if fecha_actual == ultimo_dia_mes:
+    if 1 ==1:
+        #se ejecuta el bull_create
+        #Me atre todos los costos actualmente
+        costos = Costo.objects.all()
+        porcentaje = SalarioDatos.objects.get(pk = 1)
+
+        #Pasa los datos del modelo Costo a CostoAnterior para llevar el registro
+        volcar_datos = [CostoAnterior(
+            amortizacion_infonavit = costo.amortizacion_infonavit,
+            fonacot = costo.fonacot,
+            neto_catorcenal_sin_deducciones = costo.neto_catorcenal_sin_deducciones,
+            complemento_salario_catorcenal = costo.complemento_salario_catorcenal,
+            sueldo_diario=costo.sueldo_diario,
+            sdi=costo.sdi,
+            apoyo_de_pasajes = costo.apoyo_de_pasajes,
+            imms_obrero_patronal = costo.imms_obrero_patronal,
+            apoyo_vist_familiar = costo.apoyo_vist_familiar,
+            estancia = costo.estancia,
+            renta = costo.renta,
+            apoyo_estudios = costo.apoyo_estudios,
+            amv = costo.amv,
+            gasolina = costo.gasolina,
+            campamento = costo.campamento,
+            total_deduccion = costo.total_deduccion,
+            neto_pagar = costo.neto_pagar,
+            sueldo_mensual_neto = costo.sueldo_mensual_neto,
+            complemento_salario_mensual = costo.complemento_salario_mensual,
+            sueldo_mensual = costo.sueldo_mensual,
+            sueldo_mensual_sdi = costo.sueldo_mensual_sdi,
+            total_percepciones_mensual = costo.total_percepciones_mensual,
+            impuesto_estatal = costo.impuesto_estatal,
+            sar = costo.sar,
+            cesantia = costo.cesantia,
+            infonavit = costo.infonavit,
+            isr= costo.isr,
+            lim_inferior = costo.lim_inferior,
+            excedente = costo.excedente,
+            tasa = costo.tasa,
+            impuesto_marginal = costo.impuesto_marginal,
+            cuota_fija = costo.cuota_fija,
+            impuesto = costo.impuesto,
+            subsidio = costo.subsidio,
+            total_apoyosbonos_empleadocomp = costo.total_apoyosbonos_empleadocomp,
+            total_apoyosbonos_agregcomis = costo.total_apoyosbonos_agregcomis,
+            comision_complemeto_salario_bonos = costo.comision_complemeto_salario_bonos,
+            total_costo_empresa = costo.total_costo_empresa,
+            ingreso_mensual_neto_empleado = costo.ingreso_mensual_neto_empleado,
+            complete = costo.complete,
+            status_id = costo.status_id,
+            seccion = costo.seccion,
+            laborados = costo.laborados,
+            editado = costo.editado,
+            total_prima_vacacional = costo.total_prima_vacacional,
+            bono_total = costo.bono_total,
+            laborados_imss = costo.laborados_imss,
+            sdi_imss = costo.sdi_imss,
+        ) for costo in costos]
+
+        #se llama el metodo para pasar todos los datos
+        CostoAnterior.objects.bulk_create(volcar_datos)
+        print("La tarea ejecuto correctamente")
+    else:
+        print("No se debe ejecutar la tarea")
+    """
     usuario = UserDatos.objects.get(user__id=request.user.id)
     periodo = str(datetime.date.today().year)
 
