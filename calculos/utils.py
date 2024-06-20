@@ -54,7 +54,7 @@ def calcular_cuotas_imss(request,sdi_imss):
     return calculo_imss
 
 #CALULAR ISR
-def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calculo_aguinaldo_eventual_isr):   
+def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calculo_aguinaldo_eventual_isr,prenomina,catorcena):   
     salario_datos = SalarioDatos.objects.get()
     limite_inferior = 0
     porcentaje = 0
@@ -71,6 +71,24 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calcul
             prima_dominical_isr = prima_dominical_isr - Decimal(salario_datos.UMA)
             print("prima dominical gravable: ", prima_dominical_isr)
 
+        #PRIMA VACACIONAL
+        fecha_inicio = datetime(datetime.now().year,1,1).date()
+        vacaciones = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado.id,incidencia_id=15,fecha__range=(fecha_inicio, catorcena.fecha_final)).count()
+        
+        
+        
+        
+        print("este es el numero total de vacaciones ", vacaciones)
+        #for v in vacaciones:
+        #    print(v.prenomina.empleado)
+        #    print(v.fecha)
+        #    print(v.incidencia)
+        
+        
+        
+        
+        
+        
         #AGUINALDO
         if calulo_aguinaldo_isr < (salario_datos.UMA * 30):
             #exento
@@ -169,55 +187,18 @@ def calcular_prima_dominical(request,festivo,descanso,salario):
     return Decimal(prima_dominical)
 
 #PRIMA VACACIONAL
-def calcular_prima_vacacional(request,salario,prenomina):
-    tabla_vacaciones = TablaVacaciones.objects.all()
+def calcular_prima_vacacional(vacaciones,salario):
     dato = SalarioDatos.objects.get()
+    prima_vacacional = Decimal(vacaciones * salario) * dato.prima_vacacional #0.25   
+    print("Es la prima vacacional", prima_vacacional)
+    return prima_vacacional
     
-    fecha_actual = datetime.today()
-       
-    calcular_prima = True
-    if prenomina.empleado.status.tipo_de_contrato_id == 4: #HONORARIOS
-        calcular_prima = False
-    elif prenomina.empleado.status.tipo_de_contrato_id == 2: #EVENTUAL
-        fecha = fecha_actual - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
-    elif prenomina.empleado.status.tipo_de_contrato_id == 7: #NR
-        calcular_prima = False
-    elif prenomina.empleado.status.fecha_planta is None and prenomina.empleado.status.fecha_planta_anterior is None:
-        calcular_prima = False
-    elif prenomina.empleado.status.fecha_planta is not None and prenomina.empleado.status.fecha_planta_anterior is not None:
-        fecha = prenomina.empleado.status.fecha_planta_anterior
-    elif prenomina.empleado.status.fecha_planta:
-        fecha = prenomina.empleado.status.fecha_planta
-    elif prenomina.empleado.status.fecha_planta_anterior:
-        fecha = prenomina.empleado.status.fecha_planta_anterior
-
-    prima_vacacional = 0
-    if calcular_prima == True:#calcula la prima
-        calcular_antiguedad = relativedelta(fecha_actual, fecha)
-        antiguedad = calcular_antiguedad.years
-        print("esta es la antiguedad ", antiguedad)
-
-        if antiguedad > 0:
-            for tabla in tabla_vacaciones:
-                if antiguedad >= tabla.years:
-                    dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
-
-            vac_reforma_actual = Decimal(dias_vacaciones) * Decimal(salario)
-            print("dias vacaciones", dias_vacaciones, "salario", salario)
-            print("vacaciones", vac_reforma_actual)
-            
-            prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
-            print("esta es la prima ", prima_vacacional)
-            return prima_vacacional
-
-        else:#No calcula la prima - No tiene el año de antiguedad o más
-            print("esta es la prima ", prima_vacacional)
-            return prima_vacacional
-
-    else:#No calcula la prima
-        print("esta es la prima ", prima_vacacional)
-        return prima_vacacional  
-
+    
+    
+    
+    
+    
+    
 #Calcular aguinaldo enventual
 def calcular_aguinaldo_eventual(request,salario,prenomina):
     """
@@ -552,9 +533,6 @@ def excel_estado_prenomina(request,prenominas, user_filter):
                 
         #realiza el calculo de las cuotas imss
         calculo_imss = calcular_cuotas_imss(request,sdi_imss)
-                
-        #realiza el calculo de la prima vacacional
-        calulo_prima_vacacional = calcular_prima_vacacional(request,salario,prenomina)
         
         #Obtener el total de los bonos
         total_bonos = obtener_total_bonos(request,prenomina,catorcena_actual)
@@ -573,13 +551,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         
         #Extrar el conteo de las incidencias de la funcion      
         retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, domingo_laborado, festivo_laborado,festivo_domingo_laborado = calcular_incidencias(request, prenomina, catorcena_actual)
-        
-        #calculo de la prima se manda a llamar
-        #if vacaciones > 0:
-        #    cantidad_dias_vacacion = vacaciones
-        #    calcular_prima_vacacional(request, cantidad_dias_vacacion)
-            
-        
+                
         #numero de catorena
         catorcena_num = catorcena_actual.catorcena 
         
@@ -638,6 +610,10 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         #calcular la prima dominical
         prima_dominical = calcular_prima_dominical(request,festivo_domingo_laborado,domingo_laborado,salario)
         
+        #calcular la prima vacacional
+        prima_vacacional = calcular_prima_vacacional(vacaciones,salario)
+        
+        
         #calcular aguinaldo - siempre de ejecutara al momento de generar al reporte - verifica si es diciembre
         calulo_aguinaldo = calcular_aguinaldo(request,salario,prenomina)
          
@@ -657,7 +633,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         
         #realiza el calculo del ISR
         calcular_aguinaldo_eventual = 0
-        calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calcular_aguinaldo_eventual)
+        calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calcular_aguinaldo_eventual,prenomina,catorcena_actual)
          
         #pagos dobles de los dias laborados - domingos, domingos-laborados, festivos, festivos-domingos
         pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
@@ -679,7 +655,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         print("total: ", salario_catorcenal)
         print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
         
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical # + calulo_aguinaldo + prima_dominical + prima_vacacional
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical + prima_vacacional # + calulo_aguinaldo
         #IMSS y el ISR
         total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
         pagar_nomina = (total_percepciones - total_deducciones)
@@ -796,7 +772,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
                 ws.cell(row=row_num, column=col_num, value=value).style = body_style
             elif col_num == 5: #fecha
                 ws.cell(row=row_num, column=col_num, value=value).style = date_style
-            elif col_num > 5 and col_num < 27:
+            elif col_num > 5 and col_num < 28:
                 ws.cell(row=row_num, column=col_num, value=value).style = body_style
             elif col_num >= 24:
                 ws.cell(row=row_num, column=col_num, value=value).style = money_style
