@@ -13,14 +13,15 @@ class Command(BaseCommand):
 
         # Obtener todas las instancias de Incidencia, Costo y Dia_vacacion
         incidencias = Incidencia.objects.all()
-        costos = Costo.objects.exclude(id = 1142)
+        #costos = Costo.objects.exclude(id = 1142)
+        costos = Costo.objects.filter(id__in = [751,752,769,754,712,1152])
         dias_vacacion = Dia_vacacion.objects.all()
 
         # Obtener la ruta base para el archivo soporte
         base_dir = 'prenomina/'
 
         # Crear datos falsos
-        for _ in range(20000):
+        for _ in range(10000):
             unique_id = uuid.uuid4()
             incidencia = fake.random_element(incidencias)
             empleado = fake.random_element(costos)

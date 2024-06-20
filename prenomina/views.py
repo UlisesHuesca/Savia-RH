@@ -64,7 +64,7 @@ from proyecto.models import SalarioDatos
 from .forms import PrenominaIncidenciasFormSet,IncidenciaRangoForm
 import time
 
-from calculos.utils import excel_estado_prenomina
+from calculos.utils import excel_estado_prenomina, excel_estado_prenomina_formato
 
 # Create your views here.
 
@@ -114,7 +114,7 @@ def registrar_rango_incidencias(request,pk):
                 return JsonResponse({'poscondicion': 'Ya existen dias festivos dentro del rango de fechas especificado'}, status=422) 
             
             #Busca si existe al menos un dia economico en el rango de fechas: inicio - fin y valida
-            economicos = Economicos_dia_tomado.objects.filter(fecha__range=[fecha_start, fecha_end]).values('id').exists()  
+            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status,fecha__range=[fecha_start, fecha_end]).values('id').exists()  
             if economicos:
                 return JsonResponse({'poscondicion': 'Ya existen economicos dentro del rango de fechas especificado'}, status=422)
             
@@ -132,6 +132,8 @@ def registrar_rango_incidencias(request,pk):
             fecha_actual = incidencia_rango.fecha_inicio #punto de inicio
             fecha_fin = min(incidencia_rango.fecha_fin, prenomina.catorcena.fecha_final) #toma la fecha fin mas chica entre las dos fechas para que solo se registren las que caen en la cat
             
+            contador = 0
+            estado = None
             #se empieza a extraer los datos de IncidenciaRango para almacenarlos en el modelo PrenominaIncidencias
             contador = 0
             estado = None
@@ -253,7 +255,7 @@ def Tabla_prenomina(request):
             #return Excel_estado_prenomina(request,prenominas, user_filter)
             return excel_estado_prenomina(request,prenominas,user_filter)
         if request.method =='POST' and 'Excel2' in request.POST:
-            return Excel_estado_prenomina_formato(request,prenominas, user_filter)
+            return excel_estado_prenomina_formato(request,prenominas, user_filter)
         
         p = Paginator(prenominas, 50)
         page = request.GET.get('page')
@@ -511,14 +513,12 @@ def PrenominaRevisar(request, pk):
                 fecha_economico = parser.parse(fecha_economico).date()
                 solicitud= Solicitud_economicos.objects.get(status=costo.status,fecha=fecha_economico)
                 return PdfFormatoEconomicos(request, solicitud)
-                #return redirect(request.META.get('HTTP_REFERER'))
             
             if request.method =='POST' and 'vacaciones_pdf' in request.POST:
                 fecha_vacaciones = request.POST['vacaciones_pdf']
                 fecha_vacaciones = parser.parse(fecha_vacaciones).date()
                 solicitud = Solicitud_vacaciones.objects.filter(status=costo.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
                 return PdfFormatoVacaciones(request, solicitud)
-                #return redirect(request.META.get('HTTP_REFERER'))
             
         else:
             
@@ -529,7 +529,8 @@ def PrenominaRevisar(request, pk):
             economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final], complete = False)
             vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
             incidencias_rango = IncidenciaRango.objects.filter(empleado_id=prenomina.empleado_id,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
-            
+            festivos_laborados = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id,incidencia_id = 17,fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).exists()
+                            
             #se ejecuta el rango de incidencia en primer lugar - Siempre se tendra una incidencia para la siguiente catorcena
             if incidencias_rango:
                 for incidencia_rango in incidencias_rango:
@@ -568,17 +569,18 @@ def PrenominaRevisar(request, pk):
                         }
                     )
                     fecha_actual += timedelta(days=1)
-            
-            #para obtenter los festivos          
-            for festivo in festivos:
-                registro, created = PrenominaIncidencias.objects.update_or_create(
-                    prenomina_id=prenomina.id,
-                    fecha=festivo.dia_festivo,
-                    defaults={
-                        'incidencia_id': 13 #festivo
-                    }
-                )
-            
+                    
+            if festivos_laborados == False:
+                #para obtenter los festivos          
+                for festivo in festivos:
+                    registro, created = PrenominaIncidencias.objects.update_or_create(
+                        prenomina_id=prenomina.id,
+                        fecha=festivo.dia_festivo,
+                        defaults={
+                            'incidencia_id': 13 #festivo
+                        }
+                    )
+                    
             #para obtener los economicos
             for economico in economicos:
                 registro, created = PrenominaIncidencias.objects.update_or_create(
@@ -588,7 +590,7 @@ def PrenominaRevisar(request, pk):
                         'incidencia_id': 14 # economico
                     }
                 )
-
+                
             #para obtener las vacaciones
             for vacacion in vacaciones:
                     #se ajusta la fecha de acuerdo a la catorcena
@@ -631,6 +633,11 @@ def PrenominaRevisar(request, pk):
             #se filtra las incidencias por la prenomina es decir por el empleado
             incidencias = PrenominaIncidencias.objects.filter(prenomina = prenomina)
             
+            if incidencias.exclude(incidencia_id = 13):
+                fecha_inicial = catorcena_actual.fecha_inicial  # Fecha inicial
+                #16 asistencia
+                datos_iniciales = [{'fecha': fecha_inicial + timedelta(days=i),'incidencia':16} for i in range(14)] # se preparan los 14 forms con su fecha, 12 asistencias, 2 domingos
+                
             # Iterar sobre las incidencias y actualizar los datos iniciales si coinciden con la fecha - volcar el query incidencias a los formularios
             for incidencia in incidencias:
                 for data in datos_iniciales:
@@ -1174,382 +1181,5 @@ def PdfFormatoVacaciones(request, solicitud):
     buf.seek(0)
     return FileResponse(buf, as_attachment=True, filename='Formato_Vacaciones.pdf')
 
-@login_required(login_url='user-login')
-def obtener_fechas_con_incidencias(request, prenomina, catorcena_actual):
-    # Crear lista de fechas entre fecha_inicial y fecha_final de la catorcena
-    dias_entre_fechas = [(catorcena_actual.fecha_inicial + timedelta(days=i)) for i in range((catorcena_actual.fecha_final - catorcena_actual.fecha_inicial).days + 1)]
-
-    # Obtener todas las incidencias en una sola consulta
-    todas_incidencias = PrenominaIncidencias.objects.filter(
-        prenomina__empleado_id=prenomina.empleado_id,
-        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
-    ).values('fecha', 'incidencia__id')
-
-    # Mapeo de id de incidencia a su etiqueta
-    id_to_etiqueta = {
-        1: "retardos",
-        2: "descanso",
-        3: "faltas",
-        4: "comision",
-        5: "domingo",
-        6: "dia_extra",
-        7: "castigos",
-        8: "permisos_sin_goce",
-        9: "permisos_con_goce",
-        10: "incapacidad_enfermedad_general",
-        11: "incapacidad_riesgo_laboral",
-        12: "incapacidad_maternidad",
-        13: "festivo",
-        14: "economicos",
-        15: "vacaciones"
-    }
-
-    # Crear un diccionario para almacenar las fechas con su incidencia
-    fecha_a_etiqueta = {fecha: "asistencia" for fecha in dias_entre_fechas}
-
-    # Asignar etiquetas a las fechas según las incidencias
-    for incidencia in todas_incidencias:
-        fecha = incidencia['fecha']
-        incidencia_id = incidencia['incidencia__id']
-        etiqueta = id_to_etiqueta.get(incidencia_id, "asistencia")
-        fecha_a_etiqueta[fecha] = etiqueta
-
-    # Crear la lista final de fechas con sus etiquetas
-    fechas_con_etiquetas = [(fecha, etiqueta) for fecha, etiqueta in fecha_a_etiqueta.items()]
-
-    return fechas_con_etiquetas
-
-@login_required(login_url='user-login')
-def Excel_estado_prenomina_formato(request,prenominas, user_filter):
-    from datetime import datetime
-    
-    response= HttpResponse(content_type = "application/ms-excel")
-    response['Content-Disposition'] = 'attachment; filename = Reporte_prenomina_días_' + str(datetime.now())+'.xlsx'
-    wb = Workbook()
-    ws = wb.create_sheet(title='Reporte')
-    #Comenzar en la fila 1
-    row_num = 3
-
-    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
-    head_style = NamedStyle(name = "head_style")
-    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
-    head_style.fill = PatternFill("solid", fgColor = '00003366')
-    wb.add_named_style(head_style)
-    #Create body style and adding to workbook
-    body_style = NamedStyle(name = "body_style")
-    body_style.font = Font(name ='Calibri', size = 11)
-    wb.add_named_style(body_style)
-    #Create messages style and adding to workbook
-    messages_style = NamedStyle(name = "mensajes_style")
-    messages_style.font = Font(name="Arial Narrow", size = 11)
-    wb.add_named_style(messages_style)
-    #Create date style and adding to workbook
-    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
-    date_style.font = Font(name ='Calibri', size = 11)
-    wb.add_named_style(date_style)
-    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
-    money_style.font = Font(name ='Calibri', size = 11)
-    bold_money_style = NamedStyle(name='bold_money_style', number_format='$#,##0.00', font=Font(bold=True))
-    wb.add_named_style(money_style)
-    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
-    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
-    wb.add_named_style(money_resumen_style)
-    dato_style = NamedStyle(name='dato_style',number_format='DD/MM/YYYY')
-    dato_style.font = Font(name="Arial Narrow", size = 11)
-    ahora = datetime.now()
-    #ahora = datetime.now() + timedelta(days=10)
-    # todas las fechas de la catorcena actual
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
-    dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
-    # Generar los nombres de las columnas de los días
-    dias_columnas = [str(fecha.day) for fecha in dias_entre_fechas]
-        
-    columns = ['No.','NOMBRE DE EMPLEADO','PUESTO','PROYECTO','SUBPROYECTO'] + dias_columnas + ['Salario Catorcenal','Salario Catorcenal',
-               'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','Fonacot','Total deducciones','Neto a pagar en nomina','Salario','Salario Domingo',]
-    
-    for col_num in range(len(columns)):
-        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
-        if col_num == 1:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 50
-        if col_num < 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
-        if col_num == 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
-        else:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
 
 
-    columna_max = len(columns)+2
-    
-    ahora = datetime.now()
-    #ahora = datetime.now() + timedelta(days=10)
-    
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    (ws.cell(column = 1, row = 1, value='Reporte Prenomina SAVIA RH')).style = messages_style
-    (ws.cell(column = 1, row = 2, value=f'Catorcena: {catorcena_actual.catorcena}: {catorcena_actual.fecha_inicial.strftime("%d/%m/%Y")} - {catorcena_actual.fecha_final.strftime("%d/%m/%Y")}')).style = dato_style
-    ws.column_dimensions[get_column_letter(columna_max)].width = 50
-    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 50
-
-    rows = []
-
-    sub_salario_catorcenal_costo = Decimal(0.00) #Valor de referencia del costo
-    sub_salario_catorcenal = Decimal(0.00)
-    sub_apoyo_pasajes = Decimal(0.00)
-    sub_total_bonos = Decimal(0.00)
-    sub_total_percepciones = Decimal(0.00)
-    sub_prestamo_infonavit = Decimal(0.00)
-    sub_prestamo_fonacot = Decimal(0.00)
-    sub_total_deducciones = Decimal(0.00)
-    sub_pagar_nomina = Decimal(0.00)
-        
-    for prenomina in prenominas:
-        #datos para obtener los calculos de la prenomina dependiendo el empleado
-        salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
-        
-        salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
-        neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
-        apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
-        infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
-        fonacot = prenomina.empleado.status.costo.fonacot 
-        
-        #Fecha para obtener los bonos agregando la hora y la fecha de acuerdo a la catorcena
-        fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
-        fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
-        
-        total_bonos = BonoSolicitado.objects.filter(
-            trabajador_id=prenomina.empleado.status.perfil.id,
-            solicitud__fecha_autorizacion__isnull=False,
-            solicitud__fecha_autorizacion__range=(fecha_inicial, fecha_final)
-        ).aggregate(total=Sum('cantidad'))['total'] or 0
-
-        print("Total Bonos:", total_bonos)
-           
-        #calculo del infonavit
-        if infonavit == 0:
-            prestamo_infonavit = Decimal(0.00)
-        else:
-            prestamo_infonavit = Decimal((infonavit / Decimal(30.4) ) * 14 )
-       
-        #calculo del fonacot
-        if fonacot == 0:
-            prestamo_fonacot = Decimal(0.00)
-        else:
-            #Se haya la catorcena actual, y cuenta cuantas catorcenas le corresponden al mes actual
-            primer_dia_mes = datetime(datetime.now().year, datetime.now().month, 1).date()
-            ultimo_dia_mes = datetime(datetime.now().year, datetime.now().month,
-                                    calendar.monthrange(datetime.now().year, datetime.now().month)[1]).date()
-            numero_catorcenas =  Catorcenas.objects.filter(fecha_final__range=(primer_dia_mes,ultimo_dia_mes)).count()
-            prestamo_fonacot = prestamo_fonacot / numero_catorcenas
-            
-        #Contar las incidencias        
-        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad_general= calcular_incidencias(request, prenomina, catorcena_actual)
-
-        
-        #numero de catorena
-        catorcena_num = catorcena_actual.catorcena 
-        
-        incidencias = 0
-        incidencias_retardos = 0
-        
-        if faltas > 0:
-            incidencias = incidencias + faltas
-            print("Faltas: ", faltas)
-            
-        if retardos > 0:
-            incidencias_retardos = retardos // 3 #3 retardos se decuenta 1 dia
-            
-        if castigos > 0:
-            incidencias = incidencias + castigos
-            print("Castigos incidencias contadas", castigos)
-        
-        if permisos_sin_goce  > 0:
-            incidencias = incidencias + permisos_sin_goce
-        
-        pago_doble = 0  
-        if dia_extra > 0:
-            pago_doble = Decimal(dia_extra * salario)
-        
-        incapacidad = str("")   
-        incidencias_incapacidades = 0 #Modificar
-        incidencias_incapacidades_pasajes = 0          
-        incapacidades = 0         
-        cantidad_dias_vacacion = 0
-        #calculo de la prenomina - regla de tres   
-        dias_de_pago = 12
-        dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + incidencias_incapacidades)
-        proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
-        proporcion_laborados = proporcion_septimos_dias + dias_laborados
-        salario_catorcenal = (proporcion_laborados * salario) + pago_doble
-        
-        print("las incidencias incapacidades", incidencias_incapacidades)
-        if incidencias_incapacidades_pasajes > 0:
-            apoyo_pasajes = (apoyo_pasajes / 12 * (12 - (incidencias + incidencias_incapacidades_pasajes))) #12 son los dias trabajados
-            print("Aqui es donde se ejecuta el codigo")
-        else:
-            apoyo_pasajes = (apoyo_pasajes / 12 * (12 - (incidencias))) #12 son los dias trabajados
-            print("Aqui no se deberia ejecutar el codigo")
-        
-        print("apoyos pasajes: ", apoyo_pasajes)
-        print("total: ", salario_catorcenal)
-        print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
-        
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos
-        total_deducciones = prestamo_infonavit + prestamo_fonacot
-        pagar_nomina = total_percepciones - total_deducciones
-        
-        if retardos == 0: 
-            retardos = ''
-        
-        if castigos == 0:
-            castigos = ''
-            
-        if permisos_con_goce == 0:
-            permisos_con_goce = ''
-            
-        if permisos_sin_goce == 0:
-            permisos_sin_goce = ''
-            
-        if descansos == 0:
-            descansos = ''
-
-        if dia_extra == 0:
-            dia_extra = ''
-                    
-        if incapacidades == 0:
-            incapacidades = ''
-        
-        if faltas == 0:
-            faltas = ''
-        
-        if comisiones == 0:
-            comisiones = ''
-            
-        if domingos == 0:
-            domingos = ''
-            
-        if festivos == 0:
-            festivos = ''
-            
-        if economicos == 0:
-            economicos = ''
-            
-        if cantidad_dias_vacacion == 0:
-            cantidad_dias_vacacion = ''
-    abreviaciones = {
-        "economicos": "D/E",
-        "castigos": "CAS",
-        "retardos": "R",
-        "vacaciones": "V",
-        "comision": "C",
-        "faltas": "F",
-        "permisos_con_goce": "PGS",
-        "festivo": "FE",
-        "incapacidades": "I",
-        "permisos_sin_goce": "PSS",
-        "descanso": "DEZ",
-        "asistencia": "x",
-        "domingo": "D",
-    }
-    abreviaciones_colores_cortas = {
-        "D/E": "FF92d050",    # Verde claro
-        "CAS": "FF948a54",    # Marrón
-        "R": "FFe26b0a",      # Naranja
-        "V": "FF00b0f0",      # Azul claro
-        "C": "FF538dd5",      # Azul
-        "F": "FFFF0000",      # Rojo
-        "PGS": "FFfcd5b4",    # Beige
-        "FE": "FFb1a0c7",     # Púrpura claro
-        "I": "FF963634",      # Rojo oscuro
-        "PSS": "FFc00000",    # Rojo oscuro
-        "DEZ": "FF00b050",    # Verde
-        "x": "FFFFFF",         # Blanco
-        "D": "FFFF00"         # Amarillo
-    }
-    rows = []
-    for prenomina in prenominas:
-        fechas_con_etiquetas = obtener_fechas_con_incidencias(request, prenomina, catorcena_actual)
-        estados_por_dia = [abreviaciones.get(estado, estado) for _, estado in fechas_con_etiquetas]
-        row = (
-            prenomina.empleado.status.perfil.numero_de_trabajador,
-            prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
-            prenomina.empleado.status.puesto.puesto,
-            prenomina.empleado.status.perfil.proyecto.proyecto,
-            prenomina.empleado.status.perfil.subproyecto.subproyecto,
-            *estados_por_dia,  # Desempaquetar estados_por_dia aquí
-            salario_catorcenal_costo,
-            salario_catorcenal,
-            apoyo_pasajes,  # Prevision social pasajes
-            total_bonos,
-            total_percepciones,
-            prestamo_infonavit,
-            prestamo_fonacot,
-            total_deducciones,
-            pagar_nomina,
-            salario,
-            ((proporcion_septimos_dias * salario) / 2)
-        )
-        rows.append(row)
-        
-        sub_salario_catorcenal_costo = sub_salario_catorcenal_costo + salario_catorcenal_costo
-        sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
-        sub_apoyo_pasajes = sub_apoyo_pasajes + apoyo_pasajes
-        sub_total_bonos = sub_total_bonos + total_bonos
-        sub_total_percepciones = sub_total_percepciones + total_percepciones
-        sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
-        sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
-        sub_total_deducciones = sub_total_deducciones + total_deducciones
-        sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
-        
-        
-                 
-    # Ahora puedes usar la lista rows como lo estás haciendo actualmente en tu código
-    for row_num, row in enumerate(rows, start=4):
-        for col_num, value in enumerate(row, start=1):
-            if col_num < 4:
-                ws.cell(row=row_num, column=col_num, value=value).style = body_style
-            elif col_num == 5:
-                ws.cell(row=row_num, column=col_num, value=value).style = date_style
-            elif 5 < col_num < 24:
-                ws.cell(row=row_num, column=col_num, value=value).style = body_style
-                # Verificar si el valor está en la lista de abreviaciones
-                if value in abreviaciones_colores_cortas:
-                    color_hex = abreviaciones_colores_cortas[value]
-                    fill = PatternFill(start_color=color_hex, end_color=color_hex, fill_type="solid")
-                    ws.cell(row=row_num, column=col_num).fill = fill
-            elif col_num >= 24:
-                ws.cell(row=row_num, column=col_num, value=value).style = money_style
-            else:
-                ws.cell(row=row_num, column=col_num, value=value).style = body_style
-
-    add_last_row = ['Total','','','','','','','','','','','','','','','','','','',
-                    sub_salario_catorcenal_costo,
-                    sub_salario_catorcenal,
-                    sub_apoyo_pasajes,
-                    sub_total_bonos,
-                    sub_total_percepciones,
-                    sub_prestamo_infonavit,
-                    sub_prestamo_fonacot,
-                    sub_total_deducciones,
-                    sub_pagar_nomina
-                    ]
-    ws.append(add_last_row) 
-
-    # Agregar las abreviaciones como una tabla de dos columnas
-    for key, value in abreviaciones.items():
-        ws.append([key, value])
-
-    # Aplicar el estilo a cada celda de la tabla de abreviaciones cortas con colores de fondo
-    for row_num, row in enumerate(ws.iter_rows(min_row=ws.max_row - len(abreviaciones) + 1, max_row=ws.max_row), start=ws.max_row - len(abreviaciones) + 1):
-        for col_num, cell in enumerate(row, start=1):
-            cell.style = bold_money_style
-            if cell.value is not None:
-                # Obtener el color correspondiente para la abreviación corta actual
-                color = abreviaciones_colores_cortas.get(cell.value, "FFFFFF")  # Por defecto, color blanco
-                cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
-    
-    sheet = wb['Sheet']
-    wb.remove(sheet)
-    wb.save(response)
-
-    return(response)
