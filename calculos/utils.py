@@ -285,8 +285,8 @@ def calcular_aguinaldo(request,salario,prenomina):
     #print("esta es la catorcena de diciembre", catorcena_decembrina.id)
     
     #verifica si es la catorcena de diciembre para pagar el aguinaldo
-    #if catorcena_actual.id == catorcena_decembrina.id:
-    if catorcena_actual.id == 1000:
+    if catorcena_actual.id == catorcena_decembrina.id:
+    #if catorcena_actual.id == 1000:
         
         tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
         
@@ -318,7 +318,9 @@ def calcular_aguinaldo(request,salario,prenomina):
                     fin_año = datetime.date(año_actual, 12, 31)
                     
                     #llama funcion para el conteo de las incidencias necesarias para el aguinaldo
-                    total_incidencias = conteo_incidencias_aguinaldo(request,prenomina,inicio_año,fin_año)
+                    retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad_general = calcular_incidencias(request,prenomina,catorcena_actual)
+                    faltas_retardos = retardos // 3
+                    total_incidencias = faltas + castigos + faltas_retardos
                     #se restan las incidencias con los dias laborados proporcionales
                     dias_laborados = 365 - total_incidencias
                     
