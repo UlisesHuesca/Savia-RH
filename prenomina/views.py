@@ -692,6 +692,7 @@ def determinar_estado_general(request, ultima_autorizacion):
 
     return 'Estado no reconocido'
 
+@login_required(login_url='user-login')
 def PdfFormatoEconomicos(request, solicitud):
     solicitud= Solicitud_economicos.objects.get(id=solicitud.id)
     now = date.today()

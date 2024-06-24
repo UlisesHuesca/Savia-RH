@@ -7,7 +7,6 @@ from proyecto import views
 
 urlpatterns = [
     path('', views.Index, name='Inicio'),
-    path('...', views.Principal, name='Principal'),
 
     path('Perfil', views.Perfil_vista, name='Perfil'),
     path('Perfil_baja', views.Perfil_vista_baja, name='Perfil_baja'),
@@ -29,10 +28,8 @@ urlpatterns = [
 
     path('Administrar', views.Administrar_tablas, name='Administrar_tablas'),
     path('Tabla_catorcenas', views.Tabla_catorcenas, name='Tabla_catorcenas'),
-    path('Formulario_catorcenas', views.FormularioCatorcenas, name='Formulario_catorcenas'), #Inhabilitar
-    path('Catorcenas/update/<int:pk>/', views.CatorcenasUpdate, name='Catorcenas_update'),
+
     path('Tabla_ISR', views.Tabla_isr, name='Tabla_isr'),
-    path('ISR/update/<int:pk>/', views.IsrUpdate, name='Isr_update'),
     path('Tabla_dias_vacaciones', views.Tabla_dias_vacaciones, name='Tabla_dias_vacaciones'),
     path('Tabla_registro_patronal', views.tabla_registro_patronal, name='tabla_registro_patronal'),
     path('Patronal/update/<int:pk>/', views.tabla_registro_patronal_update, name='tabla_registro_patronal_update'),
@@ -63,12 +60,6 @@ urlpatterns = [
     path('upload_Bancarios', views.upload_batch_bancarios, name='Upload_bancarios'),
     path('Empleado/Datos_bancarios/<int:pk>/', views.Empleado_Datosbancarios, name='Empleado_bancarios'),
     path('upload_Bonos_catorcena', views.upload_batch_bonos, name='Upload_bonos_catorcena'),
-
-    path('Formulario_Bonos', views.FormularioBonos, name='Formulario_bonos'),
-    path('Tabla_Bonos', views.TablaBonos, name='Tabla_bonos'),
-
-    path('Bonos/update/<int:pk>/', views.BonosUpdate, name='Bonos_update'),
-    path('Empleado/Bonos/<int:pk>/', views.Empleado_Bonos, name='Empleado_bonos'),
 
     path('DatosBancarios/update/<int:pk>/', views.BancariosUpdate, name='Bancarios_update'),
 

@@ -71,10 +71,6 @@ from reportlab.lib.utils import ImageReader
 import os
 
 @login_required(login_url='user-login')
-def Principal(request):
-    return render(request, 'proyecto/Principal.html')
-
-@login_required(login_url='user-login')
 def Index(request):
     return render(request, 'proyecto/Inicio.html')
 
@@ -102,72 +98,6 @@ def Tabla_catorcenas(request):
         }
 
     return render(request, 'proyecto/Tabla_catorcenas.html',context)
-
-@login_required(login_url='user-login')
-def FormularioCatorcenas(request):
-    catorcena,created=Catorcenas.objects.get_or_create(complete=False)
-    form = CatorcenasForm()
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = CatorcenasForm(request.POST,instance=catorcena)
-        form.save(commit=False)
-
-        if form.is_valid():
-            messages.success(request, 'Catorcena capturada con éxito')
-            catorcena.complete=True
-            form.save()
-            return redirect('Tabla_catorcenas')
-    context = {'form':form,}
-
-    return render(request, 'proyecto/CatorcenasForm.html',context)
-
-@login_required(login_url='user-login')
-def CatorcenasUpdate(request, pk):
-
-    item = Catorcenas.objects.get(id=pk)
-
-    if request.method == 'POST':
-        form = CatorcenasForm(request.POST, instance=item)
-
-        if form.is_valid():
-            messages.success(request, 'Cambios guardados con éxito en la catorcena')
-            item = form.save(commit=False)
-            item.save()
-
-            catorcenas = Catorcenas.objects.filter(complete=True)
-            bonos = Bonos.objects.filter(complete=True)
-            for bono in bonos:
-                for catorcena in catorcenas:
-                    if bono.fecha_bono >= catorcena.fecha_inicial:
-                        bono.mes_bono = catorcena.fecha_final
-                        bono.save()
-
-            return redirect('Tabla_catorcenas')
-    else:
-        form = CatorcenasForm(instance=item)
-
-    context = {'form':form,'item':item}
-
-    return render(request, 'proyecto/Catorcenas_update.html',context)
-
-@login_required(login_url='user-login')
-def IsrUpdate(request, pk):
-
-    item = DatosISR.objects.get(id=pk)
-
-    if request.method == 'POST':
-        form = IsrForm(request.POST, instance=item)
-
-        messages.success(request, 'Cambios guardados con éxito en la tabla ISR')
-        if form.is_valid():
-            item = form.save(commit=False)
-            item.save()
-            return redirect('Tabla_isr')
-    else:
-        form = IsrForm(instance=item)
-
-    context = {'form':form,'item':item}
-
-    return render(request, 'proyecto/Isr_update.html',context)
 
 @login_required(login_url='user-login')
 def Dias_VacacionesUpdate(request, pk):
@@ -208,465 +138,424 @@ def Perfil_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        perfiles= Perfil.objects.filter(complete=True, baja=False, empresa = empresa_faxton).order_by("numero_de_trabajador")
-    elif user_filter.distrito.distrito == 'Matriz':
-        perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
+    if user_filter.tipo.id == 4 or user_filter.tipo.id == 3: #Perfil RH o observador
+        if revisar_perfil.empresa == empresa_faxton:
+            perfiles= Perfil.objects.filter(complete=True, baja=False, empresa = empresa_faxton).order_by("numero_de_trabajador")
+        elif user_filter.distrito.distrito == 'Matriz':
+            perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
+        else:
+            perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
+        perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
+        perfiles = perfil_filter.qs
+
+
+        if request.method =='POST' and 'Excel' in request.POST:
+            return convert_excel_perfil(perfiles)
+
+        p = Paginator(perfiles, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+
+        context= {
+            'perfiles':perfiles,
+            'perfil_filter':perfil_filter,
+            'salidas_list':salidas_list,
+            }
+
+        return render(request, 'proyecto/Perfil.html',context)
     else:
-        perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
-    perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
-    perfiles = perfil_filter.qs
-
-
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_perfil(perfiles)
-
-    p = Paginator(perfiles, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    context= {
-        'perfiles':perfiles,
-        'perfil_filter':perfil_filter,
-        'salidas_list':salidas_list,
-        }
-
-    return render(request, 'proyecto/Perfil.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def Perfil_vista_baja(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete=True,perfil__baja=True, perfil__empresa = empresa_faxton).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
-        perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
-                                             fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
-    elif user_filter.distrito.distrito == 'Matriz':
-        perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
-        perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
-                                             fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
+    if user_filter.tipo.id == 4: #Perfil RH
+        if revisar_perfil.empresa == empresa_faxton:
+            perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete=True,perfil__baja=True, perfil__empresa = empresa_faxton).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
+            perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
+                                                fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
+        elif user_filter.distrito.distrito == 'Matriz':
+            perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
+            perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
+                                                fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
+        else:
+            #perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
+            #perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True).order_by("perfil__numero_de_trabajador")
+            perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete_status=True,perfil__distrito=user_filter.distrito,perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
+            perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
+                                                fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
+
+        perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
+        perfiles = perfil_filter.qs
+
+        if request.method =='POST' and 'Excel' in request.POST:
+            return convert_excel_perfil_baja(perfiles)
+
+        p = Paginator(perfiles, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+
+        context= {
+            'perfiles':perfiles,
+            'perfil_filter':perfil_filter,
+            'salidas_list':salidas_list,
+            }
+
+        return render(request, 'proyecto/Perfiles_baja.html',context)
     else:
-        #perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=True).order_by("numero_de_trabajador")
-        #perfiles= Datos_baja.objects.filter(perfil__in=perfiles,complete=True).order_by("perfil__numero_de_trabajador")
-        perfiles_con_ultima_fecha = Datos_baja.objects.filter(perfil__complete_status=True,perfil__distrito=user_filter.distrito,perfil__complete=True,perfil__baja=True).values('perfil__numero_de_trabajador').annotate(max_fecha=Max('fecha'))
-        perfiles = Datos_baja.objects.filter(perfil__numero_de_trabajador__in=perfiles_con_ultima_fecha.values('perfil__numero_de_trabajador'),
-                                             fecha__in=perfiles_con_ultima_fecha.values('max_fecha')).order_by('perfil__numero_de_trabajador', '-fecha')
-
-    perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
-    perfiles = perfil_filter.qs
-
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_perfil_baja(perfiles)
-
-    p = Paginator(perfiles, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    context= {
-        'perfiles':perfiles,
-        'perfil_filter':perfil_filter,
-        'salidas_list':salidas_list,
-        }
-
-    return render(request, 'proyecto/Perfiles_baja.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def FormularioPerfil(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    empleado,created=Perfil.objects.get_or_create(complete=False)
-    subproyectos = SubProyecto.objects.all()
+    if user_filter.tipo.id == 4: #Perfil RH
+        empleado,created=Perfil.objects.get_or_create(complete=False)
+        subproyectos = SubProyecto.objects.all()
 
-    if user_filter.distrito.distrito == 'Matriz':
-        form = PerfilForm()
-    else:
-        form = PerfilDistritoForm()
-    ahora = datetime.date.today()
-
-    if request.method == 'POST' and 'btnSend' in request.POST:
         if user_filter.distrito.distrito == 'Matriz':
-            form = PerfilForm(request.POST, request.FILES, instance=empleado)
-            no_trabajador = request.POST.get('numero_de_trabajador')
+            form = PerfilForm()
         else:
-            form = PerfilDistritoForm(request.POST, request.FILES, instance=empleado)
-            no_trabajador = request.POST.get('numero_de_trabajador')
-            
-        trabajador_existe = Perfil.objects.filter(numero_de_trabajador = no_trabajador).exists()
-        form.save(commit=False)
+            form = PerfilDistritoForm()
+        ahora = datetime.date.today()
 
-        if empleado.foto and empleado.foto.size > 2097152:
-            messages.error(request,'El tamaño del archivo es mayor de 2 MB')
-        elif empleado.numero_de_trabajador < 0:
-            messages.error(request, '(Número empleado) El numero de empleado debe ser mayor o igual a 0')
-        elif empleado.fecha_nacimiento >= ahora:
-            messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
-        elif trabajador_existe == True:
-            messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
-        #elif form == PerfilDistritoForm() and Perfil.objects.filter(numero_de_trabajador=empleado.numero_de_trabajador, distrito = empleado.distrito).exists():
-        #    messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
-        else:
-            messages.success(request, 'Información capturada con éxito')
-            if form.is_valid():
-                if user_filter.distrito.distrito != 'Matriz':
-                    empleado.distrito = user_filter.distrito
-                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                empleado.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
-                empleado.complete=True
-                form.save()
-                return redirect('Perfil')
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            if user_filter.distrito.distrito == 'Matriz':
+                form = PerfilForm(request.POST, request.FILES, instance=empleado)
+                no_trabajador = request.POST.get('numero_de_trabajador')
+            else:
+                form = PerfilDistritoForm(request.POST, request.FILES, instance=empleado)
+                no_trabajador = request.POST.get('numero_de_trabajador')
+                
+            trabajador_existe = Perfil.objects.filter(numero_de_trabajador = no_trabajador).exists()
+            form.save(commit=False)
 
-    context = {
-        'form':form,
-        'subproyectos':subproyectos
-        }
+            if empleado.foto and empleado.foto.size > 2097152:
+                messages.error(request,'El tamaño del archivo es mayor de 2 MB')
+            elif empleado.numero_de_trabajador < 0:
+                messages.error(request, '(Número empleado) El numero de empleado debe ser mayor o igual a 0')
+            elif empleado.fecha_nacimiento >= ahora:
+                messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
+            elif trabajador_existe == True:
+                messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
+            #elif form == PerfilDistritoForm() and Perfil.objects.filter(numero_de_trabajador=empleado.numero_de_trabajador, distrito = empleado.distrito).exists():
+            #    messages.error(request, '(Número empleado) El numero de empleado se repite con otro')
+            else:
+                messages.success(request, 'Información capturada con éxito')
+                if form.is_valid():
+                    if user_filter.distrito.distrito != 'Matriz':
+                        empleado.distrito = user_filter.distrito
+                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                    empleado.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
+                    empleado.complete=True
+                    form.save()
+                    return redirect('Perfil')
 
-    return render(request, 'proyecto/PerfilForm.html',context)
+        context = {
+            'form':form,
+            'subproyectos':subproyectos
+            }
 
+        return render(request, 'proyecto/PerfilForm.html',context)
+    else:   
+	    return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def PerfilUpdate(request, pk):
-    empleado = Perfil.objects.get(id=pk)
-    ahora = datetime.date.today()
-    subproyectos = SubProyecto.objects.all()
-    registros = empleado.history.filter(complete=True)
+    user_filter = UserDatos.objects.get(user=request.user)
+    if user_filter.tipo.id == 4: #Perfil RH
+            
+        empleado = Perfil.objects.get(id=pk)
+        ahora = datetime.date.today()
+        subproyectos = SubProyecto.objects.all()
+        registros = empleado.history.filter(complete=True)
 
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        #request.FILES permite subir imagenes en el form
-        form = PerfilUpdateForm(request.POST, request.FILES, instance=empleado)
-        empleado = form.save(commit=False)
-        if empleado.foto and empleado.foto.size > 2097152:
-            messages.error(request,'El tamaño del archivo es mayor de 2 MB')
-        elif empleado.fecha_nacimiento >= ahora:
-            messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
-        elif form.is_valid():
-            user_filter = UserDatos.objects.get(user=request.user)
-            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-            empleado.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
-            messages.success(request, f'Cambios guardados con éxito en el perfil de {empleado.nombres} {empleado.apellidos}')
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            #request.FILES permite subir imagenes en el form
+            form = PerfilUpdateForm(request.POST, request.FILES, instance=empleado)
             empleado = form.save(commit=False)
-            empleado.save()
-            return redirect('Perfil')
+            if empleado.foto and empleado.foto.size > 2097152:
+                messages.error(request,'El tamaño del archivo es mayor de 2 MB')
+            elif empleado.fecha_nacimiento >= ahora:
+                messages.error(request, 'La fecha de nacimiento no puede ser mayor o igual a hoy')
+            elif form.is_valid():
+                user_filter = UserDatos.objects.get(user=request.user)
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                empleado.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
+                messages.success(request, f'Cambios guardados con éxito en el perfil de {empleado.nombres} {empleado.apellidos}')
+                empleado = form.save(commit=False)
+                empleado.save()
+                return redirect('Perfil')
+        else:
+            form = PerfilUpdateForm(instance=empleado)
+
+        context = {
+            'form':form,
+            'empleado':empleado,
+            'subproyectos':subproyectos,
+            'registros':registros,
+            }
     else:
-        form = PerfilUpdateForm(instance=empleado)
-
-    context = {
-        'form':form,
-        'empleado':empleado,
-        'subproyectos':subproyectos,
-        'registros':registros,
-        }
-
+        return render(request, 'revisar/403.html')
 
     return render(request, 'proyecto/Perfil_update.html',context)
 
 @login_required(login_url='user-login')
 def Perfil_revisar(request, pk):
-
+    user_filter = UserDatos.objects.get(user=request.user)
     empleado = Perfil.objects.get(id=pk)
-
-
-    context = {
-        'empleado':empleado,
-
+    if user_filter.tipo.id == 4 or (user_filter.numero_de_trabajador == empleado.numero_de_trabajador and user_filter.distrito == empleado.distrito) or user_filter.tipo.id == 3:
+        context = {
+            'empleado': empleado,
         }
-
-    return render(request, 'proyecto/Perfil_revisar.html',context)
-
+        return render(request, 'proyecto/Perfil_revisar.html', context)
+    else:
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def Status_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        status= Status.objects.filter(complete=True,perfil__empresa=empresa_faxton,perfil__baja=False).order_by("perfil__numero_de_trabajador")
-    elif user_filter.distrito.distrito == 'Matriz':
-        status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
+    if user_filter.tipo.id == 4 or user_filter.tipo.id == 3: #Perfil RH o observador
+
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        if revisar_perfil.empresa == empresa_faxton:
+            status= Status.objects.filter(complete=True,perfil__empresa=empresa_faxton,perfil__baja=False).order_by("perfil__numero_de_trabajador")
+        elif user_filter.distrito.distrito == 'Matriz':
+            status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
+        else:
+            status = Status.objects.filter(perfil__distrito = user_filter.distrito, complete=True).order_by("perfil__numero_de_trabajador")
+        status_filter = StatusFilter(request.GET, queryset=status)
+
+        status = status_filter.qs
+
+        if request.method =='POST' and 'Excel' in request.POST:
+            return convert_excel_status(status)
+
+                        #Set up pagination
+        p = Paginator(status, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+
+        context= {
+            'status':status,
+            'status_filter':status_filter,
+            'salidas_list':salidas_list,
+            'baja': request.GET.get('baja', False)
+            }
+
+        return render(request, 'proyecto/Status.html',context)
     else:
-        status = Status.objects.filter(perfil__distrito = user_filter.distrito, complete=True).order_by("perfil__numero_de_trabajador")
-    status_filter = StatusFilter(request.GET, queryset=status)
-
-    status = status_filter.qs
-
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_status(status)
-
-                    #Set up pagination
-    p = Paginator(status, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    context= {
-        'status':status,
-        'status_filter':status_filter,
-        'salidas_list':salidas_list,
-        'baja': request.GET.get('baja', False)
-        }
-
-    return render(request, 'proyecto/Status.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def FormularioStatus(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        empleados = Perfil.objects.filter(complete=True, complete_status=False, baja=False, empresa=empresa_faxton)
-    elif user_filter.distrito.distrito == 'Matriz':
-        empleados = Perfil.objects.filter(complete=True, complete_status=False, baja=False)
-    else:
-        empleados = Perfil.objects.filter(distrito=user_filter.distrito,complete=True, complete_status=False, baja=False)
-
-    estado,created=Status.objects.get_or_create(complete=False)
-    form = StatusForm()
-    ahora = datetime.date.today()
-    registro_patronal = RegistroPatronal.objects.all()
-    puestos = Puesto.objects.all()
-    valido = False
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = StatusForm(request.POST,instance=estado)
-        form.save(commit=False)
-        if estado.fecha_planta_anterior == None and estado.fecha_planta == None:
-            valido=True
-        elif estado.fecha_planta_anterior == None:
-            if estado.fecha_planta > ahora:
-                messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
-            else:
-                valido=True
-        elif estado.fecha_planta == None:
-            if estado.fecha_planta_anterior > ahora:
-                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
-            else:
-                valido=True
+    if user_filter.tipo.id == 4: #Perfil RH
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        if revisar_perfil.empresa == empresa_faxton:
+            empleados = Perfil.objects.filter(complete=True, complete_status=False, baja=False, empresa=empresa_faxton)
+        elif user_filter.distrito.distrito == 'Matriz':
+            empleados = Perfil.objects.filter(complete=True, complete_status=False, baja=False)
         else:
-            if estado.fecha_planta_anterior > ahora:
-                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
-            else:
+            empleados = Perfil.objects.filter(distrito=user_filter.distrito,complete=True, complete_status=False, baja=False)
+
+        estado,created=Status.objects.get_or_create(complete=False)
+        form = StatusForm()
+        ahora = datetime.date.today()
+        registro_patronal = RegistroPatronal.objects.all()
+        puestos = Puesto.objects.all()
+        valido = False
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            form = StatusForm(request.POST,instance=estado)
+            form.save(commit=False)
+            if estado.fecha_planta_anterior == None and estado.fecha_planta == None:
+                valido=True
+            elif estado.fecha_planta_anterior == None:
                 if estado.fecha_planta > ahora:
                     messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
                 else:
-                    if estado.fecha_planta < estado.fecha_planta_anterior:
-                        messages.error(request, '(Fechas) La fecha de planta anterior no puede ser posterior a la fecha de planta')
+                    valido=True
+            elif estado.fecha_planta == None:
+                if estado.fecha_planta_anterior > ahora:
+                    messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
+                else:
+                    valido=True
+            else:
+                if estado.fecha_planta_anterior > ahora:
+                    messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
+                else:
+                    if estado.fecha_planta > ahora:
+                        messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
                     else:
-                        valido=True
-        empleado = Perfil.objects.get(id = estado.perfil.id)
-        if form.is_valid() and valido  == True:
-            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-            estado.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
-            messages.success(request, 'Información capturada con éxito')
-            estado.complete=True
-            form.save()
-            estado.save()
-            empleado.complete_status=True
-            empleado.save()
-            return redirect('Status')
+                        if estado.fecha_planta < estado.fecha_planta_anterior:
+                            messages.error(request, '(Fechas) La fecha de planta anterior no puede ser posterior a la fecha de planta')
+                        else:
+                            valido=True
+            empleado = Perfil.objects.get(id = estado.perfil.id)
+            if form.is_valid() and valido  == True:
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                estado.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
+                messages.success(request, 'Información capturada con éxito')
+                estado.complete=True
+                form.save()
+                estado.save()
+                empleado.complete_status=True
+                empleado.save()
+                return redirect('Status')
 
-    context = {
-        'form':form,
-        'empleados':empleados,
-        'registro_patronal': registro_patronal,
-        'puestos':puestos,
-        }
+        context = {
+            'form':form,
+            'empleados':empleados,
+            'registro_patronal': registro_patronal,
+            'puestos':puestos,
+            }
 
-    return render(request, 'proyecto/StatusForm.html',context)
-
+        return render(request, 'proyecto/StatusForm.html',context)
+    else:
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def StatusUpdate(request, pk):
-    puestos = Puesto.objects.all()
-    estado = Status.objects.get(id=pk)
-    ahora = datetime.date.today()
-    registros = estado.history.filter(complete=True)
-    valido = False
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = StatusUpdateForm(request.POST, instance=estado)
-        estado = form.save(commit=False)
-        if estado.fecha_planta_anterior != None and estado.fecha_planta != None:
-            if estado.fecha_planta_anterior > ahora:
-                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
-            if estado.fecha_planta > ahora:
-                messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
-            if estado.fecha_planta_anterior > estado.fecha_planta:
-                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a fecha de planta')
-            else:
+    user_filter = UserDatos.objects.get(user=request.user)
+    if user_filter.tipo.id == 4: #Perfil RH
+        puestos = Puesto.objects.all()
+        estado = Status.objects.get(id=pk)
+        ahora = datetime.date.today()
+        registros = estado.history.filter(complete=True)
+        valido = False
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            form = StatusUpdateForm(request.POST, instance=estado)
+            estado = form.save(commit=False)
+            if estado.fecha_planta_anterior != None and estado.fecha_planta != None:
+                if estado.fecha_planta_anterior > ahora:
+                    messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
+                if estado.fecha_planta > ahora:
+                    messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
+                if estado.fecha_planta_anterior > estado.fecha_planta:
+                    messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a fecha de planta')
+                else:
+                    valido=True
+            elif estado.fecha_planta_anterior == None and estado.fecha_planta == None:
                 valido=True
-        elif estado.fecha_planta_anterior == None and estado.fecha_planta == None:
-            valido=True
-        elif estado.fecha_planta == None:
-            if estado.fecha_planta_anterior > ahora:
-                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
-            else:
-                valido=True
-        elif estado.fecha_planta_anterior == None:
-            if estado.fecha_planta > ahora:
-                messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
-            else:
-                valido=True
-                
-        if valido == True:
-            if estado.fecha_alta_imss is not None:
+            elif estado.fecha_planta == None:
+                if estado.fecha_planta_anterior > ahora:
+                    messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
+                else:
+                    valido=True
+            elif estado.fecha_planta_anterior == None:
+                if estado.fecha_planta > ahora:
+                    messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
+                else:
+                    valido=True
+                    
+            if valido == True:
+                if estado.fecha_alta_imss is not None:
+                    if estado.fecha_alta_imss > ahora:
+                        messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
+                        valido = False
+                else:
+                    valido=True
+                """
                 if estado.fecha_alta_imss > ahora:
                     messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
                     valido = False
-            else:
-                valido=True
-            """
-            if estado.fecha_alta_imss > ahora:
-                messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
-                valido = False
-            else:
-                valido=True
-            """
-            """
-            if estado.fecha_alta_imss is None:
-                messages.error(request, '(Fecha alta IMSS) La fecha alta de imss es obligratoria')
-                valido = False
-            elif estado.fecha_alta_imss > ahora:
-                messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
-                valido = False
-            else:
-                valido=True
-            """
+                else:
+                    valido=True
+                """
+                """
+                if estado.fecha_alta_imss is None:
+                    messages.error(request, '(Fecha alta IMSS) La fecha alta de imss es obligratoria')
+                    valido = False
+                elif estado.fecha_alta_imss > ahora:
+                    messages.error(request, '(Fecha alta IMSS) La fecha no puede ser posterior a hoy')
+                    valido = False
+                else:
+                    valido=True
+                """
+                
+                
             
-            
-        
-        if form.is_valid() and valido == True:
-            user_filter = UserDatos.objects.get(user=request.user)
-            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-            estado.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
-            messages.success(request, f'Cambios guardados con éxito en el Status de {estado.perfil.nombres} {estado.perfil.apellidos}')
-            estado = form.save(commit=False)
-            estado.save()
-            return redirect('Status')
+            if form.is_valid() and valido == True:
+                user_filter = UserDatos.objects.get(user=request.user)
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                estado.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
+                messages.success(request, f'Cambios guardados con éxito en el Status de {estado.perfil.nombres} {estado.perfil.apellidos}')
+                estado = form.save(commit=False)
+                estado.save()
+                return redirect('Status')
+        else:
+            form = StatusUpdateForm(instance=estado)
+
+        context = {'form':form,'estado':estado,'puestos':puestos,'registros':registros,}
+
+        return render(request, 'proyecto/Status_update.html',context)
     else:
-        form = StatusUpdateForm(instance=estado)
-
-    context = {'form':form,'estado':estado,'puestos':puestos,'registros':registros,}
-
-    return render(request, 'proyecto/Status_update.html',context)
-
+        return render(request, 'revisar/403.html')
 @login_required(login_url='user-login')
 def Status_revisar(request, pk):
-
+    user_filter = UserDatos.objects.get(user=request.user)
     estado = Status.objects.get(id=pk)
-    if estado.ultimo_contrato_vence == datetime.date(6000, 1, 1): #Esta es la manera correcta de la fecha
-        estado.ultimo_contrato_vence = 'ESPECIAL'
-    elif estado.ultimo_contrato_vence == datetime.date(6001, 1, 1): #Esta es la manera correcta de la fecha
-        estado.ultimo_contrato_vence = 'INDETERMINADO'
-    elif estado.ultimo_contrato_vence == datetime.date(6002, 1, 1): #Esta es la manera correcta de la fecha
-        estado.ultimo_contrato_vence = 'HONORARIOS'
-    elif estado.ultimo_contrato_vence == datetime.date(6003, 1, 1): #Esta es la manera correcta de la fecha
-        estado.ultimo_contrato_vence = 'NR'
-    context = {'estado':estado,}
+    if user_filter.tipo.id == 4 or (user_filter.numero_de_trabajador == estado.perfil.numero_de_trabajador and user_filter.distrito == estado.perfil.distrito) or user_filter.tipo.id == 3:
+        if estado.ultimo_contrato_vence == datetime.date(6000, 1, 1): #Esta es la manera correcta de la fecha
+            estado.ultimo_contrato_vence = 'ESPECIAL'
+        elif estado.ultimo_contrato_vence == datetime.date(6001, 1, 1): #Esta es la manera correcta de la fecha
+            estado.ultimo_contrato_vence = 'INDETERMINADO'
+        elif estado.ultimo_contrato_vence == datetime.date(6002, 1, 1): #Esta es la manera correcta de la fecha
+            estado.ultimo_contrato_vence = 'HONORARIOS'
+        elif estado.ultimo_contrato_vence == datetime.date(6003, 1, 1): #Esta es la manera correcta de la fecha
+            estado.ultimo_contrato_vence = 'NR'
+        context = {'estado':estado,}
 
-    return render(request, 'proyecto/Status_revisar.html',context)
-
+        return render(request, 'proyecto/Status_revisar.html',context)
+    else:
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def Administrar_tablas(request):
-    puestos = Puesto.objects.all()
-    salario = SalarioDatos.objects.get()
-    distritos = Distrito.objects.filter(complete = True)
-    perfil = Perfil.objects.filter(complete = True)
-    status = Status.objects.filter(complete = True)
-    bancarios = DatosBancarios.objects.filter(complete = True)
-    costo = Costo.objects.filter(complete = True)
-    bonos = Bonos.objects.filter(complete = True)
-    vacaciones = Vacaciones.objects.filter(complete = True)
-    economicos = Economicos.objects.filter(complete = True)
-    distrito_seleccionado = request.POST.get('distrito_seleccionado', None)
-    if distrito_seleccionado != '':
-        perfill = Perfil.objects.filter(distrito__distrito = distrito_seleccionado)
-        statuss = Status.objects.filter(perfil__distrito__distrito = distrito_seleccionado)
-        bancarioss = DatosBancarios.objects.filter(status__perfil__distrito__distrito = distrito_seleccionado)
-        costoo = Costo.objects.filter(status__perfil__distrito__distrito = distrito_seleccionado)
-        bonoss = Bonos.objects.filter(costo__status__perfil__distrito__distrito = distrito_seleccionado)
-        vacacioness = Vacaciones.objects.filter(status__perfil__distrito__distrito = distrito_seleccionado)
-        economicoss = Economicos.objects.filter(status__perfil__distrito__distrito = distrito_seleccionado)
-        if request.method =='POST' and 'Excel' in request.POST:
-            return excel_reporte_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,)
-        if request.method =='POST' and 'Pdf' in request.POST:
-            return reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,)
-    #    if request.method =='POST' and 'Excel2' in request.POST:
-    #        return excel_reporte_puestos()
-    else:
-        if request.method =='POST' and 'Excel' in request.POST:
-            return excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,)
-        if request.method =='POST' and 'Pdf' in request.POST:
-            return reporte_pdf_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,)
-    context= {
-        'distritos':distritos,
-        'distrito_seleccionado':distrito_seleccionado,
-        'salario':salario,
-        }
-    return render(request, 'proyecto/Administrar_tablas.html', context)
-
-@login_required(login_url='user-login')
-def FormularioBonos(request):
     user_filter = UserDatos.objects.get(user=request.user)
-
-    if user_filter.distrito.distrito == 'Matriz':
-        empleados= Costo.objects.filter(complete = True, status__perfil__baja=False)
-    else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
-        empleados= Costo.objects.filter(status__perfil__id__in=perfil.all(),complete = True)
-
-    bonos= Bonos.objects.filter(complete=True)
-    catorcenas = Catorcenas.objects.filter(complete=True)
-    bono,created=Bonos.objects.get_or_create(complete=False)
-    form = BonosForm()
-    form.fields["costo"].queryset = empleados
-    if request.method == 'POST':
-        form = BonosForm(request.POST,instance=bono)
-        form.save(commit=False)
-
-        trabajador = bono.costo.status
-        user = DatosBancarios.objects.filter(status=trabajador).last()
-        if user is None:
-            messages.error(request, '(Empleado) El empleado no tiene datos bancarios')
+    if user_filter.tipo.id == 4: #Perfil RH
+        puestos = Puesto.objects.all()
+        salario = SalarioDatos.objects.get()
+        distritos = Distrito.objects.filter(complete = True)
+        perfil = Perfil.objects.filter(complete = True)
+        status = Status.objects.filter(complete = True)
+        bancarios = DatosBancarios.objects.filter(complete = True)
+        costo = Costo.objects.filter(complete = True)
+        bonos = Bonos.objects.filter(complete = True)
+        vacaciones = Vacaciones.objects.filter(complete = True)
+        economicos = Economicos.objects.filter(complete = True)
+        distrito_seleccionado = request.POST.get('distrito_seleccionado', None)
+        if distrito_seleccionado != '':
+            perfill = Perfil.objects.filter(distrito__distrito = distrito_seleccionado)
+            statuss = Status.objects.filter(perfil__distrito__distrito = distrito_seleccionado)
+            bancarioss = DatosBancarios.objects.filter(status__perfil__distrito__distrito = distrito_seleccionado)
+            costoo = Costo.objects.filter(status__perfil__distrito__distrito = distrito_seleccionado)
+            bonoss = Bonos.objects.filter(costo__status__perfil__distrito__distrito = distrito_seleccionado)
+            vacacioness = Vacaciones.objects.filter(status__perfil__distrito__distrito = distrito_seleccionado)
+            economicoss = Economicos.objects.filter(status__perfil__distrito__distrito = distrito_seleccionado)
+            if request.method =='POST' and 'Excel' in request.POST:
+                return excel_reporte_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,)
+            if request.method =='POST' and 'Pdf' in request.POST:
+                return reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,costoo,bonoss,vacacioness,economicoss,)
+        #    if request.method =='POST' and 'Excel2' in request.POST:
+        #        return excel_reporte_puestos()
         else:
-            bono.datosbancarios = user
-            if bono.monto < 0:
-                messages.error(request, '(Monto) La cantidad capturada debe ser mayor o igual 0')
-            else:
-                for catorcena in catorcenas:
-                    if bono.fecha_bono >= catorcena.fecha_inicial:
-                        bono.mes_bono = catorcena.fecha_final
-                if form.is_valid():
-                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                    bono.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
-                    messages.success(request, 'Información capturada con éxito')
-                    bono.complete=True
-                    form.save()
-                    return redirect('Tabla_bonos')
-    context = {'form':form,'bonos':bonos,'empleados':empleados,}
-
-    return render(request, 'proyecto/BonosForm.html',context)
-
-@login_required(login_url='user-login')
-def BonosUpdate(request, pk):
-    bono = Bonos.objects.get(id=pk)
-    registros = bono.history.filter(complete=True)
-    catorcenas = Catorcenas.objects.filter(complete=True)
-    if request.method == 'POST':
-        form =BonosUpdateForm(request.POST, instance=bono)
-        bono = form.save(commit=False)
-        if bono.monto < 0:
-            messages.error(request, '(Monto) La cantidad capturada debe ser mayor o igual 0')
-        else:
-            for catorcena in catorcenas:
-                if bono.fecha_bono >= catorcena.fecha_inicial:
-                    bono.mes_bono = catorcena.fecha_final
-        if form.is_valid():
-            user_filter = UserDatos.objects.get(user=request.user)
-            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-            bono.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
-            messages.success(request, f'Cambios guardados con éxito en los bonos de {bono.costo.status.perfil.nombres} {bono.costo.status.perfil.apellidos}')
-            bono = form.save(commit=False)
-            bono.save()
-            return redirect('Tabla_bonos')
+            if request.method =='POST' and 'Excel' in request.POST:
+                return excel_reporte_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,)
+            if request.method =='POST' and 'Pdf' in request.POST:
+                return reporte_pdf_general(perfil,status,bancarios,costo,bonos,vacaciones,economicos,)
+        context= {
+            'distritos':distritos,
+            'distrito_seleccionado':distrito_seleccionado,
+            'salario':salario,
+            }
+        return render(request, 'proyecto/Administrar_tablas.html', context)
     else:
-        form = BonosUpdateForm(instance=bono)
-
-    context = {'form':form,'bono':bono,'registros':registros,}
-
-    return render(request, 'proyecto/Bonos_update.html',context)
+        return render(request, 'revisar/403.html')
+    
 
 @login_required(login_url='user-login')
 def Tabla_uniformes(request):
@@ -787,6 +676,7 @@ def Uniformes_revisar_completados(request, pk):
 
     return render(request, 'proyecto/Uniformes_revisar_completados.html',context)
 
+@login_required(login_url='user-login')
 def Solicitudes_revisar_empleado(request):
     user_filter = UserDatos.objects.get(user=request.user)
     perfil = Perfil.objects.get(distrito=user_filter.distrito.id, numero_de_trabajador=user_filter.numero_de_trabajador)
@@ -811,776 +701,611 @@ def Uniformes_revisar_ordenes(request, pk):
 @login_required(login_url='user-login')
 def FormularioDatosBancarios(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        empleados= Status.objects.filter(complete = True, complete_bancarios=False, perfil__baja=False, perfil__empresa=empresa_faxton)
-    elif user_filter.distrito.distrito == 'Matriz':
-        empleados= Status.objects.filter(complete = True, complete_bancarios=False, perfil__baja=False)
+    if user_filter.tipo.id == 4: #Perfil RH
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        if revisar_perfil.empresa == empresa_faxton:
+            empleados= Status.objects.filter(complete = True, complete_bancarios=False, perfil__baja=False, perfil__empresa=empresa_faxton)
+        elif user_filter.distrito.distrito == 'Matriz':
+            empleados= Status.objects.filter(complete = True, complete_bancarios=False, perfil__baja=False)
+        else:
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
+            empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete = True, complete_bancarios=False)
+
+        bancario,created=DatosBancarios.objects.get_or_create(complete=False)
+        form = DatosBancariosForm()
+        form.fields["status"].queryset = empleados
+
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            form = DatosBancariosForm(request.POST,instance=bancario)
+            form.save(commit=False)
+
+            if form.is_valid():
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                bancario.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
+                empleado = Status.objects.get(id = bancario.status.id)
+                messages.success(request, 'Información capturada con éxito')
+                bancario.complete=True
+                empleado.complete_bancarios = True
+                form.save()
+                empleado.save()
+                return redirect('Tabla_datosbancarios')
+
+
+        context = {'form':form,'empleados':empleados,}
+
+        return render(request, 'proyecto/DatosBancariosForm.html',context)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
-        empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete = True, complete_bancarios=False)
-
-    bancario,created=DatosBancarios.objects.get_or_create(complete=False)
-    form = DatosBancariosForm()
-    form.fields["status"].queryset = empleados
-
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = DatosBancariosForm(request.POST,instance=bancario)
-        form.save(commit=False)
-
-        if form.is_valid():
-            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-            bancario.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
-            empleado = Status.objects.get(id = bancario.status.id)
-            messages.success(request, 'Información capturada con éxito')
-            bancario.complete=True
-            empleado.complete_bancarios = True
-            form.save()
-            empleado.save()
-            return redirect('Tabla_datosbancarios')
-
-
-    context = {'form':form,'empleados':empleados,}
-
-    return render(request, 'proyecto/DatosBancariosForm.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def BancariosUpdate(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
+    if user_filter.tipo.id == 4: #Perfil RH
+        item = DatosBancarios.objects.get(id=pk)
+        registros = item.history.filter(complete=True)
 
-    item = DatosBancarios.objects.get(id=pk)
-    registros = item.history.filter(complete=True)
+        if request.method == 'POST':
+            form = BancariosUpdateForm(request.POST, instance=item)
 
-    if request.method == 'POST':
-        form = BancariosUpdateForm(request.POST, instance=item)
+            if form.is_valid():
+                user_filter = UserDatos.objects.get(user=request.user)
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                item.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
+                messages.success(request, f'Cambios guardados con éxito los datos bancarios de {item.status.perfil.nombres} {item.status.perfil.apellidos}')
+                item = form.save(commit=False)
+                item.save()
+                return redirect('Tabla_datosbancarios')
+        else:
+            form = BancariosUpdateForm(instance=item)
 
-        if form.is_valid():
-            user_filter = UserDatos.objects.get(user=request.user)
-            nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-            item.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
-            messages.success(request, f'Cambios guardados con éxito los datos bancarios de {item.status.perfil.nombres} {item.status.perfil.apellidos}')
-            item = form.save(commit=False)
-            item.save()
-            return redirect('Tabla_datosbancarios')
+        context = {'form':form,'item':item,'registros':registros,}
+
+        return render(request, 'proyecto/Bancario_update.html',context)
     else:
-        form = BancariosUpdateForm(instance=item)
-
-    context = {'form':form,'item':item,'registros':registros,}
-
-    return render(request, 'proyecto/Bancario_update.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def FormularioCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False, perfil__baja=False, perfil__empresa=empresa_faxton)
-    elif user_filter.distrito.distrito == 'Matriz':
-        empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False, perfil__baja=False)
-    else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
-        empleados= Status.objects.filter(~Q(fecha_ingreso=None), perfil__id__in=perfil.all(),complete = True, complete_costo = False)
-    tablas = DatosISR.objects.all()
-    tabla_subsidio = TablaSubsidio.objects.all()
-    tabla_vacaciones= TablaVacaciones.objects.all()
-    dato = SalarioDatos.objects.get()
-    variables_carga_social = Variables_carga_social.objects.get()
-    variables_patronal = Variables_imss_patronal.objects.get()
-    factores = FactorIntegracion.objects.all()
-    tcesantias= TablaCesantia.objects.all() ###
-
-    costo,created=Costo.objects.get_or_create(complete=False)
-    form = CostoForm()
-    form.fields["status"].queryset = empleados
-
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = CostoForm(request.POST,instance=costo)
-        form.save(commit=False)
-
-        if costo.amortizacion_infonavit < 0:
-            messages.error(request, '(Amortización) La cantidad capturada debe ser mayor a 0')
+    if user_filter.tipo.id == 4: #Perfil RH
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        if revisar_perfil.empresa == empresa_faxton:
+            empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False, perfil__baja=False, perfil__empresa=empresa_faxton)
+        elif user_filter.distrito.distrito == 'Matriz':
+            empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False, perfil__baja=False)
         else:
-            if costo.fonacot < 0:
-                messages.error(request, '(Fonacot) La cantidad capturada debe ser mayor o igual 0')
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
+            empleados= Status.objects.filter(~Q(fecha_ingreso=None), perfil__id__in=perfil.all(),complete = True, complete_costo = False)
+        tablas = DatosISR.objects.all()
+        tabla_subsidio = TablaSubsidio.objects.all()
+        tabla_vacaciones= TablaVacaciones.objects.all()
+        dato = SalarioDatos.objects.get()
+        variables_carga_social = Variables_carga_social.objects.get()
+        variables_patronal = Variables_imss_patronal.objects.get()
+        factores = FactorIntegracion.objects.all()
+        tcesantias= TablaCesantia.objects.all() ###
+
+        costo,created=Costo.objects.get_or_create(complete=False)
+        form = CostoForm()
+        form.fields["status"].queryset = empleados
+
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            form = CostoForm(request.POST,instance=costo)
+            form.save(commit=False)
+
+            if costo.amortizacion_infonavit < 0:
+                messages.error(request, '(Amortización) La cantidad capturada debe ser mayor a 0')
             else:
-                if costo.neto_catorcenal_sin_deducciones <= 0:
-                    messages.error(request, '(Neto catorcenal) La cantidad capturada debe ser mayor a 0')
+                if costo.fonacot < 0:
+                    messages.error(request, '(Fonacot) La cantidad capturada debe ser mayor o igual 0')
                 else:
-                    if costo.complemento_salario_catorcenal < 0:
-                        messages.error(request, '(Complemento salario) La cantidad capturada debe ser mayor o igual 0')
+                    if costo.neto_catorcenal_sin_deducciones <= 0:
+                        messages.error(request, '(Neto catorcenal) La cantidad capturada debe ser mayor a 0')
                     else:
-                        if costo.sueldo_diario <= 0:
-                            messages.error(request, '(Sueldo diario) La cantidad capturada debe ser mayor a 0')
+                        if costo.complemento_salario_catorcenal < 0:
+                            messages.error(request, '(Complemento salario) La cantidad capturada debe ser mayor o igual 0')
                         else:
-                            if costo.laborados <= 0:
-                                messages.error(request, '(Días laborados) La cantidad capturada debe ser mayor a 0')
+                            if costo.sueldo_diario <= 0:
+                                messages.error(request, '(Sueldo diario) La cantidad capturada debe ser mayor a 0')
                             else:
-                                if costo.apoyo_de_pasajes < 0:
-                                    messages.error(request, '(Apoyo pasajes) La cantidad capturada debe ser mayor o igual 0')
+                                if costo.laborados <= 0:
+                                    messages.error(request, '(Días laborados) La cantidad capturada debe ser mayor a 0')
                                 else:
-                                    if costo.laborados > 31:
-                                        messages.error(request, '(Días laborados) La cantidad capturada debe ser menor a 31')
+                                    if costo.apoyo_de_pasajes < 0:
+                                        messages.error(request, '(Apoyo pasajes) La cantidad capturada debe ser mayor o igual 0')
                                     else:
-                                        if costo.apoyo_vist_familiar < 0:
-                                            messages.error(request, '(Visita familiar) La cantidad capturada debe ser mayor o igual 0')
+                                        if costo.laborados > 31:
+                                            messages.error(request, '(Días laborados) La cantidad capturada debe ser menor a 31')
                                         else:
-                                            if costo.estancia < 0:
-                                                messages.error(request, '(Estancia) La cantidad capturada debe ser mayor o igual 0')
+                                            if costo.apoyo_vist_familiar < 0:
+                                                messages.error(request, '(Visita familiar) La cantidad capturada debe ser mayor o igual 0')
                                             else:
-                                                if costo.renta < 0:
-                                                    messages.error(request, '(Renta) La cantidad capturada debe ser mayor o igual 0')
+                                                if costo.estancia < 0:
+                                                    messages.error(request, '(Estancia) La cantidad capturada debe ser mayor o igual 0')
                                                 else:
-                                                    if costo.apoyo_estudios < 0:
-                                                        messages.error(request, '(Estudios) La cantidad capturada debe ser mayor o igual 0')
+                                                    if costo.renta < 0:
+                                                        messages.error(request, '(Renta) La cantidad capturada debe ser mayor o igual 0')
                                                     else:
-                                                        if costo.amv < 0:
-                                                            messages.error(request, '(AMV) La cantidad capturada debe ser mayor o igual 0')
+                                                        if costo.apoyo_estudios < 0:
+                                                            messages.error(request, '(Estudios) La cantidad capturada debe ser mayor o igual 0')
                                                         else:
-                                                            if costo.gasolina < 0:
-                                                                messages.error(request, '(Gasolina) La cantidad capturada debe ser mayor o igual 0')
+                                                            if costo.amv < 0:
+                                                                messages.error(request, '(AMV) La cantidad capturada debe ser mayor o igual 0')
                                                             else:
-                                                                if costo.campamento < 0:
-                                                                    messages.error(request, '(Campamento) La cantidad capturada debe ser mayor o igual 0')
+                                                                if costo.gasolina < 0:
+                                                                    messages.error(request, '(Gasolina) La cantidad capturada debe ser mayor o igual 0')
                                                                 else:
-                                                                    if costo.sdi_imss < 0:
-                                                                        messages.error(request, '(SDI IMSS) La cantidad capturada debe ser mayor a 0')
+                                                                    if costo.campamento < 0:
+                                                                        messages.error(request, '(Campamento) La cantidad capturada debe ser mayor o igual 0')
                                                                     else:
-                                                                        if costo.laborados_imss > 31:
-                                                                              messages.error(request, '(Días laborados IMSS) La cantidad capturada debe ser menor a 31')
+                                                                        if costo.sdi_imss < 0:
+                                                                            messages.error(request, '(SDI IMSS) La cantidad capturada debe ser mayor a 0')
                                                                         else:
-                                                                            actual = datetime.date.today()
-                                                                            print("fecha actual: ",actual)
+                                                                            if costo.laborados_imss > 31:
+                                                                                messages.error(request, '(Días laborados IMSS) La cantidad capturada debe ser menor a 31')
+                                                                            else:
+                                                                                actual = datetime.date.today()
+                                                                                print("fecha actual: ",actual)
 
-                                                                            antiguedad_factor_integracion = relativedelta(actual, costo.status.fecha_ingreso)# calcular antiguedad
-                                                                            años_ingreso = antiguedad_factor_integracion.years #obtiene los años
-                                                                            
-
-                                                                            #años_ingreso = actual.year - costo.status.fecha_ingreso.year - ((actual.month, actual.day) < (costo.status.fecha_ingreso.month, costo.status.fecha_ingreso.day))
-
-                                                                            if años_ingreso == 0:
-                                                                                años_ingreso = 1
-
-                                                                            for factor in factores:
-                                                                                if años_ingreso >= factor.years:
-                                                                                    factor_integracion = factor.factor
-                                                                            #print("factor integracion", factor_integracion)
-
-                                                                            #SDI Calculo
-                                                                            costo.sdi = factor_integracion*costo.sueldo_diario
-                                                        
-                                                                            sdi = costo.sdi
-                                                                            #print("sdi: ",sdi)
-                                                                            prima_riesgo = costo.status.registro_patronal.prima
-                                                                            #print("prima RT: ",prima_riesgo)
-                                                                            excedente = dato.UMA*3
-                                                                            #print("excedente: ",excedente)
-                                                                            cuotafija = (dato.UMA*Decimal(variables_patronal.cuota_fija/100))*costo.laborados_imss
-                                                                            #print("cuota fija: ", cuotafija)
-
-                                                                            excedente_patronal = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_patron/100)*costo.laborados_imss
-                                                                            #print("excedente patronal",excedente_patronal)
-                                                                            excedente_obrero = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_obrero/100)*costo.laborados_imss
-                                                                            #print('excedente_obrero',excedente_obrero)
-                                                                            
-                                                                            if excedente_patronal < 0:
-                                                                                excedente_patronal = 0
-                                                                            if excedente_obrero < 0:
-                                                                                excedente_obrero = 0
+                                                                                antiguedad_factor_integracion = relativedelta(actual, costo.status.fecha_ingreso)# calcular antiguedad
+                                                                                años_ingreso = antiguedad_factor_integracion.years #obtiene los años
                                                                                 
-                                                                            #print("excedente patronal",excedente_patronal)
-                                                                            #print('excedente_obrero',excedente_obrero)
 
-                                                                            prestaciones_patronal = (costo.sdi_imss*Decimal(variables_patronal.pd_patron/100))*costo.laborados_imss
-                                                                            #print("prestaciones patronal: ", prestaciones_patronal)
-                                                                            
-                                                                            prestaciones_obrero = (costo.sdi_imss*Decimal(variables_patronal.pd_obrero/100))*costo.laborados_imss
-                                                                            #print("prestaciones obrero", prestaciones_obrero)
-                                                                            
-                                                                            gastosmp_patronal = (costo.sdi_imss*Decimal(variables_patronal.gmp_patron/100))*costo.laborados_imss
-                                                                            #print("gastosmp patronal",gastosmp_patronal)
-                                                                            
-                                                                            gastosmp_obrero = (costo.sdi_imss*Decimal(variables_patronal.gmp_obrero/100))*costo.laborados_imss
-                                                                            #print("gastosmp obrero",gastosmp_obrero )
-                                                                            
-                                                                            riesgo_trabajo = (costo.sdi_imss*(prima_riesgo/100))*costo.laborados_imss
-                                                                            #print("riesgo trabajo", riesgo_trabajo)
-                                                                            
-                                                                            invalidezvida_patronal = (costo.sdi_imss*Decimal(variables_patronal.iv_patron/100))*costo.laborados_imss
-                                                                            #print("invalidez patronal", invalidezvida_patronal )
-                                                                            
-                                                                            invalidezvida_obrero = (costo.sdi_imss*Decimal(variables_patronal.iv_obrero/100))*costo.laborados_imss
-                                                                            #print("invalidaz obrero", invalidezvida_obrero)
-                                                                            
-                                                                            guarderias_prestsociales = (costo.sdi_imss*Decimal(variables_patronal.gps_patron/100))*costo.laborados_imss
-                                                                            #print("guarderias prest sociales", guarderias_prestsociales)
+                                                                                #años_ingreso = actual.year - costo.status.fecha_ingreso.year - ((actual.month, actual.day) < (costo.status.fecha_ingreso.month, costo.status.fecha_ingreso.day))
 
-                                                                            costo.imms_obrero_patronal = (cuotafija+excedente_patronal+excedente_obrero+prestaciones_patronal
-                                                                                            +prestaciones_obrero+gastosmp_patronal+gastosmp_obrero+riesgo_trabajo+invalidezvida_patronal
-                                                                                            +invalidezvida_obrero+guarderias_prestsociales)
-                                                                            
-                                                                            #print("imss patronal: ", costo.imms_obrero_patronal)
+                                                                                if años_ingreso == 0:
+                                                                                    años_ingreso = 1
 
-                                                                            #Costo calculo
-                                                                            costo.total_deduccion = costo.amortizacion_infonavit + costo.fonacot
-                                                                            costo.neto_pagar = costo.neto_catorcenal_sin_deducciones - costo.total_deduccion
-                                                                            costo.sueldo_mensual_neto = (costo.neto_catorcenal_sin_deducciones/dato.dias_quincena)*dato.dias_mes
-                                                                            costo.complemento_salario_mensual = (costo.complemento_salario_catorcenal/dato.dias_quincena)*dato.dias_mes
-                                                                            costo.sueldo_mensual = costo.sueldo_diario*dato.dias_mes
-                                                                            costo.sueldo_mensual_sdi = costo.sdi*dato.dias_mes #sdi
-                                                                            costo.total_percepciones_mensual = costo.apoyo_de_pasajes + costo.sueldo_mensual
-                                                                            for tabla in tablas:
-                                                                                if costo.total_percepciones_mensual >= tabla.liminf:
-                                                                                    costo.lim_inferior = tabla.liminf
-                                                                                    costo.tasa=tabla.excedente
-                                                                                    costo.cuota_fija=tabla.cuota
-                                                                                #if costo.lim_inferior >= tabla.p_ingresos:
-                                                                                #    costo.subsidio=tabla.subsidio
-                                                                            for valor in tabla_subsidio:
-                                                                                if costo.total_percepciones_mensual >= valor.liminf:
-                                                                                    costo.subsidio=valor.cuota
-                                                                            costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
-                                                                            costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
-                                                                            #Parte de cesantia
-                                                                            busqueda_cesantia= sdi/dato.UMA ###
-                                                                            for tcesantia in tcesantias:   ####
-                                                                                if  busqueda_cesantia >= tcesantia.sbc:
-                                                                                    cesantia_valor = tcesantia.cuota_patronal
-                                                                            cesantia_ley= costo.sueldo_mensual_sdi*(cesantia_valor/100)                        ###
-                                                                            costo.cesantia= (costo.sueldo_mensual_sdi*Decimal(variables_carga_social.cesantia/100))+cesantia_ley  ####
-                                                                            #Parte de vacaciones #Tambien filtrar para que no se pueda hacer un costo si no se tiene fecha de antiguedad vacaciones
-                                                                            #Se calculan los días para la vacación actual
-                                                                            #PRIMA VACACIONAL
-                                                                            ahora = datetime.date.today()
+                                                                                for factor in factores:
+                                                                                    if años_ingreso >= factor.years:
+                                                                                        factor_integracion = factor.factor
+                                                                                #print("factor integracion", factor_integracion)
 
-                                                                            calcular_prima = True
-                                                                            if costo.status.tipo_de_contrato_id == 4: #HONORARIOS
-                                                                                calcular_prima = False
-                                                                            elif costo.status.tipo_de_contrato_id == 2: #EVENTUAL
-                                                                                days = ahora - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
-                                                                            elif costo.status.tipo_de_contrato_id == 7: #NR
-                                                                                calcular_prima = False
-                                                                            elif costo.status.fecha_planta is None and costo.status.fecha_planta_anterior is None:
-                                                                                calcular_prima = False
-                                                                            elif costo.status.fecha_planta is not None and costo.status.fecha_planta_anterior is not None:
-                                                                                days = costo.status.fecha_planta_anterior
-                                                                            elif costo.status.fecha_planta:
-                                                                                days = costo.status.fecha_planta
-                                                                            elif costo.status.fecha_planta_anterior:
-                                                                                days = costo.status.fecha_planta_anterior
+                                                                                #SDI Calculo
+                                                                                costo.sdi = factor_integracion*costo.sueldo_diario
+                                                            
+                                                                                sdi = costo.sdi
+                                                                                #print("sdi: ",sdi)
+                                                                                prima_riesgo = costo.status.registro_patronal.prima
+                                                                                #print("prima RT: ",prima_riesgo)
+                                                                                excedente = dato.UMA*3
+                                                                                #print("excedente: ",excedente)
+                                                                                cuotafija = (dato.UMA*Decimal(variables_patronal.cuota_fija/100))*costo.laborados_imss
+                                                                                #print("cuota fija: ", cuotafija)
 
-                                                                            if calcular_prima == True:#calcula la prima
-                                                                                calcular_antiguedad = relativedelta(ahora, days)
-                                                                                antiguedad = calcular_antiguedad.years
+                                                                                excedente_patronal = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_patron/100)*costo.laborados_imss
+                                                                                #print("excedente patronal",excedente_patronal)
+                                                                                excedente_obrero = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_obrero/100)*costo.laborados_imss
+                                                                                #print('excedente_obrero',excedente_obrero)
+                                                                                
+                                                                                if excedente_patronal < 0:
+                                                                                    excedente_patronal = 0
+                                                                                if excedente_obrero < 0:
+                                                                                    excedente_obrero = 0
+                                                                                    
+                                                                                #print("excedente patronal",excedente_patronal)
+                                                                                #print('excedente_obrero',excedente_obrero)
 
-                                                                                if antiguedad > 0:
-                                                                                    for tabla in tabla_vacaciones:
-                                                                                        if antiguedad >= tabla.years:
-                                                                                            dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
+                                                                                prestaciones_patronal = (costo.sdi_imss*Decimal(variables_patronal.pd_patron/100))*costo.laborados_imss
+                                                                                #print("prestaciones patronal: ", prestaciones_patronal)
+                                                                                
+                                                                                prestaciones_obrero = (costo.sdi_imss*Decimal(variables_patronal.pd_obrero/100))*costo.laborados_imss
+                                                                                #print("prestaciones obrero", prestaciones_obrero)
+                                                                                
+                                                                                gastosmp_patronal = (costo.sdi_imss*Decimal(variables_patronal.gmp_patron/100))*costo.laborados_imss
+                                                                                #print("gastosmp patronal",gastosmp_patronal)
+                                                                                
+                                                                                gastosmp_obrero = (costo.sdi_imss*Decimal(variables_patronal.gmp_obrero/100))*costo.laborados_imss
+                                                                                #print("gastosmp obrero",gastosmp_obrero )
+                                                                                
+                                                                                riesgo_trabajo = (costo.sdi_imss*(prima_riesgo/100))*costo.laborados_imss
+                                                                                #print("riesgo trabajo", riesgo_trabajo)
+                                                                                
+                                                                                invalidezvida_patronal = (costo.sdi_imss*Decimal(variables_patronal.iv_patron/100))*costo.laborados_imss
+                                                                                #print("invalidez patronal", invalidezvida_patronal )
+                                                                                
+                                                                                invalidezvida_obrero = (costo.sdi_imss*Decimal(variables_patronal.iv_obrero/100))*costo.laborados_imss
+                                                                                #print("invalidaz obrero", invalidezvida_obrero)
+                                                                                
+                                                                                guarderias_prestsociales = (costo.sdi_imss*Decimal(variables_patronal.gps_patron/100))*costo.laborados_imss
+                                                                                #print("guarderias prest sociales", guarderias_prestsociales)
 
-                                                                                    vac_reforma_actual = Decimal(dias_vacaciones)*Decimal(costo.sueldo_diario)
-                                                                                    #print("Reforma vacaciones: ",vac_reforma_actual)
+                                                                                costo.imms_obrero_patronal = (cuotafija+excedente_patronal+excedente_obrero+prestaciones_patronal
+                                                                                                +prestaciones_obrero+gastosmp_patronal+gastosmp_obrero+riesgo_trabajo+invalidezvida_patronal
+                                                                                                +invalidezvida_obrero+guarderias_prestsociales)
+                                                                                
+                                                                                #print("imss patronal: ", costo.imms_obrero_patronal)
 
-                                                                                    prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
-                                                                                    #print("prima vacacional", prima_vacacional)
-                                                                                    aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
-                                                                                    #print("aguinaldo", aguinaldo)
-                                                                                    costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
-                                                                                    #print("costo total prima vacacional: ", (vac_reforma_actual+prima_vacacional+aguinaldo)/12)
+                                                                                #Costo calculo
+                                                                                costo.total_deduccion = costo.amortizacion_infonavit + costo.fonacot
+                                                                                costo.neto_pagar = costo.neto_catorcenal_sin_deducciones - costo.total_deduccion
+                                                                                costo.sueldo_mensual_neto = (costo.neto_catorcenal_sin_deducciones/dato.dias_quincena)*dato.dias_mes
+                                                                                costo.complemento_salario_mensual = (costo.complemento_salario_catorcenal/dato.dias_quincena)*dato.dias_mes
+                                                                                costo.sueldo_mensual = costo.sueldo_diario*dato.dias_mes
+                                                                                costo.sueldo_mensual_sdi = costo.sdi*dato.dias_mes #sdi
+                                                                                costo.total_percepciones_mensual = costo.apoyo_de_pasajes + costo.sueldo_mensual
+                                                                                for tabla in tablas:
+                                                                                    if costo.total_percepciones_mensual >= tabla.liminf:
+                                                                                        costo.lim_inferior = tabla.liminf
+                                                                                        costo.tasa=tabla.excedente
+                                                                                        costo.cuota_fija=tabla.cuota
+                                                                                    #if costo.lim_inferior >= tabla.p_ingresos:
+                                                                                    #    costo.subsidio=tabla.subsidio
+                                                                                for valor in tabla_subsidio:
+                                                                                    if costo.total_percepciones_mensual >= valor.liminf:
+                                                                                        costo.subsidio=valor.cuota
+                                                                                costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
+                                                                                costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
+                                                                                #Parte de cesantia
+                                                                                busqueda_cesantia= sdi/dato.UMA ###
+                                                                                for tcesantia in tcesantias:   ####
+                                                                                    if  busqueda_cesantia >= tcesantia.sbc:
+                                                                                        cesantia_valor = tcesantia.cuota_patronal
+                                                                                cesantia_ley= costo.sueldo_mensual_sdi*(cesantia_valor/100)                        ###
+                                                                                costo.cesantia= (costo.sueldo_mensual_sdi*Decimal(variables_carga_social.cesantia/100))+cesantia_ley  ####
+                                                                                #Parte de vacaciones #Tambien filtrar para que no se pueda hacer un costo si no se tiene fecha de antiguedad vacaciones
+                                                                                #Se calculan los días para la vacación actual
+                                                                                #PRIMA VACACIONAL
+                                                                                ahora = datetime.date.today()
 
-                                                                                else:#No calcula la prima - No tiene el año de antiguedad o más
+                                                                                calcular_prima = True
+                                                                                if costo.status.tipo_de_contrato_id == 4: #HONORARIOS
+                                                                                    calcular_prima = False
+                                                                                elif costo.status.tipo_de_contrato_id == 2: #EVENTUAL
+                                                                                    days = ahora - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
+                                                                                elif costo.status.tipo_de_contrato_id == 7: #NR
+                                                                                    calcular_prima = False
+                                                                                elif costo.status.fecha_planta is None and costo.status.fecha_planta_anterior is None:
+                                                                                    calcular_prima = False
+                                                                                elif costo.status.fecha_planta is not None and costo.status.fecha_planta_anterior is not None:
+                                                                                    days = costo.status.fecha_planta_anterior
+                                                                                elif costo.status.fecha_planta:
+                                                                                    days = costo.status.fecha_planta
+                                                                                elif costo.status.fecha_planta_anterior:
+                                                                                    days = costo.status.fecha_planta_anterior
+
+                                                                                if calcular_prima == True:#calcula la prima
+                                                                                    calcular_antiguedad = relativedelta(ahora, days)
+                                                                                    antiguedad = calcular_antiguedad.years
+
+                                                                                    if antiguedad > 0:
+                                                                                        for tabla in tabla_vacaciones:
+                                                                                            if antiguedad >= tabla.years:
+                                                                                                dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
+
+                                                                                        vac_reforma_actual = Decimal(dias_vacaciones)*Decimal(costo.sueldo_diario)
+                                                                                        #print("Reforma vacaciones: ",vac_reforma_actual)
+
+                                                                                        prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
+                                                                                        #print("prima vacacional", prima_vacacional)
+                                                                                        aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
+                                                                                        #print("aguinaldo", aguinaldo)
+                                                                                        costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
+                                                                                        #print("costo total prima vacacional: ", (vac_reforma_actual+prima_vacacional+aguinaldo)/12)
+
+                                                                                    else:#No calcula la prima - No tiene el año de antiguedad o más
+                                                                                        costo.total_prima_vacacional = 0
+
+                                                                                else:#No calcula la prima
                                                                                     costo.total_prima_vacacional = 0
+                                                                                #costo.cesantia= costo.sueldo_mensual_sdi*cesantia
+                                                                                costo.infonavit= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.infonavit/100)
+                                                                                costo.excedente= costo.total_percepciones_mensual - costo.lim_inferior
+                                                                                costo.impuesto_marginal= costo.excedente * costo.tasa
+                                                                                costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
+                                                                                costo.isr= costo.impuesto
+                                                                                costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
+                                                                                costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
+                                                                                costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
+                                                                                costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+                                                                                costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
+                                                                                """
+                                                                                costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
+                                                                                costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
+                                                                                costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
+                                                                                costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
+                                                                                print("costo total empresa: ",costo.total_costo_empresa)
+                                                                                costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+                                                                                costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
+                                                                                """
+                                                                                #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
 
-                                                                            else:#No calcula la prima
-                                                                                costo.total_prima_vacacional = 0
-                                                                            #costo.cesantia= costo.sueldo_mensual_sdi*cesantia
-                                                                            costo.infonavit= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.infonavit/100)
-                                                                            costo.excedente= costo.total_percepciones_mensual - costo.lim_inferior
-                                                                            costo.impuesto_marginal= costo.excedente * costo.tasa
-                                                                            costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
-                                                                            costo.isr= costo.impuesto
-                                                                            costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
-                                                                            costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
-                                                                            costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
-                                                                            costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
-                                                                            costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
-                                                                            """
-                                                                            costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
-                                                                            costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
-                                                                            costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
-                                                                            costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
-                                                                            print("costo total empresa: ",costo.total_costo_empresa)
-                                                                            costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
-                                                                            costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-                                                                            """
-                                                                            #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
+                                                                                if form.is_valid():
+                                                                                    user_filter = UserDatos.objects.get(user=request.user)
+                                                                                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                                                                                    costo.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
+                                                                                    messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
+                                                                                    costo = form.save(commit=False)
+                                                                                    costo.complete = True
+                                                                                    costo.status.complete_costo = True
+                                                                                    costo.save()
+                                                                                    return redirect('Tabla_costo')
 
-                                                                            if form.is_valid():
-                                                                                user_filter = UserDatos.objects.get(user=request.user)
-                                                                                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                                                                                costo.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
-                                                                                messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
-                                                                                costo = form.save(commit=False)
-                                                                                costo.complete = True
-                                                                                costo.status.complete_costo = True
-                                                                                costo.save()
-                                                                                return redirect('Tabla_costo')
+        context = {
+            'form':form,
+            'empleados':empleados,
+            'tablas':tablas,
+            }
 
-    context = {
-        'form':form,
-        'empleados':empleados,
-        'tablas':tablas,
-        }
-
-    return render(request, 'proyecto/CostoForm.html',context)
-
+        return render(request, 'proyecto/CostoForm.html',context)
+    else:
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def CostoUpdate(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
+    if user_filter.tipo.id == 4: #Perfil RH
+        tablas= DatosISR.objects.all()
+        tabla_subsidio = TablaSubsidio.objects.all()
+        tabla_vacaciones= TablaVacaciones.objects.all()
+        tcesantias= TablaCesantia.objects.all()
+        factores = FactorIntegracion.objects.all()
+        dato = SalarioDatos.objects.get() #Datos generales del costo
+        variables_carga_social = Variables_carga_social.objects.get()
+        variables_patronal = Variables_imss_patronal.objects.get()
+        costo = Costo.objects.get(id=pk)
+        registros = costo.history.filter(~Q(amortizacion_infonavit = None))
+        myfilter = Costo_historicFilter(request.GET, queryset=registros)
+        registros=myfilter.qs
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            form = CostoUpdateForm(request.POST, instance=costo)
+            form.save(commit=False)
 
-    tablas= DatosISR.objects.all()
-    tabla_subsidio = TablaSubsidio.objects.all()
-    tabla_vacaciones= TablaVacaciones.objects.all()
-    tcesantias= TablaCesantia.objects.all()
-    factores = FactorIntegracion.objects.all()
-    dato = SalarioDatos.objects.get() #Datos generales del costo
-    variables_carga_social = Variables_carga_social.objects.get()
-    variables_patronal = Variables_imss_patronal.objects.get()
-    costo = Costo.objects.get(id=pk)
-    registros = costo.history.filter(~Q(amortizacion_infonavit = None))
-    myfilter = Costo_historicFilter(request.GET, queryset=registros)
-    registros=myfilter.qs
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = CostoUpdateForm(request.POST, instance=costo)
-        form.save(commit=False)
-
-        if costo.amortizacion_infonavit < 0:
-            messages.error(request, '(Amortización) La cantidad capturada debe ser mayor o igual 0')
-        else:
-            if costo.fonacot < 0:
-                messages.error(request, '(Fonacot) La cantidad capturada debe ser mayor o igual 0')
+            if costo.amortizacion_infonavit < 0:
+                messages.error(request, '(Amortización) La cantidad capturada debe ser mayor o igual 0')
             else:
-                if costo.neto_catorcenal_sin_deducciones <= 0:
-                    messages.error(request, '(Neto catorcenal) La cantidad capturada debe ser mayor a 0')
+                if costo.fonacot < 0:
+                    messages.error(request, '(Fonacot) La cantidad capturada debe ser mayor o igual 0')
                 else:
-                    if costo.complemento_salario_catorcenal < 0:
-                        messages.error(request, '(Complemento salario) La cantidad capturada debe ser mayor o igual 0')
+                    if costo.neto_catorcenal_sin_deducciones <= 0:
+                        messages.error(request, '(Neto catorcenal) La cantidad capturada debe ser mayor a 0')
                     else:
-                        if costo.sueldo_diario <= 0:
-                            messages.error(request, '(Sueldo diario) La cantidad capturada debe ser mayor a 0')
+                        if costo.complemento_salario_catorcenal < 0:
+                            messages.error(request, '(Complemento salario) La cantidad capturada debe ser mayor o igual 0')
                         else:
-                            if costo.laborados <= 0:
-                                messages.error(request, '(Días laborados) La cantidad capturada debe ser mayor a 0')
+                            if costo.sueldo_diario <= 0:
+                                messages.error(request, '(Sueldo diario) La cantidad capturada debe ser mayor a 0')
                             else:
-                                if costo.apoyo_de_pasajes < 0:
-                                    messages.error(request, '(Apoyo pasajes) La cantidad capturada debe ser mayor o igual 0')
+                                if costo.laborados <= 0:
+                                    messages.error(request, '(Días laborados) La cantidad capturada debe ser mayor a 0')
                                 else:
-                                    if costo.laborados > 31:
-                                        messages.error(request, '(Días laborados) La cantidad capturada debe ser menor a 31')
+                                    if costo.apoyo_de_pasajes < 0:
+                                        messages.error(request, '(Apoyo pasajes) La cantidad capturada debe ser mayor o igual 0')
                                     else:
-                                        if costo.apoyo_vist_familiar < 0:
-                                            messages.error(request, '(Visita familiar) La cantidad capturada debe ser mayor o igual 0')
+                                        if costo.laborados > 31:
+                                            messages.error(request, '(Días laborados) La cantidad capturada debe ser menor a 31')
                                         else:
-                                            if costo.estancia < 0:
-                                                messages.error(request, '(Estancia) La cantidad capturada debe ser mayor o igual 0')
+                                            if costo.apoyo_vist_familiar < 0:
+                                                messages.error(request, '(Visita familiar) La cantidad capturada debe ser mayor o igual 0')
                                             else:
-                                                if costo.renta < 0:
-                                                    messages.error(request, '(Renta) La cantidad capturada debe ser mayor o igual 0')
+                                                if costo.estancia < 0:
+                                                    messages.error(request, '(Estancia) La cantidad capturada debe ser mayor o igual 0')
                                                 else:
-                                                    if costo.apoyo_estudios < 0:
-                                                        messages.error(request, '(Estudios) La cantidad capturada debe ser mayor o igual 0')
+                                                    if costo.renta < 0:
+                                                        messages.error(request, '(Renta) La cantidad capturada debe ser mayor o igual 0')
                                                     else:
-                                                        if costo.amv < 0:
-                                                            messages.error(request, '(AMV) La cantidad capturada debe ser mayor o igual 0')
+                                                        if costo.apoyo_estudios < 0:
+                                                            messages.error(request, '(Estudios) La cantidad capturada debe ser mayor o igual 0')
                                                         else:
-                                                            if costo.gasolina < 0:
-                                                                messages.error(request, '(Gasolina) La cantidad capturada debe ser mayor o igual 0')
+                                                            if costo.amv < 0:
+                                                                messages.error(request, '(AMV) La cantidad capturada debe ser mayor o igual 0')
                                                             else:
-                                                                if costo.campamento < 0:
-                                                                    messages.error(request, '(Campamento) La cantidad capturada debe ser mayor o igual 0')
+                                                                if costo.gasolina < 0:
+                                                                    messages.error(request, '(Gasolina) La cantidad capturada debe ser mayor o igual 0')
                                                                 else:
-                                                                    if costo.sdi_imss < 0:
-                                                                        messages.error(request, '(SDI IMSS) La cantidad capturada debe ser mayor a 0')
+                                                                    if costo.campamento < 0:
+                                                                        messages.error(request, '(Campamento) La cantidad capturada debe ser mayor o igual 0')
                                                                     else:
-                                                                        if costo.laborados_imss > 31:
-                                                                              messages.error(request, '(Días laborados IMSS) La cantidad capturada debe ser menor a 31')
+                                                                        if costo.sdi_imss < 0:
+                                                                            messages.error(request, '(SDI IMSS) La cantidad capturada debe ser mayor a 0')
                                                                         else:
-                                                                            
-                                                                            actual = datetime.date.today()
-                                                                            print("fecha actual: ",actual)
-
-                                                                            antiguedad_factor_integracion = relativedelta(actual, costo.status.fecha_ingreso)# calcular antiguedad
-                                                                            años_ingreso = antiguedad_factor_integracion.years #obtiene los años
-                                                                            
-
-                                                                            #años_ingreso = actual.year - costo.status.fecha_ingreso.year - ((actual.month, actual.day) < (costo.status.fecha_ingreso.month, costo.status.fecha_ingreso.day))
-
-                                                                            if años_ingreso == 0:
-                                                                                años_ingreso = 1
-
-                                                                            for factor in factores:
-                                                                                if años_ingreso >= factor.years:
-                                                                                    factor_integracion = factor.factor
-                                                                            #print("factor integracion", factor_integracion)
-
-                                                                            #SDI Calculo
-                                                                            costo.sdi = factor_integracion*costo.sueldo_diario
-                                                        
-                                                                            sdi = costo.sdi
-                                                                            #print("sdi: ",sdi)
-                                                                            prima_riesgo = costo.status.registro_patronal.prima
-                                                                            #print("prima RT: ",prima_riesgo)
-                                                                            excedente = dato.UMA*3
-                                                                            #print("excedente: ",excedente)
-                                                                            cuotafija = (dato.UMA*Decimal(variables_patronal.cuota_fija/100))*costo.laborados_imss
-                                                                            #print("cuota fija: ", cuotafija)
-
-                                                                            excedente_patronal = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_patron/100)*costo.laborados_imss
-                                                                            #print("excedente patronal",excedente_patronal)
-                                                                            excedente_obrero = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_obrero/100)*costo.laborados_imss
-                                                                            #print('excedente_obrero',excedente_obrero)
-                                                                            
-                                                                            if excedente_patronal < 0:
-                                                                                excedente_patronal = 0
-                                                                            if excedente_obrero < 0:
-                                                                                excedente_obrero = 0
+                                                                            if costo.laborados_imss > 31:
+                                                                                messages.error(request, '(Días laborados IMSS) La cantidad capturada debe ser menor a 31')
+                                                                            else:
                                                                                 
-                                                                            #print("excedente patronal",excedente_patronal)
-                                                                            #print('excedente_obrero',excedente_obrero)
+                                                                                actual = datetime.date.today()
+                                                                                print("fecha actual: ",actual)
 
-                                                                            prestaciones_patronal = (costo.sdi_imss*Decimal(variables_patronal.pd_patron/100))*costo.laborados_imss
-                                                                            #print("prestaciones patronal: ", prestaciones_patronal)
-                                                                            
-                                                                            prestaciones_obrero = (costo.sdi_imss*Decimal(variables_patronal.pd_obrero/100))*costo.laborados_imss
-                                                                            #print("prestaciones obrero", prestaciones_obrero)
-                                                                            
-                                                                            gastosmp_patronal = (costo.sdi_imss*Decimal(variables_patronal.gmp_patron/100))*costo.laborados_imss
-                                                                            #print("gastosmp patronal",gastosmp_patronal)
-                                                                            
-                                                                            gastosmp_obrero = (costo.sdi_imss*Decimal(variables_patronal.gmp_obrero/100))*costo.laborados_imss
-                                                                            #print("gastosmp obrero",gastosmp_obrero )
-                                                                            
-                                                                            riesgo_trabajo = (costo.sdi_imss*(prima_riesgo/100))*costo.laborados_imss
-                                                                            #print("riesgo trabajo", riesgo_trabajo)
-                                                                            
-                                                                            invalidezvida_patronal = (costo.sdi_imss*Decimal(variables_patronal.iv_patron/100))*costo.laborados_imss
-                                                                            #print("invalidez patronal", invalidezvida_patronal )
-                                                                            
-                                                                            invalidezvida_obrero = (costo.sdi_imss*Decimal(variables_patronal.iv_obrero/100))*costo.laborados_imss
-                                                                            #print("invalidaz obrero", invalidezvida_obrero)
-                                                                            
-                                                                            guarderias_prestsociales = (costo.sdi_imss*Decimal(variables_patronal.gps_patron/100))*costo.laborados_imss
-                                                                            #print("guarderias prest sociales", guarderias_prestsociales)
+                                                                                antiguedad_factor_integracion = relativedelta(actual, costo.status.fecha_ingreso)# calcular antiguedad
+                                                                                años_ingreso = antiguedad_factor_integracion.years #obtiene los años
+                                                                                
 
-                                                                            costo.imms_obrero_patronal = (cuotafija+excedente_patronal+excedente_obrero+prestaciones_patronal
-                                                                                            +prestaciones_obrero+gastosmp_patronal+gastosmp_obrero+riesgo_trabajo+invalidezvida_patronal
-                                                                                            +invalidezvida_obrero+guarderias_prestsociales)
-                                                                            
-                                                                            #print("imss patronal: ", costo.imms_obrero_patronal)
+                                                                                #años_ingreso = actual.year - costo.status.fecha_ingreso.year - ((actual.month, actual.day) < (costo.status.fecha_ingreso.month, costo.status.fecha_ingreso.day))
 
-                                                                            #Costo calculo
-                                                                            costo.total_deduccion = costo.amortizacion_infonavit + costo.fonacot
-                                                                            costo.neto_pagar = costo.neto_catorcenal_sin_deducciones - costo.total_deduccion
-                                                                            costo.sueldo_mensual_neto = (costo.neto_catorcenal_sin_deducciones/dato.dias_quincena)*dato.dias_mes
-                                                                            costo.complemento_salario_mensual = (costo.complemento_salario_catorcenal/dato.dias_quincena)*dato.dias_mes
-                                                                            costo.sueldo_mensual = costo.sueldo_diario*dato.dias_mes
-                                                                            costo.sueldo_mensual_sdi = costo.sdi*dato.dias_mes #sdi
-                                                                            costo.total_percepciones_mensual = costo.apoyo_de_pasajes + costo.sueldo_mensual
-                                                                            for tabla in tablas:
-                                                                                if costo.total_percepciones_mensual >= tabla.liminf:
-                                                                                    costo.lim_inferior = tabla.liminf
-                                                                                    costo.tasa=tabla.excedente
-                                                                                    costo.cuota_fija=tabla.cuota
-                                                                                #if costo.lim_inferior >= tabla.p_ingresos:
-                                                                                #    costo.subsidio=tabla.subsidio
-                                                                            for valor in tabla_subsidio:
-                                                                                if costo.total_percepciones_mensual >= valor.liminf:
-                                                                                    costo.subsidio=valor.cuota                             
-                                                                            costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
-                                                                            costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
-                                                                            #Parte de cesantia
-                                                                            busqueda_cesantia= sdi/dato.UMA ###
-                                                                            for tcesantia in tcesantias:   ####
-                                                                                if  busqueda_cesantia >= tcesantia.sbc:
-                                                                                    cesantia_valor = tcesantia.cuota_patronal
-                                                                            cesantia_ley= costo.sueldo_mensual_sdi*(cesantia_valor/100)                        ###
-                                                                            costo.cesantia= (costo.sueldo_mensual_sdi*Decimal(variables_carga_social.cesantia/100))+cesantia_ley  ####
-                                                                            #Parte de vacaciones #Tambien filtrar para que no se pueda hacer un costo si no se tiene fecha de antiguedad vacaciones
-                                                                            #Se calculan los días para la vacación actual
-                                                                            #PRIMA VACACIONAL
-                                                                            ahora = datetime.date.today()
+                                                                                if años_ingreso == 0:
+                                                                                    años_ingreso = 1
 
-                                                                            calcular_prima = True
-                                                                            if costo.status.tipo_de_contrato_id == 4: #HONORARIOS
-                                                                                calcular_prima = False
-                                                                            elif costo.status.tipo_de_contrato_id == 2: #EVENTUAL
-                                                                                days = ahora - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
-                                                                            elif costo.status.tipo_de_contrato_id == 7: #NR
-                                                                                calcular_prima = False
-                                                                            elif costo.status.fecha_planta is None and costo.status.fecha_planta_anterior is None:
-                                                                                calcular_prima = False
-                                                                            elif costo.status.fecha_planta is not None and costo.status.fecha_planta_anterior is not None:
-                                                                                days = costo.status.fecha_planta_anterior
-                                                                            elif costo.status.fecha_planta:
-                                                                                days = costo.status.fecha_planta
-                                                                            elif costo.status.fecha_planta_anterior:
-                                                                                days = costo.status.fecha_planta_anterior
+                                                                                for factor in factores:
+                                                                                    if años_ingreso >= factor.years:
+                                                                                        factor_integracion = factor.factor
+                                                                                #print("factor integracion", factor_integracion)
 
-                                                                            if calcular_prima == True:#calcula la prima
-                                                                                calcular_antiguedad = relativedelta(ahora, days)
-                                                                                antiguedad = calcular_antiguedad.years
+                                                                                #SDI Calculo
+                                                                                costo.sdi = factor_integracion*costo.sueldo_diario
+                                                            
+                                                                                sdi = costo.sdi
+                                                                                #print("sdi: ",sdi)
+                                                                                prima_riesgo = costo.status.registro_patronal.prima
+                                                                                #print("prima RT: ",prima_riesgo)
+                                                                                excedente = dato.UMA*3
+                                                                                #print("excedente: ",excedente)
+                                                                                cuotafija = (dato.UMA*Decimal(variables_patronal.cuota_fija/100))*costo.laborados_imss
+                                                                                #print("cuota fija: ", cuotafija)
 
-                                                                                if antiguedad > 0:
-                                                                                    for tabla in tabla_vacaciones:
-                                                                                        if antiguedad >= tabla.years:
-                                                                                            dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
+                                                                                excedente_patronal = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_patron/100)*costo.laborados_imss
+                                                                                #print("excedente patronal",excedente_patronal)
+                                                                                excedente_obrero = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_obrero/100)*costo.laborados_imss
+                                                                                #print('excedente_obrero',excedente_obrero)
+                                                                                
+                                                                                if excedente_patronal < 0:
+                                                                                    excedente_patronal = 0
+                                                                                if excedente_obrero < 0:
+                                                                                    excedente_obrero = 0
+                                                                                    
+                                                                                #print("excedente patronal",excedente_patronal)
+                                                                                #print('excedente_obrero',excedente_obrero)
 
-                                                                                    vac_reforma_actual = Decimal(dias_vacaciones)*Decimal(costo.sueldo_diario)
-                                                                                    #print("Reforma vacaciones: ",vac_reforma_actual)
+                                                                                prestaciones_patronal = (costo.sdi_imss*Decimal(variables_patronal.pd_patron/100))*costo.laborados_imss
+                                                                                #print("prestaciones patronal: ", prestaciones_patronal)
+                                                                                
+                                                                                prestaciones_obrero = (costo.sdi_imss*Decimal(variables_patronal.pd_obrero/100))*costo.laborados_imss
+                                                                                #print("prestaciones obrero", prestaciones_obrero)
+                                                                                
+                                                                                gastosmp_patronal = (costo.sdi_imss*Decimal(variables_patronal.gmp_patron/100))*costo.laborados_imss
+                                                                                #print("gastosmp patronal",gastosmp_patronal)
+                                                                                
+                                                                                gastosmp_obrero = (costo.sdi_imss*Decimal(variables_patronal.gmp_obrero/100))*costo.laborados_imss
+                                                                                #print("gastosmp obrero",gastosmp_obrero )
+                                                                                
+                                                                                riesgo_trabajo = (costo.sdi_imss*(prima_riesgo/100))*costo.laborados_imss
+                                                                                #print("riesgo trabajo", riesgo_trabajo)
+                                                                                
+                                                                                invalidezvida_patronal = (costo.sdi_imss*Decimal(variables_patronal.iv_patron/100))*costo.laborados_imss
+                                                                                #print("invalidez patronal", invalidezvida_patronal )
+                                                                                
+                                                                                invalidezvida_obrero = (costo.sdi_imss*Decimal(variables_patronal.iv_obrero/100))*costo.laborados_imss
+                                                                                #print("invalidaz obrero", invalidezvida_obrero)
+                                                                                
+                                                                                guarderias_prestsociales = (costo.sdi_imss*Decimal(variables_patronal.gps_patron/100))*costo.laborados_imss
+                                                                                #print("guarderias prest sociales", guarderias_prestsociales)
 
-                                                                                    prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
-                                                                                    #print("prima vacacional", prima_vacacional)
-                                                                                    aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
-                                                                                    #print("aguinaldo", aguinaldo)
-                                                                                    costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
-                                                                                    #print("costo total prima vacacional: ", (vac_reforma_actual+prima_vacacional+aguinaldo)/12)
+                                                                                costo.imms_obrero_patronal = (cuotafija+excedente_patronal+excedente_obrero+prestaciones_patronal
+                                                                                                +prestaciones_obrero+gastosmp_patronal+gastosmp_obrero+riesgo_trabajo+invalidezvida_patronal
+                                                                                                +invalidezvida_obrero+guarderias_prestsociales)
+                                                                                
+                                                                                #print("imss patronal: ", costo.imms_obrero_patronal)
 
-                                                                                else:#No calcula la prima - No tiene el año de antiguedad o más
+                                                                                #Costo calculo
+                                                                                costo.total_deduccion = costo.amortizacion_infonavit + costo.fonacot
+                                                                                costo.neto_pagar = costo.neto_catorcenal_sin_deducciones - costo.total_deduccion
+                                                                                costo.sueldo_mensual_neto = (costo.neto_catorcenal_sin_deducciones/dato.dias_quincena)*dato.dias_mes
+                                                                                costo.complemento_salario_mensual = (costo.complemento_salario_catorcenal/dato.dias_quincena)*dato.dias_mes
+                                                                                costo.sueldo_mensual = costo.sueldo_diario*dato.dias_mes
+                                                                                costo.sueldo_mensual_sdi = costo.sdi*dato.dias_mes #sdi
+                                                                                costo.total_percepciones_mensual = costo.apoyo_de_pasajes + costo.sueldo_mensual
+                                                                                for tabla in tablas:
+                                                                                    if costo.total_percepciones_mensual >= tabla.liminf:
+                                                                                        costo.lim_inferior = tabla.liminf
+                                                                                        costo.tasa=tabla.excedente
+                                                                                        costo.cuota_fija=tabla.cuota
+                                                                                    #if costo.lim_inferior >= tabla.p_ingresos:
+                                                                                    #    costo.subsidio=tabla.subsidio
+                                                                                for valor in tabla_subsidio:
+                                                                                    if costo.total_percepciones_mensual >= valor.liminf:
+                                                                                        costo.subsidio=valor.cuota                             
+                                                                                costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
+                                                                                costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
+                                                                                #Parte de cesantia
+                                                                                busqueda_cesantia= sdi/dato.UMA ###
+                                                                                for tcesantia in tcesantias:   ####
+                                                                                    if  busqueda_cesantia >= tcesantia.sbc:
+                                                                                        cesantia_valor = tcesantia.cuota_patronal
+                                                                                cesantia_ley= costo.sueldo_mensual_sdi*(cesantia_valor/100)                        ###
+                                                                                costo.cesantia= (costo.sueldo_mensual_sdi*Decimal(variables_carga_social.cesantia/100))+cesantia_ley  ####
+                                                                                #Parte de vacaciones #Tambien filtrar para que no se pueda hacer un costo si no se tiene fecha de antiguedad vacaciones
+                                                                                #Se calculan los días para la vacación actual
+                                                                                #PRIMA VACACIONAL
+                                                                                ahora = datetime.date.today()
+
+                                                                                calcular_prima = True
+                                                                                if costo.status.tipo_de_contrato_id == 4: #HONORARIOS
+                                                                                    calcular_prima = False
+                                                                                elif costo.status.tipo_de_contrato_id == 2: #EVENTUAL
+                                                                                    days = ahora - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
+                                                                                elif costo.status.tipo_de_contrato_id == 7: #NR
+                                                                                    calcular_prima = False
+                                                                                elif costo.status.fecha_planta is None and costo.status.fecha_planta_anterior is None:
+                                                                                    calcular_prima = False
+                                                                                elif costo.status.fecha_planta is not None and costo.status.fecha_planta_anterior is not None:
+                                                                                    days = costo.status.fecha_planta_anterior
+                                                                                elif costo.status.fecha_planta:
+                                                                                    days = costo.status.fecha_planta
+                                                                                elif costo.status.fecha_planta_anterior:
+                                                                                    days = costo.status.fecha_planta_anterior
+
+                                                                                if calcular_prima == True:#calcula la prima
+                                                                                    calcular_antiguedad = relativedelta(ahora, days)
+                                                                                    antiguedad = calcular_antiguedad.years
+
+                                                                                    if antiguedad > 0:
+                                                                                        for tabla in tabla_vacaciones:
+                                                                                            if antiguedad >= tabla.years:
+                                                                                                dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
+
+                                                                                        vac_reforma_actual = Decimal(dias_vacaciones)*Decimal(costo.sueldo_diario)
+                                                                                        #print("Reforma vacaciones: ",vac_reforma_actual)
+
+                                                                                        prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
+                                                                                        #print("prima vacacional", prima_vacacional)
+                                                                                        aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
+                                                                                        #print("aguinaldo", aguinaldo)
+                                                                                        costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
+                                                                                        #print("costo total prima vacacional: ", (vac_reforma_actual+prima_vacacional+aguinaldo)/12)
+
+                                                                                    else:#No calcula la prima - No tiene el año de antiguedad o más
+                                                                                        costo.total_prima_vacacional = 0
+
+                                                                                else:#No calcula la prima
                                                                                     costo.total_prima_vacacional = 0
+                                                                                #costo.cesantia= costo.sueldo_mensual_sdi*cesantia
+                                                                                costo.infonavit= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.infonavit/100)
+                                                                                costo.excedente= costo.total_percepciones_mensual - costo.lim_inferior
+                                                                                costo.impuesto_marginal= costo.excedente * costo.tasa
+                                                                                costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
+                                                                                costo.isr= costo.impuesto
+                                                                                costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
+                                                                                costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
+                                                                                costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
+                                                                                costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+                                                                                costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
+                                                                                """
+                                                                                costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
+                                                                                costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
+                                                                                costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
+                                                                                costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
+                                                                                print("costo total empresa: ",costo.total_costo_empresa)
+                                                                                costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+                                                                                costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
+                                                                                """
+                                                                                #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
 
-                                                                            else:#No calcula la prima
-                                                                                costo.total_prima_vacacional = 0
-                                                                            #costo.cesantia= costo.sueldo_mensual_sdi*cesantia
-                                                                            costo.infonavit= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.infonavit/100)
-                                                                            costo.excedente= costo.total_percepciones_mensual - costo.lim_inferior
-                                                                            costo.impuesto_marginal= costo.excedente * costo.tasa
-                                                                            costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
-                                                                            costo.isr= costo.impuesto
-                                                                            costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
-                                                                            costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
-                                                                            costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
-                                                                            costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
-                                                                            costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
-                                                                            """
-                                                                            costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
-                                                                            costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
-                                                                            costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
-                                                                            costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
-                                                                            print("costo total empresa: ",costo.total_costo_empresa)
-                                                                            costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
-                                                                            costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-                                                                            """
-                                                                            #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
+                                                                                if form.is_valid():
+                                                                                    user_filter = UserDatos.objects.get(user=request.user)
+                                                                                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                                                                                    costo.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
+                                                                                    messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
+                                                                                    costo = form.save(commit=False)
+                                                                                    costo.save()
+                                                                                    return redirect('Tabla_costo')
+        else:
+            form = CostoUpdateForm(instance=costo)
 
-                                                                            if form.is_valid():
-                                                                                user_filter = UserDatos.objects.get(user=request.user)
-                                                                                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                                                                                costo.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
-                                                                                messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
-                                                                                costo = form.save(commit=False)
-                                                                                costo.save()
-                                                                                return redirect('Tabla_costo')
+        context = {'form':form,'costo':costo, 'registros':registros,'comision':dato.comision_bonos,'myfilter':myfilter,}
+
+        return render(request, 'proyecto/Costo_update.html',context)
     else:
-        form = CostoUpdateForm(instance=costo)
-
-    context = {'form':form,'costo':costo, 'registros':registros,'comision':dato.comision_bonos,'myfilter':myfilter,}
-
-    return render(request, 'proyecto/Costo_update.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def Costo_revisar(request, pk):
-
-    costo = Costo.objects.get(id=pk)
-    ahora = datetime.date.today()
-    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
-    sum_bonos = bonos_dato.aggregate(Sum('monto'))
-    bonototal = sum_bonos['monto__sum']
-    if bonototal == None:
-        bonototal = 0
-    prenomina = Prenomina.objects.filter(empleado=costo,catorcena=catorcena).first()
-    autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia", estado__tipo="aprobado").first()
-    if autorizacion is not None:
-        existe = 1
-    else:
-        existe = 0 
-    costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
-    costo.empresa=costo.status.perfil.empresa
-    costo.distrito=costo.status.perfil.distrito
-    costo.proyecto=costo.status.perfil.proyecto
-    costo.nombres=costo.status.perfil.nombres
-    costo.apellidos=costo.status.perfil.apellidos
-    costo.tipo_de_contrato=costo.status.tipo_de_contrato
-
-    costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
-    costo.fonacot=locale.currency(costo.fonacot, grouping=True)
-    costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
-    costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
-    costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
-    costo.sdi=locale.currency(costo.sdi, grouping=True)
-    costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
-    costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
-    costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
-    costo.estancia=locale.currency(costo.estancia, grouping=True)
-    costo.renta=locale.currency(costo.renta, grouping=True)
-    costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
-    costo.amv=locale.currency(costo.amv, grouping=True)
-    costo.gasolina=locale.currency(costo.gasolina, grouping=True)
-    costo.campamento=locale.currency(costo.campamento, grouping=True)
-    costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
-    costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
-    costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
-    costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
-    costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
-    costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
-    costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
-    costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
-    costo.sar=locale.currency(costo.sar, grouping=True)
-    costo.cesantia=locale.currency(costo.cesantia, grouping=True)
-    costo.infonavit=locale.currency(costo.infonavit, grouping=True)
-    costo.isr=locale.currency(costo.isr, grouping=True)
-    costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
-    costo.excedente=locale.currency(costo.excedente, grouping=True)
-    costo.tasa=locale.currency(costo.tasa, grouping=True)
-    costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
-    costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
-    costo.impuesto=locale.currency(costo.impuesto, grouping=True)
-    costo.subsidio=locale.currency(costo.subsidio, grouping=True)
-    costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
-    costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
-    costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
-    costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
-    costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
-    #se agrego el bono
-    costo.bono_total=locale.currency(costo.bono_total, grouping=True)
-    bonototal = locale.currency(bonototal, grouping=True)
-    if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(costo)
-    
-    if request.method =='POST' and 'Pdf2' in request.POST:
-        return reporte_pdf_costo_incidencias(request,costo,bonototal)
-
-    context = {'costo':costo,
-               'bonototal':bonototal,
-               'existe':existe,
-               }
-
-    return render(request, 'proyecto/Costo_revisar.html',context)
-
-@login_required(login_url='user-login')
-def Empleado_Costo(request, pk):
-
-    empleado = Status.objects.get(id=pk)
-    costo = Costo.objects.get(status__id=empleado.id)
-
-    mes = datetime.date.today().month
-    comision=Decimal(0.09)
-
-    bonos_dato = Bonos.objects.filter(costo = costo).filter(fecha_bono__month = mes)
-    sum_bonos = bonos_dato.aggregate(Sum('monto'))
-    bonototal = sum_bonos['monto__sum']
-    if bonototal == None:
-        bonototal = 0
-    costo.total_apoyosbonos_agregcomis = costo.campamento + bonototal
-    costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento + bonototal)*comision #Falta suma dentro de la multiplicacion
-    costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos
-    costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
-
-    costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
-    costo.fonacot=locale.currency(costo.fonacot, grouping=True)
-    costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
-    costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
-    costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
-    costo.sdi=locale.currency(costo.sdi, grouping=True)
-    costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
-    costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
-    costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
-    costo.estancia=locale.currency(costo.estancia, grouping=True)
-    costo.renta=locale.currency(costo.renta, grouping=True)
-    costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
-    costo.amv=locale.currency(costo.amv, grouping=True)
-    costo.gasolina=locale.currency(costo.gasolina, grouping=True)
-    costo.campamento=locale.currency(costo.campamento, grouping=True)
-    costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
-    costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
-    costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
-    costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
-    costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
-    costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
-    costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
-    costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
-    costo.sar=locale.currency(costo.sar, grouping=True)
-    costo.cesantia=locale.currency(costo.cesantia, grouping=True)
-    costo.infonavit=locale.currency(costo.infonavit, grouping=True)
-    costo.isr=locale.currency(costo.isr, grouping=True)
-    costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
-    costo.excedente =locale.currency(costo.excedente, grouping=True)
-    costo.tasa=locale.currency(costo.tasa, grouping=True)
-    costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
-    costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
-    costo.impuesto=locale.currency(costo.impuesto, grouping=True)
-    costo.subsidio=locale.currency(costo.subsidio, grouping=True)
-    costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
-    if bonototal == None:
-        costo.bonototal =locale.currency(0, grouping=True)
-    else:
-        costo.bonototal=locale.currency(bonototal, grouping=True)
-    costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
-    costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
-    costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
-    costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
-    if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(costo,bonototal)
-
-    context = {
-        'costo':costo,
-        }
-
-    return render(request, 'proyecto/Costo_revisar.html',context)
-
-@login_required(login_url='user-login')
-def TablaCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        costos= Costo.objects.filter(complete=True,status__perfil__empresa=empresa_faxton,status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
-    elif user_filter.distrito.distrito == 'Matriz':
-        costos= Costo.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
-    else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        costos = Costo.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
-
-    costo_filter = CostoFilter(request.GET, queryset=costos)
-    costos = costo_filter.qs
-
-    comision=Decimal(0.09)
-
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_costo(costos)
-
-                #Set up pagination
-    p = Paginator(costos, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    ahora = datetime.date.today()
-    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    for costo in salidas_list:
+    if user_filter.tipo.id == 4: #Perfil RH
+        costo = Costo.objects.get(id=pk)
+        ahora = datetime.date.today()
+        catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
         sum_bonos = bonos_dato.aggregate(Sum('monto'))
         bonototal = sum_bonos['monto__sum']
         if bonototal == None:
             bonototal = 0
-        #vac_reforma_actual = Decimal((12/365)*365)*Decimal(costo.sueldo_diario)
-        #prima_vacacional = vac_reforma_actual*Decimal(0.25)
-        #aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
-        #total_vacaciones = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
-        #costo.total_apoyosbonos_agregcomis = costo.campamento + bonototal #Modificar falta suma
-        #costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento + bonototal)*comision #Falta suma dentro de la multiplicacion
-        #costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp
-        #costo.total_costo_empresa = costo.total_costo_empresa + total_vacaciones
-        #costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-
+        prenomina = Prenomina.objects.filter(empleado=costo,catorcena=catorcena).first()
+        autorizacion = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia", estado__tipo="aprobado").first()
+        if autorizacion is not None:
+            existe = 1
+        else:
+            existe = 0 
         costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
         costo.empresa=costo.status.perfil.empresa
         costo.distrito=costo.status.perfil.distrito
@@ -1628,630 +1353,784 @@ def TablaCosto(request):
         costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
         costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
         costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+        #se agrego el bono
+        costo.bono_total=locale.currency(costo.bono_total, grouping=True)
+        bonototal = locale.currency(bonototal, grouping=True)
+        if request.method =='POST' and 'Pdf' in request.POST:
+            return reporte_pdf_costo_detalles(costo)
+        
+        if request.method =='POST' and 'Pdf2' in request.POST:
+            return reporte_pdf_costo_incidencias(request,costo,bonototal)
 
-    context = {'costos':costos,'costo_filter':costo_filter,'salidas_list':salidas_list, 'baja': request.GET.get('baja', False)}
+        context = {'costo':costo,
+                'bonototal':bonototal,
+                'existe':existe,
+                }
 
-    return render(request, 'proyecto/Tabla_costo.html',context)
-
-@login_required(login_url='user-login')
-def TablaBonos(request):
-    año = datetime.date.today().year
-    user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        bonos= Bonos.objects.filter(complete=True,mes_bono__year=año,costo__status__perfil__empresa=empresa_faxton).order_by("costo__status__perfil__numero_de_trabajador")
-    elif user_filter.distrito.distrito == 'Matriz':
-        bonos= Bonos.objects.filter(complete=True,mes_bono__year=año).order_by("costo__status__perfil__numero_de_trabajador")
+        return render(request, 'proyecto/Costo_revisar.html',context)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        bonos = Bonos.objects.filter(costo__status__perfil__id__in=perfil.all(),mes_bono__year=año, complete=True).order_by("costo__status__perfil__numero_de_trabajador")
-
-    bono_filter = BonosFilter(request.GET, queryset=bonos)
-    bonos = bono_filter.qs
-
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_bonos(bonos)
-
-    for bono in bonos:
-        if bono.monto == None:
-            bono.monto = 0
-        else:
-            bono.monto=locale.currency(bono.monto, grouping=True)
-                #Set up pagination
-    p = Paginator(bonos, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    context= {
-        'bonos':bonos,
-        'bono_filter':bono_filter,
-        'salidas_list':salidas_list,
-        'baja': request.GET.get('baja', False)
-        }
-
-    return render(request, 'proyecto/BonosTabla.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
-def Empleado_Bonos(request, pk):
-    #año = datetime.date.today().year
-    bonos= Bonos.objects.filter(costo__status__id=pk,complete=True).order_by("fecha_bono")
-    perfil = bonos.last()
+def Empleado_Costo(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
+    empleado = Status.objects.get(id=pk)
+    costo = Costo.objects.get(status__id=empleado.id)
+    if user_filter.tipo.id == 4 or (user_filter.numero_de_trabajador == costo.status.perfil.numero_de_trabajador and user_filter.distrito == costo.status.perfil.distrito) or user_filter.tipo.id == 3:
+        mes = datetime.date.today().month
+        comision=Decimal(0.09)
 
-    bono_filter = BonosFilter(request.GET, queryset=bonos)
-    bonos = bono_filter.qs
+        bonos_dato = Bonos.objects.filter(costo = costo).filter(fecha_bono__month = mes)
+        sum_bonos = bonos_dato.aggregate(Sum('monto'))
+        bonototal = sum_bonos['monto__sum']
+        if bonototal == None:
+            bonototal = 0
+        costo.total_apoyosbonos_agregcomis = costo.campamento + bonototal
+        costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento + bonototal)*comision #Falta suma dentro de la multiplicacion
+        costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos
+        costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
 
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_bonos(bonos)
-
-    for bono in bonos:
-        if bono.monto == None:
-            bono.monto = 0
+        costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
+        costo.fonacot=locale.currency(costo.fonacot, grouping=True)
+        costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
+        costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
+        costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
+        costo.sdi=locale.currency(costo.sdi, grouping=True)
+        costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
+        costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
+        costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
+        costo.estancia=locale.currency(costo.estancia, grouping=True)
+        costo.renta=locale.currency(costo.renta, grouping=True)
+        costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
+        costo.amv=locale.currency(costo.amv, grouping=True)
+        costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+        costo.campamento=locale.currency(costo.campamento, grouping=True)
+        costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
+        costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
+        costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
+        costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
+        costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
+        costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
+        costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
+        costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
+        costo.sar=locale.currency(costo.sar, grouping=True)
+        costo.cesantia=locale.currency(costo.cesantia, grouping=True)
+        costo.infonavit=locale.currency(costo.infonavit, grouping=True)
+        costo.isr=locale.currency(costo.isr, grouping=True)
+        costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
+        costo.excedente =locale.currency(costo.excedente, grouping=True)
+        costo.tasa=locale.currency(costo.tasa, grouping=True)
+        costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
+        costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
+        costo.impuesto=locale.currency(costo.impuesto, grouping=True)
+        costo.subsidio=locale.currency(costo.subsidio, grouping=True)
+        costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
+        if bonototal == None:
+            costo.bonototal =locale.currency(0, grouping=True)
         else:
-            bono.monto=locale.currency(bono.monto, grouping=True)
+            costo.bonototal=locale.currency(bonototal, grouping=True)
+        costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
+        costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
+        costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
+        costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+        if request.method =='POST' and 'Pdf' in request.POST:
+            return reporte_pdf_costo_detalles(costo,bonototal)
 
-    context= {
-        'bonos':bonos,
-        'bono_filter':bono_filter,
-        'perfil':perfil,
-        }
+        context = {
+            'costo':costo,
+            }
 
-    return render(request, 'proyecto/Empleado_bonos.html',context)
+        return render(request, 'proyecto/Costo_revisar.html',context)
+    else:
+        return render(request, 'revisar/403.html')
+    
+@login_required(login_url='user-login')
+def TablaCosto(request):
+    user_filter = UserDatos.objects.get(user=request.user)
+    if user_filter.tipo.id == 4: #Perfil RH
+            
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        if revisar_perfil.empresa == empresa_faxton:
+            costos= Costo.objects.filter(complete=True,status__perfil__empresa=empresa_faxton,status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+        elif user_filter.distrito.distrito == 'Matriz':
+            costos= Costo.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
+        else:
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+            costos = Costo.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
 
+        costo_filter = CostoFilter(request.GET, queryset=costos)
+        costos = costo_filter.qs
+
+        comision=Decimal(0.09)
+
+        if request.method =='POST' and 'Excel' in request.POST:
+            return convert_excel_costo(costos)
+
+                    #Set up pagination
+        p = Paginator(costos, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+
+        ahora = datetime.date.today()
+        catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        for costo in salidas_list:
+            bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
+            sum_bonos = bonos_dato.aggregate(Sum('monto'))
+            bonototal = sum_bonos['monto__sum']
+            if bonototal == None:
+                bonototal = 0
+            #vac_reforma_actual = Decimal((12/365)*365)*Decimal(costo.sueldo_diario)
+            #prima_vacacional = vac_reforma_actual*Decimal(0.25)
+            #aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
+            #total_vacaciones = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
+            #costo.total_apoyosbonos_agregcomis = costo.campamento + bonototal #Modificar falta suma
+            #costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento + bonototal)*comision #Falta suma dentro de la multiplicacion
+            #costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp
+            #costo.total_costo_empresa = costo.total_costo_empresa + total_vacaciones
+            #costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
+
+            costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
+            costo.empresa=costo.status.perfil.empresa
+            costo.distrito=costo.status.perfil.distrito
+            costo.proyecto=costo.status.perfil.proyecto
+            costo.nombres=costo.status.perfil.nombres
+            costo.apellidos=costo.status.perfil.apellidos
+            costo.tipo_de_contrato=costo.status.tipo_de_contrato
+
+            costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
+            costo.fonacot=locale.currency(costo.fonacot, grouping=True)
+            costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
+            costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
+            costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
+            costo.sdi=locale.currency(costo.sdi, grouping=True)
+            costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
+            costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
+            costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
+            costo.estancia=locale.currency(costo.estancia, grouping=True)
+            costo.renta=locale.currency(costo.renta, grouping=True)
+            costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
+            costo.amv=locale.currency(costo.amv, grouping=True)
+            costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+            costo.campamento=locale.currency(costo.campamento, grouping=True)
+            costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
+            costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
+            costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
+            costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
+            costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
+            costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
+            costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
+            costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
+            costo.sar=locale.currency(costo.sar, grouping=True)
+            costo.cesantia=locale.currency(costo.cesantia, grouping=True)
+            costo.infonavit=locale.currency(costo.infonavit, grouping=True)
+            costo.isr=locale.currency(costo.isr, grouping=True)
+            costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
+            costo.excedente=locale.currency(costo.excedente, grouping=True)
+            costo.tasa=locale.currency(costo.tasa, grouping=True)
+            costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
+            costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
+            costo.impuesto=locale.currency(costo.impuesto, grouping=True)
+            costo.subsidio=locale.currency(costo.subsidio, grouping=True)
+            costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
+            costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
+            costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
+            costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
+            costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+
+        context = {'costos':costos,'costo_filter':costo_filter,'salidas_list':salidas_list, 'baja': request.GET.get('baja', False)}
+
+        return render(request, 'proyecto/Tabla_costo.html',context)
+    else:
+        return render(request, 'revisar/403.html')
 
 @login_required(login_url='user-login')
 def VacacionesUpdate(request, pk):
-    currentFieldCount = 10
-    descanso = Vacaciones.objects.get(id=pk)
-    registros = descanso.history.filter(~Q(dias_disfrutados = None))
+    user_filter = UserDatos.objects.get(user=request.user)
+    if user_filter.tipo.id == 4: #Perfil RH
+        currentFieldCount = 10
+        descanso = Vacaciones.objects.get(id=pk)
+        registros = descanso.history.filter(~Q(dias_disfrutados = None))
 
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = VacacionesUpdateForm(request.POST, instance=descanso)
-        descanso = form.save(commit=False)
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            form = VacacionesUpdateForm(request.POST, instance=descanso)
+            descanso = form.save(commit=False)
 
 
-        tabla_festivos = TablaFestivos.objects.all()
-        delta = timedelta(days=1)
-        day_count = (descanso.fecha_fin - descanso.fecha_inicio + delta ).days
-        cuenta = day_count #Dias entre las dos fechas
-        inhabil = descanso.dia_inhabil.numero
-        for fecha in (descanso.fecha_inicio + timedelta(n) for n in range(day_count)):
-            if fecha.isoweekday() == inhabil:
-                cuenta -= 1 #Se le restan a la cuenta los días inhabiles para sacar los dias reales
-            else:
-                for dia in tabla_festivos:
-                    if fecha == dia.dia_festivo:
-                        cuenta -= 1 # Se le restan tambien los días festivos para sacar los días reales que va a tomar (Cantida de días)
-        dias_vacacion = cuenta #Para escribir en el comentario los días
-        if cuenta > 0: #Aqui salgo bien con los 2 dias--------
-            #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
-            if Vacaciones.objects.filter(status=descanso.status.id).last().total_pendiente > 0 or Vacaciones.objects.filter(status=descanso.status.id).first().total_pendiente > 0:
-                datos = Vacaciones.objects.filter(status=descanso.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
-                if datos.exclude(id=datos.last().id) != None:
-                    datos = datos.exclude(id=datos.last().id)
-                    for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
-                        if cuenta <= dato.total_pendiente and cuenta > 0:
-                            if dato.dias_disfrutados == None:
-                                dato.dias_disfrutados = 0
-                            dato.total_pendiente -= cuenta
-                            dato.dias_disfrutados += cuenta
-                            cuenta = 0
-                            break
-                        elif cuenta > dato.total_pendiente and cuenta > 0:
-                            if dato.dias_disfrutados == None:
-                                dato.dias_disfrutados = 0
-                            dato.dias_disfrutados += dato.total_pendiente
-                            cuenta -=dato.total_pendiente
-                            dato.total_pendiente = 0
-                descanso.dias_disfrutados += cuenta #Días que disfrutara son los que vienen de la cuenta
-                descanso.fecha_planta_anterior = descanso.status.fecha_planta_anterior
-                descanso.fecha_planta = descanso.status.fecha_planta
-
-                if descanso.dias_disfrutados > descanso.dias_de_vacaciones:
-                    messages.error(request, f'(Dias disfrutados) La cantidad total capturada debe ser menor o igual a {descanso.total_pendiente}, cantidad actual: {cuenta}')
+            tabla_festivos = TablaFestivos.objects.all()
+            delta = timedelta(days=1)
+            day_count = (descanso.fecha_fin - descanso.fecha_inicio + delta ).days
+            cuenta = day_count #Dias entre las dos fechas
+            inhabil = descanso.dia_inhabil.numero
+            for fecha in (descanso.fecha_inicio + timedelta(n) for n in range(day_count)):
+                if fecha.isoweekday() == inhabil:
+                    cuenta -= 1 #Se le restan a la cuenta los días inhabiles para sacar los dias reales
                 else:
-                    periodofecha = descanso.created_at.year
-                    descanso.periodo = periodofecha
-                    descanso.total_pendiente = descanso.dias_de_vacaciones - descanso.dias_disfrutados
-                    if form.is_valid():
-                        solicitud, created = Solicitud_vacaciones.objects.get_or_create(complete=False)
-                        num_campos = int(request.POST.get('num_campos', 0))
+                    for dia in tabla_festivos:
+                        if fecha == dia.dia_festivo:
+                            cuenta -= 1 # Se le restan tambien los días festivos para sacar los días reales que va a tomar (Cantida de días)
+            dias_vacacion = cuenta #Para escribir en el comentario los días
+            if cuenta > 0: #Aqui salgo bien con los 2 dias--------
+                #Aqui se buscan las vacaciones anteriores y se van modificando los datos para poder llevar la toma de dias pendientes de años anteriores
+                if Vacaciones.objects.filter(status=descanso.status.id).last().total_pendiente > 0 or Vacaciones.objects.filter(status=descanso.status.id).first().total_pendiente > 0:
+                    datos = Vacaciones.objects.filter(status=descanso.status.id, total_pendiente__gt=0,).order_by(Cast('periodo', output_field=IntegerField()))#Trae todas las vacaciones del mas antiguo al actual 2019-2022
+                    if datos.exclude(id=datos.last().id) != None:
+                        datos = datos.exclude(id=datos.last().id)
+                        for dato in datos: #Se pasa por los datos del mas antiguo al mas actual de los que se tenia
+                            if cuenta <= dato.total_pendiente and cuenta > 0:
+                                if dato.dias_disfrutados == None:
+                                    dato.dias_disfrutados = 0
+                                dato.total_pendiente -= cuenta
+                                dato.dias_disfrutados += cuenta
+                                cuenta = 0
+                                break
+                            elif cuenta > dato.total_pendiente and cuenta > 0:
+                                if dato.dias_disfrutados == None:
+                                    dato.dias_disfrutados = 0
+                                dato.dias_disfrutados += dato.total_pendiente
+                                cuenta -=dato.total_pendiente
+                                dato.total_pendiente = 0
+                    descanso.dias_disfrutados += cuenta #Días que disfrutara son los que vienen de la cuenta
+                    descanso.fecha_planta_anterior = descanso.status.fecha_planta_anterior
+                    descanso.fecha_planta = descanso.status.fecha_planta
 
-                        for i in range(1, num_campos + 1):
-                            asunto = request.POST.get(f'asunto{i}')
-                            estado = request.POST.get(f'estado{i}')
+                    if descanso.dias_disfrutados > descanso.dias_de_vacaciones:
+                        messages.error(request, f'(Dias disfrutados) La cantidad total capturada debe ser menor o igual a {descanso.total_pendiente}, cantidad actual: {cuenta}')
+                    else:
+                        periodofecha = descanso.created_at.year
+                        descanso.periodo = periodofecha
+                        descanso.total_pendiente = descanso.dias_de_vacaciones - descanso.dias_disfrutados
+                        if form.is_valid():
+                            solicitud, created = Solicitud_vacaciones.objects.get_or_create(complete=False)
+                            num_campos = int(request.POST.get('num_campos', 0))
 
-                            # Crear un nuevo grupo de Trabajos_encomendados para cada conjunto de 10 campos
-                            if (i - 1) % 10 == 0:
-                                if i > 1:
-                                    trabajos_grupo.complete = True
+                            for i in range(1, num_campos + 1):
+                                asunto = request.POST.get(f'asunto{i}')
+                                estado = request.POST.get(f'estado{i}')
+
+                                # Crear un nuevo grupo de Trabajos_encomendados para cada conjunto de 10 campos
+                                if (i - 1) % 10 == 0:
+                                    if i > 1:
+                                        trabajos_grupo.complete = True
+                                        trabajos_grupo.save()
+
+                                    trabajos_grupo = Trabajos_encomendados()
                                     trabajos_grupo.save()
+                                    solicitud.asunto.add(trabajos_grupo)
 
-                                trabajos_grupo = Trabajos_encomendados()
+                                setattr(trabajos_grupo, f'asunto{(i - 1) % 10 + 1}', asunto)
+                                setattr(trabajos_grupo, f'estado{(i - 1) % 10 + 1}', estado)
                                 trabajos_grupo.save()
-                                solicitud.asunto.add(trabajos_grupo)
 
-                            setattr(trabajos_grupo, f'asunto{(i - 1) % 10 + 1}', asunto)
-                            setattr(trabajos_grupo, f'estado{(i - 1) % 10 + 1}', estado)
+                            # Marcar el último grupo como completo
+                            trabajos_grupo.complete = True
                             trabajos_grupo.save()
 
-                        # Marcar el último grupo como completo
-                        trabajos_grupo.complete = True
-                        trabajos_grupo.save()
+                            temas, created = Temas_comentario_solicitud_vacaciones.objects.get_or_create(complete=False,)
+                            for i in range(1, 10):
+                                comentario = request.POST.get(f'comentario{i}')
+                                setattr(temas, f'comentario{i}', comentario)
+                            temas.complete=True
+                            temas.save()
 
-                        temas, created = Temas_comentario_solicitud_vacaciones.objects.get_or_create(complete=False,)
-                        for i in range(1, 10):
-                            comentario = request.POST.get(f'comentario{i}')
-                            setattr(temas, f'comentario{i}', comentario)
-                        temas.complete=True
-                        temas.save()
-
-                        solicitud.status = descanso.status
-                        solicitud.periodo = descanso.periodo
-                        solicitud.fecha_inicio = descanso.fecha_inicio
-                        solicitud.fecha_fin = descanso.fecha_fin
-                        solicitud.dia_inhabil = descanso.dia_inhabil
-                        solicitud.recibe_nombre = request.POST.get('recibe')
-                        solicitud.recibe_area = request.POST.get('area')
-                        solicitud.recibe_puesto = request.POST.get('puesto')
-                        solicitud.recibe_sector = request.POST.get('sector')
-                        solicitud.informacion_adicional = request.POST.get('adicional')
-                        solicitud.temas = temas
-                        solicitud.anexos = request.POST.get('anexos')
-                        solicitud.autorizar = True
-                        solicitud.comentario_rh = descanso.comentario
-                        solicitud.complete=True
-                        solicitud.save()
-                        for dato in datos:
-                            historial = dato.history.first()  # Obtener la primera versión histórica del objeto
-                            if historial and historial.total_pendiente != dato.total_pendiente:
-                                # El campo 'total_pendiente' ha cambiado
-                                dato._meta.get_field('created_at').auto_now = False
-                                dato.comentario ="Solicitado periodo: " + str(descanso.periodo)
-                                dato.fecha_inicio = descanso.fecha_inicio
-                                dato.fecha_fin =  descanso.fecha_fin
-                                dato.save()
-                                dato._meta.get_field('created_at').auto_now = True
-                        if cuenta > 0:
-                            messages.success(request, f'Cambios guardados con éxito los días de vacaciones de {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos}')
-                        else:
-                            messages.success(request, f'Datos capturados con éxito empleado {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos} y descontados a sus días pendientes')
-                        descanso.comentario +=" " + "Dias tomados:" + str(dias_vacacion)
-                        form.save()
-                        #Parte para la prenomina
-                        prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=descanso,fecha_inicio=descanso.fecha_inicio,fecha_fin=descanso.fecha_fin,
-                                                                dia_inhabil=descanso.dia_inhabil,comentario=descanso.comentario,editado=descanso.editado)
-                        return redirect('Tabla_vacaciones_empleados')
+                            solicitud.status = descanso.status
+                            solicitud.periodo = descanso.periodo
+                            solicitud.fecha_inicio = descanso.fecha_inicio
+                            solicitud.fecha_fin = descanso.fecha_fin
+                            solicitud.dia_inhabil = descanso.dia_inhabil
+                            solicitud.recibe_nombre = request.POST.get('recibe')
+                            solicitud.recibe_area = request.POST.get('area')
+                            solicitud.recibe_puesto = request.POST.get('puesto')
+                            solicitud.recibe_sector = request.POST.get('sector')
+                            solicitud.informacion_adicional = request.POST.get('adicional')
+                            solicitud.temas = temas
+                            solicitud.anexos = request.POST.get('anexos')
+                            solicitud.autorizar = True
+                            solicitud.comentario_rh = descanso.comentario
+                            solicitud.complete=True
+                            solicitud.save()
+                            for dato in datos:
+                                historial = dato.history.first()  # Obtener la primera versión histórica del objeto
+                                if historial and historial.total_pendiente != dato.total_pendiente:
+                                    # El campo 'total_pendiente' ha cambiado
+                                    dato._meta.get_field('created_at').auto_now = False
+                                    dato.comentario ="Solicitado periodo: " + str(descanso.periodo)
+                                    dato.fecha_inicio = descanso.fecha_inicio
+                                    dato.fecha_fin =  descanso.fecha_fin
+                                    dato.save()
+                                    dato._meta.get_field('created_at').auto_now = True
+                            if cuenta > 0:
+                                messages.success(request, f'Cambios guardados con éxito los días de vacaciones de {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos}')
+                            else:
+                                messages.success(request, f'Datos capturados con éxito empleado {descanso.status.perfil.nombres} {descanso.status.perfil.apellidos} y descontados a sus días pendientes')
+                            descanso.comentario +=" " + "Dias tomados:" + str(dias_vacacion)
+                            form.save()
+                            #Parte para la prenomina
+                            prenomina_dia_tomado = Vacaciones_dias_tomados.objects.create(prenomina=descanso,fecha_inicio=descanso.fecha_inicio,fecha_fin=descanso.fecha_fin,
+                                                                    dia_inhabil=descanso.dia_inhabil,comentario=descanso.comentario,editado=descanso.editado)
+                            return redirect('Tabla_vacaciones_empleados')
+                else:
+                    messages.error(request, 'Ya a tomado todos sus días de vacaciones')
             else:
-                messages.error(request, 'Ya a tomado todos sus días de vacaciones')
+                messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
         else:
-            messages.error(request, 'La cantidad de días que disfrutara debe ser mayor a 0')
+            form = VacacionesUpdateForm()
+        context = {
+            'form':form,
+            'descanso':descanso,
+            'registros':registros,
+            'currentFieldCount': currentFieldCount,
+            }
+        return render(request, 'proyecto/Vacaciones_update.html',context)
     else:
-        form = VacacionesUpdateForm()
-    context = {
-        'form':form,
-        'descanso':descanso,
-        'registros':registros,
-        'currentFieldCount': currentFieldCount,
-        }
-    return render(request, 'proyecto/Vacaciones_update.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def VacacionesRevisar(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
+    
     if Vacaciones.objects.filter(id=pk):
         usuario = Vacaciones.objects.get(id=pk)
         usuario = usuario.status
     elif Status.objects.filter(id=pk):
         usuario = Status.objects.get(id=pk)
-    datos = Vacaciones.objects.filter(status=usuario).order_by(Cast('periodo', output_field=IntegerField()).desc()) #Identifico las vacaciones del usuario de la mas antigua a la mas actual
-    actual = Vacaciones.objects.filter(status=usuario).order_by(Cast('periodo', output_field=IntegerField())).last()
-    resultado = 0
-    for dato in datos:
-        resultado += dato.total_pendiente
+    if user_filter.tipo.id == 4 or (user_filter.numero_de_trabajador == usuario.perfil.numero_de_trabajador and user_filter.distrito == usuario.perfil.distrito) or user_filter.tipo.id == 3:
+        datos = Vacaciones.objects.filter(status=usuario).order_by(Cast('periodo', output_field=IntegerField()).desc()) #Identifico las vacaciones del usuario de la mas antigua a la mas actual
+        actual = Vacaciones.objects.filter(status=usuario).order_by(Cast('periodo', output_field=IntegerField())).last()
+        resultado = 0
+        for dato in datos:
+            resultado += dato.total_pendiente
 
-    context = {
-        'actual':actual, #vacaciones del empleado
-        'datos':datos, #vacaciones pendientes por año
-        'resultado':resultado, #total vacaciones pendientes
-        }
+        context = {
+            'actual':actual, #vacaciones del empleado
+            'datos':datos, #vacaciones pendientes por año
+            'resultado':resultado, #total vacaciones pendientes
+            }
 
-    return render(request, 'proyecto/Vacaciones_revisar.html',context)
-
+        return render(request, 'proyecto/Vacaciones_revisar.html',context)
+    else:
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def Tabla_Vacaciones(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja=False)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
 
-    #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
-    fecha_actual = date.today()
-    año_actual = str(fecha_actual.year)
-    #Busca todos los status que no tengan vacaciones del año actual (periodo)
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
-    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
-    #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
-    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
-    reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
-    reinicio = reinicio.filter(Q(fecha_planta_anterior__month__lte=fecha_actual.month) & Q(fecha_planta_anterior__day__lte=fecha_actual.day))    
-    #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año)
-    reinicio2 = reinicio2.filter(Q(fecha_planta__month__lte=fecha_actual.month) & Q(fecha_planta__day__lte=fecha_actual.day))
-    reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+    if user_filter.tipo.id == 4 or user_filter.tipo.id == 3: #Perfil RH o observador
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja=False)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
 
-    
+        #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
+        fecha_actual = date.today()
+        año_actual = str(fecha_actual.year)
+        #Busca todos los status que no tengan vacaciones del año actual (periodo)
+        status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(vacaciones__periodo=año_actual))
+        fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+        #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+        #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+        reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__lte=fecha_hace_un_año)
+        reinicio = reinicio.filter(Q(fecha_planta_anterior__month__lte=fecha_actual.month) & Q(fecha_planta_anterior__day__lte=fecha_actual.day))    
+        #Busco el fecha de planta en los que no tengan fecha de planta anterior
+        reinicio2 = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__lte=fecha_hace_un_año)
+        reinicio2 = reinicio2.filter(Q(fecha_planta__month__lte=fecha_actual.month) & Q(fecha_planta__day__lte=fecha_actual.day))
+        reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
 
-    #if reinicio:
-    for empleado in reinicio:
-            #Se calculan los días para la vacación actual
-            ahora = datetime.date.today()
-            tablas= TablaVacaciones.objects.all()
-            if empleado.fecha_planta_anterior:
-                days = empleado.fecha_planta_anterior
-            else:
-                days = empleado.fecha_planta
+        
 
-            calcular_antiguedad = relativedelta(ahora, days)
-            antiguedad = calcular_antiguedad.years
+        #if reinicio:
+        for empleado in reinicio:
+                #Se calculan los días para la vacación actual
+                ahora = datetime.date.today()
+                tablas= TablaVacaciones.objects.all()
+                if empleado.fecha_planta_anterior:
+                    days = empleado.fecha_planta_anterior
+                else:
+                    days = empleado.fecha_planta
 
-            for tabla in tablas:
-                if antiguedad >= tabla.years:
-                    dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
+                calcular_antiguedad = relativedelta(ahora, days)
+                antiguedad = calcular_antiguedad.years
 
-            vacacion = Vacaciones.objects.create(
-                complete=True,
-                status=empleado,
-                periodo=año_actual,
-                dias_de_vacaciones=dias_vacaciones,
-                fecha_inicio=None,
-                fecha_fin=None,
-                dias_disfrutados=0,
-                dia_inhabil=None,
-                total_pendiente=dias_vacaciones,
-                comentario="Generado autom. al cumplir otro año de antigüedad",
-                editado="Sistema")
-            empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
-            empleado.save()
-    if revisar_perfil.empresa == empresa_faxton:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True,empresa=empresa_faxton)
-        #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-        periodo = Vacaciones.objects.filter(
-            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
-            status__perfil__id__in=perfil.all(),
-            complete=True
-        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+                for tabla in tablas:
+                    if antiguedad >= tabla.years:
+                        dias_vacaciones = tabla.days #Se asignan los días que le tocan en esta vacación
 
-        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
-        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+                vacacion = Vacaciones.objects.create(
+                    complete=True,
+                    status=empleado,
+                    periodo=año_actual,
+                    dias_de_vacaciones=dias_vacaciones,
+                    fecha_inicio=None,
+                    fecha_fin=None,
+                    dias_disfrutados=0,
+                    dia_inhabil=None,
+                    total_pendiente=dias_vacaciones,
+                    comentario="Generado autom. al cumplir otro año de antigüedad",
+                    editado="Sistema")
+                empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
+                empleado.save()
+        if revisar_perfil.empresa == empresa_faxton:
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True,empresa=empresa_faxton)
+            #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+            periodo = Vacaciones.objects.filter(
+                Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+                status__perfil__id__in=perfil.all(),
+                complete=True
+            ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
 
-        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
-        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
+            periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
+            periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
 
-        descansos = periodo1 | periodo3
-        #descansos = descansos.exclude(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True)
+            #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
+            periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
 
-        print('proyecto: ',descansos.count())
-    elif user_filter.distrito.distrito == 'Matriz':
-        perfil = Perfil.objects.all();
+            descansos = periodo1 | periodo3
+            #descansos = descansos.exclude(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True)
 
-        #descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-        periodo = Vacaciones.objects.filter(
-            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
-            status__perfil__id__in=perfil.all(),
-            complete=True
-        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+            print('proyecto: ',descansos.count())
+        elif user_filter.distrito.distrito == 'Matriz':
+            perfil = Perfil.objects.all();
 
-        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
-        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+            #descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+            periodo = Vacaciones.objects.filter(
+                Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+                status__perfil__id__in=perfil.all(),
+                complete=True
+            ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
 
-        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
-        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
-        descansos = periodo1 | periodo3
-        descansos = descansos.exclude(status__fecha_planta_anterior__isnull=True, status__fecha_planta__isnull=True)
+            periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
+            periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
 
-        print(descansos.count())
+            #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
+            periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
+            descansos = periodo1 | periodo3
+            descansos = descansos.exclude(status__fecha_planta_anterior__isnull=True, status__fecha_planta__isnull=True)
 
-    #elif user_filter.distrito.distrito == 'Poza Rica':
-    #    perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
-    #    descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo__in=["2022", "2023"]).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+            print(descansos.count())
+
+        #elif user_filter.distrito.distrito == 'Poza Rica':
+        #    perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
+        #    descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo__in=["2022", "2023"]).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+        else:
+
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+            #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+            periodo = Vacaciones.objects.filter(
+                Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
+                status__perfil__id__in=perfil.all(),
+                complete=True
+            ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
+
+            periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
+            periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
+
+            #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
+            periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
+
+            descansos = periodo1 | periodo3
+            #descansos = descansos.exclude(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True)
+
+            print('proyecto: ',descansos.count())
+
+
+
+        vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
+        descansos = vacaciones_filter.qs
+        if request.method =='POST' and 'Excel' in request.POST:
+            return convert_excel_vacaciones(descansos)
+                    #Set up pagination
+        p = Paginator(descansos, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+
+        context= {
+            'descansos':descansos,
+            'vacaciones_filter':vacaciones_filter,
+            'salidas_list':salidas_list,
+            'baja': request.GET.get('baja', False)
+            }
+
+        return render(request, 'proyecto/TablaVacaciones.html',context)
     else:
-
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-        periodo = Vacaciones.objects.filter(
-            Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
-            status__perfil__id__in=perfil.all(),
-            complete=True
-        ).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
-
-        periodo1 = periodo.filter(periodo = año_actual) #traingo los de 2024
-        periodo2 = periodo.filter(periodo = fecha_hace_un_año.year) #traigo los del 2023
-
-        #como el perfil se repite dos veces 2023 y 2024 elimina 1 y se queda con el 2024
-        periodo3 = periodo2.exclude(status_id__in=periodo1.values('status_id'))
-
-        descansos = periodo1 | periodo3
-        #descansos = descansos.exclude(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True)
-
-        print('proyecto: ',descansos.count())
-
-
-
-    vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
-    descansos = vacaciones_filter.qs
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_vacaciones(descansos)
-                #Set up pagination
-    p = Paginator(descansos, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    context= {
-        'descansos':descansos,
-        'vacaciones_filter':vacaciones_filter,
-        'salidas_list':salidas_list,
-        'baja': request.GET.get('baja', False)
-        }
-
-    return render(request, 'proyecto/TablaVacaciones.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def FormularioEconomicos(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    
-    año_actual = str(date.today().year) #Quitar el complete_economicos a todos aquellos que ya cumplan el año de planta
-    mes_actual = datetime.date.today().month
-    dia_actual = datetime.date.today().day
-    #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
-    reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
-    reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
-    reinicio = reinicio | reinicio2
-    for empleado in reinicio:
-        empleado.complete_economicos = False
-        empleado.save()
-    if revisar_perfil.empresa == empresa_faxton:
-        empleados= Status.objects.filter(complete= True, complete_economicos = False, perfil__baja=False,perfil__empresa=empresa_faxton)
-    elif user_filter.distrito.distrito == 'Matriz':
-        empleados= Status.objects.filter(complete= True, complete_economicos = False, perfil__baja=False)
+    if user_filter.tipo.id == 4: #Perfil RH
+            
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        
+        año_actual = str(date.today().year) #Quitar el complete_economicos a todos aquellos que ya cumplan el año de planta
+        mes_actual = datetime.date.today().month
+        dia_actual = datetime.date.today().day
+        #Filtra todos aquellos con un mes y dia menor a la fecha actual, con esto ya se que cumplen más del año
+        status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
+        reinicio = status_filtrados.filter(complete=True,complete_vacaciones=True,perfil__baja=False,fecha_planta_anterior__month__lte=mes_actual,fecha_planta_anterior__day__lte=dia_actual,)
+        reinicio2 = status_filtrados.filter(complete=True, complete_vacaciones=True, perfil__baja=False, fecha_planta_anterior=None, fecha_planta__month__lte=mes_actual,fecha_planta__day__lte=dia_actual,)
+        reinicio = reinicio | reinicio2
+        for empleado in reinicio:
+            empleado.complete_economicos = False
+            empleado.save()
+        if revisar_perfil.empresa == empresa_faxton:
+            empleados= Status.objects.filter(complete= True, complete_economicos = False, perfil__baja=False,perfil__empresa=empresa_faxton)
+        elif user_filter.distrito.distrito == 'Matriz':
+            empleados= Status.objects.filter(complete= True, complete_economicos = False, perfil__baja=False)
+        else:
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
+            empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete= True, complete_economicos = False)
+
+        economico,created=Economicos.objects.get_or_create(complete=False)
+        form = EconomicosForm()
+        form.fields["status"].queryset = empleados
+        total_dias_economicos=3
+        dias_disfrutados=1
+
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            form = EconomicosForm(request.POST,instance=economico)
+            form.save(commit=False)
+
+            #Se verifica si el empleado tiene un año de antigüedad
+            if economico.status.fecha_planta_anterior:
+                days = economico.status.fecha_planta_anterior
+            else:
+                days = economico.status.fecha_planta
+            ahora = datetime.date.today()
+            año = 1
+            if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
+                antiguedad = ahora.year - days.year
+            else:
+                antiguedad = ahora.year - days.year - 1
+            if antiguedad >= año:
+
+                economico.dias_disfrutados = dias_disfrutados
+                economico.dias_pendientes = total_dias_economicos - economico.dias_disfrutados
+                periodo = economico.created_at.year
+                str(periodo)
+                economico.periodo=periodo
+                empleado = Status.objects.get(id = economico.status.id)
+                if form.is_valid():
+                    solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
+                    solicitud.status = economico.status
+                    solicitud.periodo = economico.periodo
+                    solicitud.fecha = economico.fecha
+                    solicitud.comentario = economico.comentario
+                    solicitud.autorizar = True
+                    solicitud.complete=True
+                    solicitud.save()
+                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                    economico.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
+                    messages.success(request, 'Datos capturados con exíto')
+                    economico.complete=True
+                    economico.complete_dias=False
+                    empleado.complete_economicos = True
+                    form.save()
+                    empleado.save()
+                    return redirect('Tabla_economicos')
+            else:
+                messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
+
+        context = {'form':form,'empleados':empleados,}
+
+        return render(request, 'proyecto/EconomicosForm.html',context)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
-        empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete= True, complete_economicos = False)
-
-    economico,created=Economicos.objects.get_or_create(complete=False)
-    form = EconomicosForm()
-    form.fields["status"].queryset = empleados
-    total_dias_economicos=3
-    dias_disfrutados=1
-
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = EconomicosForm(request.POST,instance=economico)
-        form.save(commit=False)
-
-        #Se verifica si el empleado tiene un año de antigüedad
-        if economico.status.fecha_planta_anterior:
-            days = economico.status.fecha_planta_anterior
-        else:
-            days = economico.status.fecha_planta
-        ahora = datetime.date.today()
-        año = 1
-        if ahora.month > days.month or (ahora.month == days.month and ahora.day >= days.day):
-            antiguedad = ahora.year - days.year
-        else:
-            antiguedad = ahora.year - days.year - 1
-        if antiguedad >= año:
-
-            economico.dias_disfrutados = dias_disfrutados
-            economico.dias_pendientes = total_dias_economicos - economico.dias_disfrutados
-            periodo = economico.created_at.year
-            str(periodo)
-            economico.periodo=periodo
-            empleado = Status.objects.get(id = economico.status.id)
-            if form.is_valid():
-                solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
-                solicitud.status = economico.status
-                solicitud.periodo = economico.periodo
-                solicitud.fecha = economico.fecha
-                solicitud.comentario = economico.comentario
-                solicitud.autorizar = True
-                solicitud.complete=True
-                solicitud.save()
-                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                economico.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
-                messages.success(request, 'Datos capturados con exíto')
-                economico.complete=True
-                economico.complete_dias=False
-                empleado.complete_economicos = True
-                form.save()
-                empleado.save()
-                return redirect('Tabla_economicos')
-        else:
-            messages.error(request, f'El empleado aún no cumple su año de antigüedad por lo que no puede solicitar vacaciones')
-
-    context = {'form':form,'empleados':empleados,}
-
-    return render(request, 'proyecto/EconomicosForm.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def EconomicosUpdate(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
-    status = Status.objects.get(id=pk)
-    economico = Economicos.objects.filter(complete=True,status=status).last()
-    form = EconomicosForm()
-    total_dias_economicos=3
-    dias_disfrutados=1
-    anterior_fecha=economico.fecha
-    anterior_dia=economico.dias_disfrutados
-    if request.method == 'POST' and 'btnSend' in request.POST:
-        form = EconomicosUpdateForm(request.POST,instance=economico)
-        fecha_form = request.POST.get('fecha')
-        year, month, day = map(int, fecha_form.split('-'))
-        fecha_form = date(year, month, day)
-        if anterior_fecha == fecha_form - timedelta(days=1):
-            messages.error(request,'Los días económicos no pueden ser seguidos')
-        else:
-            economico.status=status
-            economico.dias_disfrutados = dias_disfrutados + anterior_dia
-            economico.dias_pendientes = total_dias_economicos - economico.dias_disfrutados
-            periodo = economico.created_at.year
-            str(periodo)
-            economico.periodo=periodo
-            orden = Economicos.objects.filter(status = status.id).last()
-            orden.complete_dias=True
-            if economico.dias_disfrutados == total_dias_economicos:
-                economico.complete_dias=True
+    if user_filter.tipo.id == 4: #Perfil RH
+        status = Status.objects.get(id=pk)
+        economico = Economicos.objects.filter(complete=True,status=status).last()
+        form = EconomicosForm()
+        total_dias_economicos=3
+        dias_disfrutados=1
+        anterior_fecha=economico.fecha
+        anterior_dia=economico.dias_disfrutados
+        if request.method == 'POST' and 'btnSend' in request.POST:
+            form = EconomicosUpdateForm(request.POST,instance=economico)
+            fecha_form = request.POST.get('fecha')
+            year, month, day = map(int, fecha_form.split('-'))
+            fecha_form = date(year, month, day)
+            if anterior_fecha == fecha_form - timedelta(days=1):
+                messages.error(request,'Los días económicos no pueden ser seguidos')
             else:
-                economico.complete_dias=False
-            if form.is_valid():
-                solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
-                solicitud.status = economico.status
-                solicitud.periodo = economico.periodo
-                solicitud.fecha = economico.fecha
-                solicitud.comentario = economico.comentario
-                solicitud.autorizar = True
-                solicitud.complete=True
-                solicitud.save()
-                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                economico.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
-                messages.success(request, 'Se capturaron con exíto los datos')
-                economico.complete=True
-                orden.save()
-                form.save()
-                prenomina_dia_tomado = Economicos_dia_tomado.objects.create(prenomina=economico,fecha=economico.fecha,
-                                                        comentario=economico.comentario,editado=economico.editado)
-                return redirect('Tabla_economicos')
+                economico.status=status
+                economico.dias_disfrutados = dias_disfrutados + anterior_dia
+                economico.dias_pendientes = total_dias_economicos - economico.dias_disfrutados
+                periodo = economico.created_at.year
+                str(periodo)
+                economico.periodo=periodo
+                orden = Economicos.objects.filter(status = status.id).last()
+                orden.complete_dias=True
+                if economico.dias_disfrutados == total_dias_economicos:
+                    economico.complete_dias=True
+                else:
+                    economico.complete_dias=False
+                if form.is_valid():
+                    solicitud, created = Solicitud_economicos.objects.get_or_create(complete=False)
+                    solicitud.status = economico.status
+                    solicitud.periodo = economico.periodo
+                    solicitud.fecha = economico.fecha
+                    solicitud.comentario = economico.comentario
+                    solicitud.autorizar = True
+                    solicitud.complete=True
+                    solicitud.save()
+                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                    economico.editado = str("A:"+nombre.nombres+" "+nombre.apellidos)
+                    messages.success(request, 'Se capturaron con exíto los datos')
+                    economico.complete=True
+                    orden.save()
+                    form.save()
+                    prenomina_dia_tomado = Economicos_dia_tomado.objects.create(prenomina=economico,fecha=economico.fecha,
+                                                            comentario=economico.comentario,editado=economico.editado)
+                    return redirect('Tabla_economicos')
 
-    context = {'form':form,'economico':economico,'status':status,}
+        context = {'form':form,'economico':economico,'status':status,}
 
-    return render(request, 'proyecto/Economicos_update.html',context)
-
+        return render(request, 'proyecto/Economicos_update.html',context)
+    else:
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def Tabla_Economicos(request): #Ya esta
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    
+    if user_filter.tipo.id == 4 or user_filter.tipo.id == 3: #Perfil RH o observador
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        
 
-    #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
-    fecha_actual = date.today()
-    año_actual = str(fecha_actual.year)
-    fecha_hace_un_año = fecha_actual - relativedelta(years=1)
-    #Busca todos los status que no tengan vacaciones del año actual (periodo)
-    status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
-    #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
-    #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
-    #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__isnull = False)
-    #Busco el fecha de planta en los que no tengan fecha de planta anterior
-    reinicio = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta__isnull = False,)
-    #reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
-    if reinicio:
-        for empleado in reinicio:
-            economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None,
-                                                comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
-            empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
-            empleado.save()
-    if revisar_perfil.empresa == empresa_faxton:
-        economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
-        #economicost= economicos.last()
-        economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
-    elif user_filter.distrito.distrito == 'Matriz':
-        economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
-        #economicost= economicos.last()
-        economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+        #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
+        fecha_actual = date.today()
+        año_actual = str(fecha_actual.year)
+        fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+        #Busca todos los status que no tengan vacaciones del año actual (periodo)
+        status_filtrados = Status.objects.exclude(Q(fecha_planta_anterior__isnull=True, fecha_planta__isnull=True) |Q(economicos__periodo=año_actual))
+        #fecha_hace_un_año = fecha_actual - relativedelta(years=1)
+        #Filtra todos aquellos con un año o mas de dias con respecto a la fecha actual
+        #reinicio = status_filtrados.filter(complete=True,perfil__baja=False,fecha_planta_anterior__isnull = False)
+        #Busco el fecha de planta en los que no tengan fecha de planta anterior
+        reinicio = status_filtrados.filter(complete=True, perfil__baja=False, fecha_planta__isnull = False,)
+        #reinicio = reinicio | reinicio2 #Junto los datos de los empleados que ya tienen mas de 1 año de antiguedad
+        if reinicio:
+            for empleado in reinicio:
+                economicos = Economicos.objects.create(complete=True, status=empleado, periodo=año_actual, dias_disfrutados=0, dias_pendientes=3, fecha=None,
+                                                    comentario="Generado autom. al cumplir otro año de antigüedad", editado="Sistema")
+                empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
+                empleado.save()
+        if revisar_perfil.empresa == empresa_faxton:
+            economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+            #economicost= economicos.last()
+            economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
+        elif user_filter.distrito.distrito == 'Matriz':
+            economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+            #economicost= economicos.last()
+            economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+        else:
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+            economicos = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+            #economicost = economicos.last()
+            economicoss = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+        #economicos= Economicos.objects.filter(complete=True).annotate(Sum('dias_disfrutados'))
+        economico_filter = EconomicosFilter(request.GET, queryset=economicos)
+        economicos = economico_filter.qs
+        economico_filters = EconomicosFilter(request.GET, queryset=economicoss)
+        economicoss = economico_filters.qs
+        if request.method =='POST' and 'Excel' in request.POST:
+            return convert_excel_economicos(economicos,economicoss)
+
+                    #Set up pagination
+        p = Paginator(economicos, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+                    #Set up pagination
+        p = Paginator(economicoss, 50)
+        page = request.GET.get('page')
+        salidas_listt = p.get_page(page)
+        context= {
+            'economicos':economicos,
+            'economico_filter':economico_filter,
+            'economicoss':economicoss,
+            'economico_filters':economico_filters,
+            'salidas_list':salidas_list,
+            'salidas_listt':salidas_listt,
+            'baja': request.GET.get('baja', False)
+        }
+        return render(request, 'proyecto/Tabla_economicos.html',context)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        economicos = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
-        #economicost = economicos.last()
-        economicoss = Economicos.objects.filter(status__perfil__id__in=perfil.all(),complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
-    #economicos= Economicos.objects.filter(complete=True).annotate(Sum('dias_disfrutados'))
-    economico_filter = EconomicosFilter(request.GET, queryset=economicos)
-    economicos = economico_filter.qs
-    economico_filters = EconomicosFilter(request.GET, queryset=economicoss)
-    economicoss = economico_filters.qs
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_economicos(economicos,economicoss)
-
-                #Set up pagination
-    p = Paginator(economicos, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-                #Set up pagination
-    p = Paginator(economicoss, 50)
-    page = request.GET.get('page')
-    salidas_listt = p.get_page(page)
-    context= {
-        'economicos':economicos,
-        'economico_filter':economico_filter,
-        'economicoss':economicoss,
-        'economico_filters':economico_filters,
-        'salidas_list':salidas_list,
-        'salidas_listt':salidas_listt,
-        'baja': request.GET.get('baja', False)
-    }
-    return render(request, 'proyecto/Tabla_economicos.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def EconomicosRevisar(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
     economicos = Economicos.objects.filter(status__id=pk)
     #registros = economicos.history.filter(complete=True)
     empleado = economicos.last()
-    if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_economico_detalles(economicos,empleado)
+    if user_filter.tipo.id == 4 or (user_filter.numero_de_trabajador == empleado.status.perfil.numero_de_trabajador and user_filter.distrito == empleado.status.perfil.distrito) or user_filter.tipo.id == 3:
 
-    context = {
-        'empleado':empleado,
-        'economicos':economicos,
-        }
+        if request.method =='POST' and 'Pdf' in request.POST:
+            return reporte_pdf_economico_detalles(economicos,empleado)
 
-    return render(request, 'proyecto/Economicos_revisar.html',context)
+        context = {
+            'empleado':empleado,
+            'economicos':economicos,
+            }
+
+        return render(request, 'proyecto/Economicos_revisar.html',context)
+    else:
+        return render(request, 'revisar/403.html')
 
 @login_required(login_url='user-login')
 def Tabla_Datosbancarios(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
-    if revisar_perfil.empresa == empresa_faxton:
-        bancarios= DatosBancarios.objects.filter(complete=True,status__perfil__empresa=empresa_faxton,status__perfil__baja = False).order_by("status__perfil__numero_de_trabajador")
-    elif user_filter.distrito.distrito == 'Matriz':
-        bancarios= DatosBancarios.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
+    if user_filter.tipo.id == 4 or user_filter.tipo.id == 3: #Perfil RH o observador
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
+        empresa_faxton = Empresa.objects.get(empresa="Faxton")
+        if revisar_perfil.empresa == empresa_faxton:
+            bancarios= DatosBancarios.objects.filter(complete=True,status__perfil__empresa=empresa_faxton,status__perfil__baja = False).order_by("status__perfil__numero_de_trabajador")
+        elif user_filter.distrito.distrito == 'Matriz':
+            bancarios= DatosBancarios.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
+        else:
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+            bancarios = DatosBancarios.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
+        bancario_filter = BancariosFilter(request.GET, queryset=bancarios)
+        bancarios = bancario_filter.qs
+        for bancario in bancarios:
+            bancario.numero_de_tarjeta = str(bancario.numero_de_tarjeta)
+            bancario.clabe_interbancaria = str(bancario.clabe_interbancaria)
+        if request.method =='POST' and 'Excel' in request.POST:
+            return convert_excel_bancarios(bancarios)
+
+                    #Set up pagination
+        p = Paginator(bancarios, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+
+        context= {
+            'bancarios':bancarios,
+            'bancario_filter':bancario_filter,
+            'salidas_list':salidas_list,
+            'baja': request.GET.get('baja', False)
+            }
+
+        return render(request, 'proyecto/Tabla_Datosbancarios.html',context)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        bancarios = DatosBancarios.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
-    bancario_filter = BancariosFilter(request.GET, queryset=bancarios)
-    bancarios = bancario_filter.qs
-    for bancario in bancarios:
-        bancario.numero_de_tarjeta = str(bancario.numero_de_tarjeta)
-        bancario.clabe_interbancaria = str(bancario.clabe_interbancaria)
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_bancarios(bancarios)
-
-                #Set up pagination
-    p = Paginator(bancarios, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    context= {
-        'bancarios':bancarios,
-        'bancario_filter':bancario_filter,
-        'salidas_list':salidas_list,
-        'baja': request.GET.get('baja', False)
-        }
-
-    return render(request, 'proyecto/Tabla_Datosbancarios.html',context)
-
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def Empleado_Datosbancarios(request, pk):
-
+    user_filter = UserDatos.objects.get(user=request.user)
     empleado = Status.objects.get(id=pk)
     datos = DatosBancarios.objects.get(status__id=empleado.id)
+    if user_filter.tipo.id == 4 or (user_filter.numero_de_trabajador == datos.status.perfil.numero_de_trabajador and user_filter.distrito == datos.status.perfil.distrito) or user_filter.tipo.id == 3:
+            
+        context = {
+            'datos':datos,
+            }
 
-    context = {
-        'datos':datos,
-        }
-
-    return render(request, 'proyecto/Empleado_Datosbancarios.html',context)
-
+        return render(request, 'proyecto/Empleado_Datosbancarios.html',context)
+    else:
+        return render(request, 'revisar/403.html')
+    
 @login_required(login_url='user-login')
 def HistoryCosto(request, pk):
     costos = Costo.objects.get(id=pk)
