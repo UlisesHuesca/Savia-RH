@@ -130,7 +130,9 @@ def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):
     isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
     
     isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
-    
+
+    isr_catorcenal = calcular_subsidio(request,isr_catorcenal)
+
     print("calculo ISR: ", isr_mensual)
     
     return isr_catorcenal
@@ -394,10 +396,11 @@ def calcular_aguinaldo(prenomina):
 def calcular_subsidio(request, salario_catorcenal,):
     tabla_subsidio = TablaSubsidio.objects.all()
     for dato in tabla_subsidio:
-        if salario_catorcenal >= dato.liminf:
+        if isr_catorcenal >= ((float(dato.liminf)/30.4)*14):
             subsidio=dato.cuota
+    isr_catorcenal = isr_catorcenal- subsidio
 
-    return (subsidio)
+    return (isr_catorcenal)
 
 #Obtener el aguinaldo
 def obtener_aguinaldo(prenomina):
@@ -1061,7 +1064,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
             prestamo_fonacot = prestamo_fonacot / numero_catorcenas
             
         #Contar las incidencias        
-        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad_general= calcular_incidencias(request, prenomina, catorcena_actual)
+        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago, festivos, economicos, vacaciones, domingo_laborado,festivo_laborado,festivo_domingo_laborado= calcular_incidencias(request, prenomina, catorcena_actual)
 
         
         #numero de catorena

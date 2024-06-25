@@ -31,8 +31,8 @@ class PrenominaFilter(django_filters.FilterSet):
     nombres_apellidos = CharFilter(method='nombres_apellidos_filter', label="Search")
     empresa = django_filters.ModelChoiceFilter(queryset=Empresa.objects.all(), field_name='empleado__status__perfil__empresa__empresa')
     distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.all(), field_name='empleado__status__perfil__distrito__distrito')
-    start_date = DateFilter(field_name = 'fecha', lookup_expr='gte')
-    end_date = DateFilter(field_name = 'fecha', lookup_expr='lte')
+    start_date = DateFilter(field_name='catorcena__fecha_inicial', lookup_expr='gte')
+    end_date = DateFilter(field_name='catorcena__fecha_final', lookup_expr='lte')
     
     #incidencias = django_filters.ChoiceFilter(choices=opciones, method='filtrar_por_incidencias')
     
@@ -42,7 +42,7 @@ class PrenominaFilter(django_filters.FilterSet):
     
     class Meta:
         model = Prenomina
-        fields = ['id', 'numero_de_trabajador','nombres_apellidos','empresa','distrito','baja','start_date','end_date']
+        fields = ['id', 'numero_de_trabajador','nombres_apellidos','empresa','distrito','baja','catorcena',]
 
     def nombres_apellidos_filter(self, queryset, name, value):
         return queryset.annotate(nombres_apellidos_combined=Concat('empleado__status__perfil__nombres', Value(' '), 'empleado__status__perfil__apellidos', output_field=CharField())).filter(nombres_apellidos_combined__icontains=value)
