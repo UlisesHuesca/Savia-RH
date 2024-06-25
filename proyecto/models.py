@@ -133,9 +133,9 @@ class DatosISR(models.Model):
         return f'{self.liminf} - {self.limsup} - {self.cuota} - {self.excedente} - {self.p_ingresos} - {self.g_ingresos} - {self.subsidio}'
 
 class TablaSubsidio(models.Model):
-    liminf = models.DecimalField(max_digits=14, decimal_places=2,null=True)
+    liminf = models.DecimalField(max_digits=14, decimal_places=2,null=True) #limite inferior
     limsup = models.DecimalField(max_digits=14, decimal_places=2,null=True)
-    cuota = models.DecimalField(max_digits=14, decimal_places=2,null=True)
+    cuota = models.DecimalField(max_digits=14, decimal_places=2,null=True) #Subsidio
     def __str__(self):
         return f'{self.liminf} - {self.limsup} - {self.cuota}'
     

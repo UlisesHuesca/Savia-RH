@@ -64,13 +64,14 @@ from proyecto.models import SalarioDatos
 from .forms import PrenominaIncidenciasFormSet,IncidenciaRangoForm
 import time
 
-from calculos.utils import excel_estado_prenomina, excel_estado_prenomina_formato
+from calculos.utils import excel_estado_prenomina, excel_estado_prenomina_formato, calcular_aguinaldo_eventual, calcular_aguinaldo
 
 # Create your views here.
 
 #funcion para obtener la catorcena actual
 def obtener_catorcena():
     fecha_actual = datetime.date.today()
+    #fecha_actual = fecha_actual + datetime.timedelta(days=10)
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
     return catorcena_actual
 
@@ -498,12 +499,16 @@ def PrenominaRevisar(request, pk):
             
             #es para guardar la autorizacion - enviar la prenomina para revisión
             if 'enviar_prenomina' in request.POST:
-                revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
-                revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
-                perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                revisado_rh.perfil=perfil_rh
-                revisado_rh.comentario="Revisado por RH"
-                revisado_rh.save()
+                
+                calcular_aguinaldo_eventual(prenomina)
+                calcular_aguinaldo(prenomina)
+                
+                #revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
+                #revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
+                #perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                #revisado_rh.perfil=perfil_rh
+                #revisado_rh.comentario="Revisado por RH"
+                #revisado_rh.save()
                 
                 messages.success(request, 'Se ha enviado la prenomina para revisión')  
                 return redirect("Prenomina")

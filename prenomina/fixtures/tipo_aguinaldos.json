@@ -1,0 +1,23 @@
+[
+    {
+        "model": "prenomina.tipoaguinaldo",
+        "pk": 1,
+        "fields": {
+            "tipo": "anual" 
+        }
+    },
+    {
+        "model": "prenomina.tipoaguinaldo",
+        "pk": 2,
+        "fields": {
+            "tipo": "proporcional"
+        }
+    },
+    {
+        "model": "prenomina.tipoaguinaldo",
+        "pk": 3,
+        "fields": {
+            "tipo": "eventual"
+        }
+    }
+]

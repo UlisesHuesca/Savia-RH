@@ -146,6 +146,7 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
     else:
         print("No se debe ejecutar la tarea")
     """
+    
     usuario = UserDatos.objects.get(user__id=request.user.id)
     periodo = str(datetime.date.today().year)
 
