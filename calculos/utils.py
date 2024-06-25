@@ -134,7 +134,9 @@ def calcular_isr(request,salario,prima_dominical_isr,calulo_aguinaldo_isr,calcul
     isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
     
     isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
-    
+
+    isr_catorcenal = calcular_subsidio(request,isr_catorcenal)
+
     print("calculo ISR: ", isr_mensual)
     
     return isr_catorcenal
@@ -268,8 +270,8 @@ def calcular_aguinaldo(request,salario,prenomina):
     #print("esta es la catorcena de diciembre", catorcena_decembrina.id)
     
     #verifica si es la catorcena de diciembre para pagar el aguinaldo
-    if catorcena_actual.id == catorcena_decembrina.id:
-    #if catorcena_actual.id == 1000:
+    #if catorcena_actual.id == catorcena_decembrina.id:
+    if catorcena_actual.id == 1000:
         
         tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
         
@@ -388,13 +390,14 @@ def calcular_isr_aguinaldo(request,salario, calulo_aguinaldo_isr,calculo_aguinal
     
     return isr_catorcenal
 
-def calcular_subsidio(request, salario_catorcenal,):
+def calcular_subsidio(request, isr_catorcenal,):
     tabla_subsidio = TablaSubsidio.objects.all()
     for dato in tabla_subsidio:
-        if salario_catorcenal >= dato.liminf:
+        if isr_catorcenal >= ((float(dato.liminf)/30.4)*14):
             subsidio=dato.cuota
+    isr_catorcenal = isr_catorcenal- subsidio
 
-    return (subsidio)
+    return (isr_catorcenal)
 
 def calcular_incidencias(request, prenomina, catorcena_actual):
     # Contadores para cada tipo de incidencia
@@ -1039,7 +1042,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
             prestamo_fonacot = prestamo_fonacot / numero_catorcenas
             
         #Contar las incidencias        
-        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, festivos, economicos, vacaciones, incapacidad_enfermedad_general= calcular_incidencias(request, prenomina, catorcena_actual)
+        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago, festivos, economicos, vacaciones, domingo_laborado,festivo_laborado,festivo_domingo_laborado= calcular_incidencias(request, prenomina, catorcena_actual)
 
         
         #numero de catorena

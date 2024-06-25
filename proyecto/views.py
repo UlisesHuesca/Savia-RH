@@ -6913,10 +6913,10 @@ def TablaPrenominas(request):
 
         if ultima_autorizacion is not None:
             prenomina.valor = ultima_autorizacion.estado.tipo #Esta bien como agarra el dato de RH arriba que es el primero
-        prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
+        prenomina.estado_general = determinar_estado_general(request, ultima_autorizacion)
 
     if request.method =='POST' and 'Excel' in request.POST:
-        return Excel_estado_prenomina(prenominas, user_filter)
+        return Excel_estado_prenomina(request, prenominas, user_filter)
     
                 #Set up pagination
     p = Paginator(prenominas, 50)
@@ -6932,7 +6932,7 @@ def TablaPrenominas(request):
     return render(request, 'proyecto/PrenominaTabla.html',context)
 
 @login_required(login_url='user-login')
-def Excel_estado_prenomina(prenominas, user_filter):
+def Excel_estado_prenomina(request, prenominas, user_filter):
     from datetime import datetime
     from prenomina.models import Castigos,Permiso_goce,Permiso_sin,Incapacidades
     
@@ -7700,7 +7700,7 @@ def Excel_estado_prenomina(prenominas, user_filter):
     return(response)
 """
 @login_required(login_url='user-login')
-def determinar_estado_general(ultima_autorizacion):
+def determinar_estado_general(request, ultima_autorizacion):
     if ultima_autorizacion is None:
         return "Sin autorizaciones"
 
