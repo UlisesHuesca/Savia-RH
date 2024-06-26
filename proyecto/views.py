@@ -6934,7 +6934,7 @@ def TablaPrenominas(request):
 @login_required(login_url='user-login')
 def Excel_estado_prenomina(request, prenominas, user_filter):
     from datetime import datetime
-    from prenomina.models import Castigos,Permiso_goce,Permiso_sin,Incapacidades
+    #from prenomina.models import Castigos,Permiso_goce,Permiso_sin,Incapacidades
     
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_prenominas_' + str(datetime.now())+'.xlsx'

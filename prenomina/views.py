@@ -500,6 +500,7 @@ def PrenominaRevisar(request, pk):
             #es para guardar la autorizacion - enviar la prenomina para revisión
             if 'enviar_prenomina' in request.POST:
                 
+                #Se ejecutan los aguinaldos
                 calcular_aguinaldo_eventual(prenomina)
                 calcular_aguinaldo(prenomina)
                 
