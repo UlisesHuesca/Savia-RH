@@ -57,6 +57,8 @@ from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect
 import calendar
 
+from calculos.utils import excel_estado_prenomina
+
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
@@ -137,11 +139,8 @@ def Tabla_dias_vacaciones(request):
 def Perfil_vista(request):
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
     if user_filter.tipo.id == 4 or user_filter.tipo.id == 3: #Perfil RH o observador
-        if revisar_perfil.empresa == empresa_faxton:
-            perfiles= Perfil.objects.filter(complete=True, baja=False, empresa = empresa_faxton).order_by("numero_de_trabajador")
-        elif user_filter.distrito.distrito == 'Matriz':
+        if user_filter.distrito.distrito == 'Matriz':
             perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
         else:
             perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
@@ -6916,7 +6915,9 @@ def TablaPrenominas(request):
         prenomina.estado_general = determinar_estado_general(request, ultima_autorizacion)
 
     if request.method =='POST' and 'Excel' in request.POST:
-        return Excel_estado_prenomina(request, prenominas, user_filter)
+        #return Excel_estado_prenomina(request, prenominas, user_filter)
+        return excel_estado_prenomina(request,prenominas,user_filter)
+        
     
                 #Set up pagination
     p = Paginator(prenominas, 50)
@@ -6934,7 +6935,7 @@ def TablaPrenominas(request):
 @login_required(login_url='user-login')
 def Excel_estado_prenomina(request, prenominas, user_filter):
     from datetime import datetime
-    #from prenomina.models import Castigos,Permiso_goce,Permiso_sin,Incapacidades
+    from prenomina.models import Castigos,Permiso_goce,Permiso_sin,Incapacidades
     
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_prenominas_' + str(datetime.now())+'.xlsx'

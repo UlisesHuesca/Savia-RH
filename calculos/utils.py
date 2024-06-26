@@ -558,8 +558,9 @@ def excel_estado_prenomina(request,prenominas, user_filter):
 
     columna_max = len(columns)+2
     
+    
+    
     ahora = datetime.now()
-    #ahora = datetime.now() + timedelta(days=10)
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
          
     (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. JH}')).style = messages_style
