@@ -9,6 +9,6 @@ urlpatterns = [
     #Prenominas
     path('Prenominas/solicitudes', views.Tabla_solicitudes_prenomina, name='Prenominas_solicitudes'),
     path('revisar/<int:pk>/', views.Prenomina_Solicitud_Revisar, name='Prenomina_solicitud_revisar'),
-    path('revisar_ajax/<int:pk>/', views.prenomina_solicitudes_revisar_ajax, name='Prenomina_solicitudes_revisar_ajax'),
+    #path('revisar_ajax/<int:pk>/', views.prenomina_solicitudes_revisar_ajax, name='Prenomina_solicitudes_revisar_ajax'),
     #path('autorizar-solicutud/forbidden', views.forbidden, name="forbidden")
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

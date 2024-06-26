@@ -130,9 +130,7 @@ def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):
     isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
     
     isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
-
-    isr_catorcenal = calcular_subsidio(request,isr_catorcenal)
-
+    
     print("calculo ISR: ", isr_mensual)
     
     return isr_catorcenal
@@ -393,14 +391,20 @@ def calcular_aguinaldo(prenomina):
                         )
                         #aguinaldo_contrato.save()
                         
-def calcular_subsidio(request, salario_catorcenal,):
+def calcular_subsidio(salario, isr):
+    #el salario del empleado * catorcena
+    salario_catorcenal = Decimal(salario * 14) 
+    
+    #se obtiene el subsidio en relacion a la catorcena 14
     tabla_subsidio = TablaSubsidio.objects.all()
     for dato in tabla_subsidio:
-        if isr_catorcenal >= ((float(dato.liminf)/30.4)*14):
+        if salario_catorcenal >= ((float(dato.liminf)/30.4)*14):
             subsidio=dato.cuota
-    isr_catorcenal = isr_catorcenal- subsidio
-
-    return (isr_catorcenal)
+            
+    #Depende del salario si se aplica el subsidio o no 
+    isr = (isr - subsidio)
+    
+    return isr 
 
 #Obtener el aguinaldo
 def obtener_aguinaldo(prenomina):
@@ -410,33 +414,18 @@ def obtener_aguinaldo(prenomina):
     
     if aguinaldo:
         ahora = datetime.today()
-        ahora = datetime(2024,12,12).date()
+        #ahora = datetime(2024,12,12).date()
         catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         print(aguinaldo.catorcena.id)
         print(catorcena_actual.id)
         
         if (aguinaldo.catorcena.id + 1) == catorcena_actual.id:
-            print("Existe aguinaldo - catorcenas iguales")
             return aguinaldo
         else:
             return None        
     else:
-        print("No existe aguinaldo en la BD")
         return aguinaldo
-
-
-    aguinaldo = None
-    ahora = datetime.today()
-    ahora = datetime(2024,12,18) #DATO PRUEBA ELIMINAR
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    catorcena_diciembre = Catorcenas.objects.filter(fecha_inicial__month=12,fecha_final__month=12).last()
-    
-    if catorcena_actual.id == catorcena_diciembre.id:
-        aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id).last()
-        return aguinaldo
-    else:
-        return aguinaldo
-        
+            
 def calcular_incidencias(request, prenomina, catorcena_actual):
     # Contadores para cada tipo de incidencia
     retardos = 0
@@ -717,13 +706,19 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         
         #calcular el aguinaldo
         aguinaldo = obtener_aguinaldo(prenomina)
-        print("este ese el aguinaldo ", aguinaldo.monto)
-        if aguinaldo is None:
-            aguinaldo = 0
-                
+                    
         #realiza el calculo del ISR
         calculo_isr = calcular_isr(salario,prima_dominical,aguinaldo,prenomina,catorcena_actual)
-         
+        
+        #Como es un objeto, se sobreescribe aguinaldo para que tome un valor entero
+        if aguinaldo is None:
+            aguinaldo = 0
+        else:
+            aguinaldo = aguinaldo.monto
+            
+        #calcular el subsidio
+        total_isr = calcular_subsidio(salario, calculo_isr)
+            
         #pagos dobles de los dias laborados - domingos, domingos-laborados, festivos, festivos-domingos
         pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
         
@@ -745,9 +740,9 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         print("total: ", salario_catorcenal)
         print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
         
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical + prima_vacacional + aguinaldo.monto
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical + prima_vacacional + aguinaldo
         #IMSS y el ISR
-        total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
+        total_deducciones = prestamo_infonavit + prestamo_fonacot + total_isr + calculo_imss
         pagar_nomina = (total_percepciones - total_deducciones)
         
         #Mostrar el conteo de las incidencias del empleado    
