@@ -199,16 +199,12 @@ def Tabla_prenomina(request):
     start_time = time.time()  # Registrar el tiempo de inicio
     user_filter = UserDatos.objects.get(user=request.user)
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    empresa_faxton = Empresa.objects.get(empresa="Faxton")
     if user_filter.tipo.nombre == "RH":
         
         #llamar la fucion para obtener la catorcena actual
         catorcena_actual = obtener_catorcena()
-        
         #para traer los empleados segun el filtro
-        if revisar_perfil.empresa == empresa_faxton:
-            costo = Costo.objects.filter(complete=True, status__perfil__baja=False,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
-        elif user_filter.distrito.distrito == 'Matriz':
+        if user_filter.distrito.distrito == 'Matriz':
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
@@ -422,6 +418,9 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
             revisado.perfil = nombre
             revisado.comentario = 'Aprobación general'
             revisado.save()
+            #Se ejecutan los aguinaldos
+            calcular_aguinaldo_eventual(prenomina)
+            calcular_aguinaldo(prenomina)
         messages.success(request, 'Prenominas pendientes autorizadas automaticamente')
         return redirect('Prenomina')  # Cambia 'ruta_a_redirigir' por la URL a la que deseas redirigir después de autorizar las prenóminas
     
