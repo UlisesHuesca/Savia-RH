@@ -149,7 +149,7 @@ def Perfil_vista(request):
 
 
         if request.method =='POST' and 'Excel' in request.POST:
-            return convert_excel_perfil(perfiles)
+            return convert_excel_perfil(request,perfiles)
 
         p = Paginator(perfiles, 50)
         page = request.GET.get('page')
@@ -322,7 +322,7 @@ def Status_vista(request):
         status = status_filter.qs
 
         if request.method =='POST' and 'Excel' in request.POST:
-            return convert_excel_status(status)
+            return convert_excel_status(request,status)
 
                         #Set up pagination
         p = Paginator(status, 50)
@@ -1441,7 +1441,7 @@ def TablaCosto(request):
         comision=Decimal(0.09)
 
         if request.method =='POST' and 'Excel' in request.POST:
-            return convert_excel_costo(costos)
+            return convert_excel_costo(request, costos)
 
                     #Set up pagination
         p = Paginator(costos, 50)
@@ -1791,7 +1791,7 @@ def Tabla_Vacaciones(request): #Ya esta
         vacaciones_filter = VacacionesFilter(request.GET, queryset=descansos)
         descansos = vacaciones_filter.qs
         if request.method =='POST' and 'Excel' in request.POST:
-            return convert_excel_vacaciones(descansos)
+            return convert_excel_vacaciones(request, descansos)
                     #Set up pagination
         p = Paginator(descansos, 50)
         page = request.GET.get('page')
@@ -1983,7 +1983,7 @@ def Tabla_Economicos(request): #Ya esta
         economico_filters = EconomicosFilter(request.GET, queryset=economicoss)
         economicoss = economico_filters.qs
         if request.method =='POST' and 'Excel' in request.POST:
-            return convert_excel_economicos(economicos,economicoss)
+            return convert_excel_economicos(request, economicos,economicoss)
 
                     #Set up pagination
         p = Paginator(economicos, 50)
@@ -2042,7 +2042,7 @@ def Tabla_Datosbancarios(request):
             bancario.numero_de_tarjeta = str(bancario.numero_de_tarjeta)
             bancario.clabe_interbancaria = str(bancario.clabe_interbancaria)
         if request.method =='POST' and 'Excel' in request.POST:
-            return convert_excel_bancarios(bancarios)
+            return convert_excel_bancarios(request, bancarios)
 
                     #Set up pagination
         p = Paginator(bancarios, 50)
@@ -2096,7 +2096,7 @@ def HistoryCosto(request, pk):
     return render(request, 'proyecto/Costo_history.html',context)
 
 @login_required(login_url='user-login')
-def convert_excel_costo(costos):    
+def convert_excel_costo(request,costos):    
     response = HttpResponse(content_type="application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today()) + '.xlsx'
     wb = Workbook()
@@ -2272,7 +2272,7 @@ def convert_excel_costo_anterior(costos):
     return response
 
 @login_required(login_url='user-login')
-def convert_excel_bancarios(bancarios):
+def convert_excel_bancarios(request, bancarios):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_datos_bancarios_' + str(datetime.date.today())+'.xlsx'
     wb = Workbook()
@@ -2418,7 +2418,7 @@ def convert_excel_bonos(bonos):
     return(response)
 
 @login_required(login_url='user-login')
-def convert_excel_vacaciones(descansos):
+def convert_excel_vacaciones(request, descansos):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_vacaciones_' + str(datetime.date.today())+'.xlsx'
     wb = Workbook()
@@ -2585,7 +2585,7 @@ def convert_excel_uniformes(ropas):
     return(response)
 
 @login_required(login_url='user-login')
-def convert_excel_economicos(economicos,economicoss):
+def convert_excel_economicos(request, economicos,economicoss):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_días_economicos_' + str(datetime.date.today())+'.xlsx'
     wb = Workbook()
@@ -2661,7 +2661,7 @@ def convert_excel_economicos(economicos,economicoss):
     return(response)
 
 @login_required(login_url='user-login')
-def convert_excel_perfil(perfiles):
+def convert_excel_perfil(request,perfiles):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_empleados_' + str(datetime.date.today())+'.xlsx'
     wb = Workbook()
@@ -2823,7 +2823,7 @@ def convert_excel_perfil_baja(perfiles):
     return(response)
 
 @login_required(login_url='user-login')
-def convert_excel_status(status):
+def convert_excel_status(request, status):
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_empleados_status_' + str(datetime.date.today())+'.xlsx'
     wb = Workbook()
