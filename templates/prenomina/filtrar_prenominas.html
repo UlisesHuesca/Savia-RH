@@ -1,0 +1,142 @@
+{% extends 'partials/base.html' %}
+{% load widget_tweaks %}
+{% load tt_extras %}
+
+<html>
+<head>
+{% block title %}Prenomina revisar{% endblock %}
+</head>
+<body>
+{% block content %}
+<!-- Esta es la zona donde se crean los mensajes perrones con sweet alert -->
+<div class="row my-4">
+    <div class="col-md-4">
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == "error" %}
+                <script>
+                Swal.fire({
+                    "title":"Error",
+                    "text":"{{message}}",
+                    "icon":"error",
+                })
+                </script>
+                {% else %}
+                <script>
+                Swal.fire({
+                    "title":"Excelente",
+                    "text":"{{message}}",
+                    "icon":"success",
+                })
+                </script>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<hr>
+<hr>
+<div class="container card card-body">
+    <div class="columns is-mobile">
+        <div class="column is-half is-offset-one-quarter">
+            <h4 class="title is-size-2">Prenomina del empleado</h4>
+            <h5 class="title is-size-2">Ver detalles</h5>
+            <span class="h4">{{prenomina.empleado}}</span>
+        </div>
+        <hr>
+        <div class="card-body">
+            <div class="row">
+                <span class="h5">Solicitud generada por: {{verificado_rh.perfil.nombres}} {{verificado_rh.perfil.apellidos}}</span>
+                <span class="h5">Generada: {{verificado_rh.created_at}}</span>
+                <span class="h6">Catorcena: {{prenomina.catorcena.fecha_inicial}} al {{prenomina.catorcena.fecha_final}}</span>
+                <span class="h6">Control Tecnico: {{autorizacion1.perfil.nombres}} {{autorizacion1.perfil.apellidos}}</span>
+                <span class="h6">Comentario: {{autorizacion1.comentario}}--Fecha:{{autorizacion1.updated_at}}--Estado:{{autorizacion1.estado.tipo}}</span>
+                <span class="h6">Gerencia: {{autorizacion2.perfil.nombres}} {{autorizacion2.perfil.apellidos}}</span>
+                <span class="h6">Comentario: {{autorizacion2.comentario}}--Fecha:{{autorizacion2.updated_at}}--Estado:{{autorizacion2.estado.tipo}}</span>
+                <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <table class="table table-striped table-hover bg-white">
+                    <thead class="text-black" style="background-color: #F5F5F5;">
+                        <tr style="background-color:#2A628F;color:#ffffff;">
+                            <th>Fecha</th>
+                            <th>Incidencia</th>
+                            <th>Comentario</th>
+                            <th>Soporte</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for incidencia in incidencias %}
+                        <tr>
+                            <td>{{incidencia.fecha|date:"d/F/Y"}}</td>
+                            <td>{{incidencia.incidencia}}</td>
+                            <td>
+                                {% if incidencia.comentario %}
+                                    {{incidencia.comentario}}
+                                {% endif %}
+                            </td>
+
+                            {% if incidencia.soporte %}
+                                <td>
+                                    <small><a title="click para ver el soporte" class="btn btn-success btn-sm" href="{{ incidencia.soporte.url }}" target="_blank"><i class="fas fa-download"></i></a> Ver Soporte</small>
+                                </td>
+                            {% elif incidencia.incidencia.id == 15 %}
+                            <td>
+                                <button type="submit" name="vacaciones_pdf" class="btn btn-outline-danger" value="{{ incidencia.fecha }}">
+                                    <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                                </button>
+                            </td>
+                            {% elif incidencia.incidencia.id == 14 %}
+                            <td>
+                                <button type="submit" name="economico_pdf" class="btn btn-outline-danger" value="{{ incidencia.fecha }}">
+                                    <i class="fa-solid fa-file-pdf fa-2xl"></i>
+                                </button>
+                            </td>
+                            {% else %}
+                                <td><span class="text-muted"> No hay soporte</span></td>
+                            {% endif %}
+                           
+                            
+                            
+                        </tr>
+
+                        {% endfor %}
+                    </tbody>
+                </table>
+               
+                <br></br>
+                </form>
+                <hr>
+                <div>
+                <a href="{% url 'Prenominas_solicitudes' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // JavaScript para mostrar u ocultar el histórico al hacer clic en el botón
+    function toggleHistorico(id) {
+        var historico = document.getElementById("historico" + id);
+        if (historico.style.display === "none") {
+            historico.style.display = "table-row";  // Mostrar fila del histórico
+        } else {
+            historico.style.display = "none";  // Ocultar fila del histórico
+        }
+    }
+
+    function validarFormulario() {
+        var seleccionado = document.getElementById("id_autorizar").value;
+
+        if (seleccionado === 'default') {
+            alert('Por favor, seleccione una opción antes de enviar.');
+            return false;  // Evita que el formulario se envíe
+        }
+
+        return true;  // Permite que el formulario se envíe
+    }
+</script>
+{% endblock %}
+</body>
+</html>

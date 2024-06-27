@@ -6897,12 +6897,12 @@ def TablaPrenominas(request):
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     empresa_faxton = Empresa.objects.get(empresa="Faxton")
     if revisar_perfil.empresa == empresa_faxton:
-        prenominas= Prenomina.objects.filter(empleado__status__perfil__empresa=empresa_faxton).order_by("empleado__status__perfil__numero_de_trabajador")
+        prenominas= Prenomina.objects.filter(empleado__status__perfil__empresa=empresa_faxton).order_by("catorcena_id")
     elif user_filter.distrito.distrito == 'Matriz':
-        prenominas= Prenomina.objects.all().order_by("empleado__status__perfil__numero_de_trabajador")
+        prenominas= Prenomina.objects.all().order_by("catorcena_id")
     else:
         perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        prenominas= Prenomina.objects.filter(empleado__status__perfil__id__in=perfil.all()).order_by("empleado__status__perfil__numero_de_trabajador")
+        prenominas= Prenomina.objects.filter(empleado__status__perfil__id__in=perfil.all()).order_by("catorcena_id")
 
     prenomina_filter = PrenominaFilter(request.GET, queryset=prenominas)
     prenominas = prenomina_filter.qs
@@ -6915,11 +6915,11 @@ def TablaPrenominas(request):
         prenomina.estado_general = determinar_estado_general(request, ultima_autorizacion)
 
     if request.method =='POST' and 'Excel' in request.POST:
-        #return Excel_estado_prenomina(request, prenominas, user_filter)
-        return excel_estado_prenomina(request,prenominas,user_filter)
+        filtro = True
+        return excel_estado_prenomina(request,prenominas,filtro,user_filter)
         
     
-                #Set up pagination
+    #Set up pagination
     p = Paginator(prenominas, 50)
     page = request.GET.get('page')
     salidas_list = p.get_page(page)

@@ -55,7 +55,7 @@ def calcular_cuotas_imss(request,sdi_imss):
     return calculo_imss
 
 #CALULAR ISR
-def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):       
+def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):           
     salario_datos = SalarioDatos.objects.get()
     limite_inferior = 0
     porcentaje = 0
@@ -73,7 +73,7 @@ def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):
             print("prima dominical gravable: ", prima_dominical_isr)
             
         #PRIMA VACACIONAL
-        fecha_inicio = datetime(datetime.now().year,1,1).date()
+        fecha_inicio = datetime(catorcena.fecha_inicial.year,1,1).date()
         num_vacaciones = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado.id,incidencia_id=15,fecha__range=(fecha_inicio, catorcena.fecha_final)).count()
         prima_vacacional_isr = Decimal(num_vacaciones * salario) * salario_datos.prima_vacacional # 0.25
         print("prima vacacional ISR acumulado: ", prima_vacacional_isr)
@@ -157,14 +157,13 @@ def calcular_infonavit(request, infonavit):
     return prestamo_infonavit 
 
 #CALCULAR FONACOT
-def calcular_fonacot(request,fonacot):
+def calcular_fonacot(fonacot,catorcena_actual):
     if fonacot == 0:
         prestamo_fonacot = Decimal(0.00)
     else:
-        #Se haya la catorcena actual, y cuenta cuantas catorcenas le corresponden al mes actual
-        primer_dia_mes = datetime(datetime.now().year, datetime.now().month, 1).date()
-        ultimo_dia_mes = datetime(datetime.now().year, datetime.now().month,
-                                calendar.monthrange(datetime.now().year, datetime.now().month)[1]).date()
+        primer_dia_mes = datetime(catorcena_actual.fecha_inicial.year, catorcena_actual.fecha_inicial.month, 1).date()
+        ultimo_dia_mes = datetime(catorcena_actual.fecha_inicial.year, catorcena_actual.fecha_inicial.month,
+                                calendar.monthrange(catorcena_actual.fecha_inicial.year, catorcena_actual.fecha_inicial.month)[1]).date()
         numero_catorcenas =  Catorcenas.objects.filter(fecha_final__range=(primer_dia_mes,ultimo_dia_mes)).count()
         prestamo_fonacot = prestamo_fonacot / numero_catorcenas
         
@@ -194,7 +193,7 @@ def calcular_incidencias_aguinaldo(prenomina, fecha_inicio, fecha_fin):
     castigos = 0
     incapacidad_enfermedad = 0
     
-    incidencias = PrenominaIncidencias.objects.select_related('prenomina', 'prenomina__empleado').filter(
+    incidencias = PrenominaIncidencias.objects.filter(
         prenomina__empleado_id=prenomina.empleado_id,
         fecha__range=(fecha_inicio, fecha_fin)
     ).values('incidencia', 'complete')
@@ -216,12 +215,12 @@ def calcular_incidencias_aguinaldo(prenomina, fecha_inicio, fecha_fin):
 
     return incidencias
 
-#Calcular aguinaldo enventual
+#Calcular aguinaldo enventual - Solo registra el aguinaldo en la BD
 def calcular_aguinaldo_eventual(prenomina):
     from prenomina.views import obtener_catorcena
     """
     se realiza el calculo del registro cuando cumpla el tiempo, ademas caiga en la catorcena y se guarda en la base de datos, para guardar 
-    y se considera que se va a pagar en la siguiente catorcena. Se llama en la funcion de revisar
+    y se considera que se va a pagar en la siguiente catorcena. Se llama en la funcion de revisar y creara o se actaulizara segun sea el caso
     """ 
     tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
     salario = prenomina.empleado.status.costo.sueldo_diario
@@ -294,11 +293,11 @@ def calcular_aguinaldo_eventual(prenomina):
                 }
             )
 
-#CALCULAR AGUINALDO ANUAL O PROPORCIONAL
+#CALCULAR AGUINALDO ANUAL O PROPORCIONAL - Solo registra el aguinaldo en la BD
 def calcular_aguinaldo(prenomina):
     """
     se realiza el calculo del registro cuando cumpla el tiempo y se guarda en la base de datos, para guardar 
-    y se considera que se va a pagar en la siguiente catorcena. Sera llamada esta funcion de otra app
+    y se considera que se va a pagar en la siguiente catorcena. Sera llamada esta funcion de otra app, se creara o actualizara
     """
     #obtener la catorcena actual - se utiliza para comparar la catorcena cuando sea diciembre
     ahora = datetime.today()
@@ -309,8 +308,7 @@ def calcular_aguinaldo(prenomina):
     
     
     #verifica si es la primera catorcena de diciembre  para realizar el calculo y registro del aguinaldo - la siguiente cat se paga en la prenomina
-    #if catorcena_actual.id == cat_registro_aguinaldo.id:
-    if 1 == 1:
+    if catorcena_actual.id == cat_registro_aguinaldo.id:
         #Verifica si el aguinaldo ya fue registrado tipo_id: 1 anual, 2 proporcional, 3 eventual | solo se registrar un aguinaldo por empleado al año
         aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id, fecha__year=ahora.year).exclude(tipo_id = 3).last()
         #Para que no no haga el flujo cuando el aguinaldo ya existe
@@ -350,20 +348,7 @@ def calcular_aguinaldo(prenomina):
                         dias_pago = Decimal((dias_laborados) * 15 / 365)
                         aguinaldo = Decimal(dias_pago * salario)
                         
-                        #Se guardarda el aguinaldo - Saber la catorcena actual
-                        #ahora = datetime.today()
-                        #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-                        """
-                        aguinaldo_contrato = Aguinaldo(
-                            empleado_id = prenomina.empleado_id,
-                            monto = aguinaldo,
-                            fecha = ahora,
-                            catorcena_id = catorcena_actual.id, #considerar que se paga en la cat siguiente
-                            complete=False,
-                            tipo_id = 1, #anual
-                        )
-                        aguinaldo_contrato.save()
-                        """
+                        #Se guarda o actualiza el aguinaldo
                         aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
                             empleado_id = prenomina.empleado_id,
                             catorcena_id = catorcena_actual.id,
@@ -374,13 +359,7 @@ def calcular_aguinaldo(prenomina):
                                 'tipo_id':1, #eventual
                             }
                         )
-                        
-                        if created:
-                            print("Se creo")
-
-                        else:
-                            print("se actualizo")                        
-                                    
+                                     
                     else: #aguinaldo proporcional 
                         #No cumple el año y se obtiene el proporcional
                         fecha_final = datetime(datetime.today().year, 12, 31).date() #obtener fin de año
@@ -404,30 +383,8 @@ def calcular_aguinaldo(prenomina):
                             }
                         )
                         
-                        if created:
-                            print("Se creo")
-
-                        else:
-                            print("se actualizo")
-                                 
-                        #saber la catorcena actual
-                        #ahora = datetime.today()
-                        #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-                        #Guardar el aguinaldo
-                        """
-                        aguinaldo_contrato = Aguinaldo(
-                            empleado_id = prenomina.empleado_id,
-                            monto = aguinaldo,
-                            fecha = ahora,
-                            catorcena_id = catorcena_actual.id, #considerar que se paga en la cat siguiente
-                            complete=False,
-                            tipo_id = 2, #anual
-                        )
-                        aguinaldo_contrato.save()
-                        """
-                        
 def calcular_subsidio(salario, isr):
-    #el salario del empleado * catorcena
+    #el salario del empleado * dias de la catorcena
     salario_catorcenal = Decimal(salario * 14) 
     
     #se obtiene el subsidio en relacion a la catorcena 14
@@ -442,23 +399,20 @@ def calcular_subsidio(salario, isr):
     return isr 
 
 #Obtener el aguinaldo
-def obtener_aguinaldo(prenomina):
-    
+def obtener_aguinaldo(prenomina, catorcena):
+    #Se obtiene el aguinaldo desde la base de datos
     aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id).last()
     
-    if aguinaldo:
-        ahora = datetime.today()
-        #ahora = datetime(2024,12,12).date()
-        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        
-        if (aguinaldo.catorcena.id + 1) == catorcena_actual.id:
+    #se verifica si existe el aguinaldo | se verifica la catorcena y se paga en la siguiente
+    if aguinaldo:        
+        if (aguinaldo.catorcena.id + 1) == catorcena.id:
             return aguinaldo
         else:
             return None        
     else:
         return aguinaldo
             
-def calcular_incidencias(request, prenomina, catorcena_actual):
+def calcular_incidencias(prenomina, catorcena_actual):
     # Contadores para cada tipo de incidencia
     retardos = 0
     descansos = 0
@@ -477,7 +431,7 @@ def calcular_incidencias(request, prenomina, catorcena_actual):
     incapacidad_enfermedad = 0
     festivo_laborado = 0
     
-    #ayudan a realizar los calculos de las incidencias como variables auxiliares
+    #ayudan a realizar los calculos de las incidencias - variables auxiliares
     incapacidad_dias_pago = 0 #incapacidad enfermedad - 3 dias pago
     domingo_laborado = 0 #obtener la prima vacacional
     festivo_domingo_laborado = 0 #obtener prima vacacional festivo
@@ -542,7 +496,7 @@ def calcular_incidencias(request, prenomina, catorcena_actual):
     
 #GENERAR REPORTE PRENOMINA ACTUAL
 @login_required(login_url='user-login')
-def excel_estado_prenomina(request,prenominas, user_filter):
+def excel_estado_prenomina(request,prenominas,filtro,user_filter):        
     response= HttpResponse(content_type = "application/ms-excel")
     response['Content-Disposition'] = 'attachment; filename = Reporte_prenominas_' + str(datetime.now())+'.xlsx'
     wb = Workbook()
@@ -599,21 +553,20 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         
-    #ahora = datetime.now()
-    #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-         
     (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. JH}')).style = messages_style
     (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    (ws.cell(column = columna_max, row = 4, value='{Rango del reporte}')).style = messages_style
-    if start_date is None:
-            (ws.cell(column = columna_max, row = 5, value= 'Todas las prenominas' )).style = messages_style  
-    else:
-        (ws.cell(column = columna_max, row = 5, value= str(start_date) )).style = messages_style
-    if end_date is None:
-        (ws.cell(column = columna_max, row = 6, value= '' )).style = messages_style
-    else:  
-        (ws.cell(column = columna_max, row = 6, value=str(end_date) )).style = messages_style
     
+    if filtro == False:
+        #No se aplica el filtro de busquedas - Peticion enviada desde Prenomina app
+        prenomina = prenominas.first()
+        (ws.cell(column = columna_max, row = 4, value='{Cartorcena }')).style = messages_style
+        (ws.cell(column = columna_max, row = 5, value= str(prenomina.catorcena) )).style = messages_style
+    else:
+        #No se aplica el filtro de busquedas - Peticion enviada desde Proyecto app
+        date_range = f"{start_date} - {end_date}"
+        (ws.cell(column = columna_max, row = 4, value='{Rango de Fechas }')).style = messages_style
+        (ws.cell(column = columna_max, row = 5, value=date_range )).style = messages_style
+            
     ws.column_dimensions[get_column_letter(columna_max)].width = 50
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 50
 
@@ -630,7 +583,8 @@ def excel_estado_prenomina(request,prenominas, user_filter):
     sub_prestamo_fonacot = Decimal(0.00)
     sub_total_deducciones = Decimal(0.00)
     sub_pagar_nomina = Decimal(0.00)
-        
+    
+    #prenominas = prenominas.order_by('catorcena_id')  
     for prenomina in prenominas:
         catorcena_actual = prenomina.catorcena
                   
@@ -675,7 +629,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         prestamo_infonavit = calcular_infonavit(request,infonavit)
                                         
         #calculo del fonacot
-        prestamo_fonacot = calcular_fonacot(request,fonacot)
+        prestamo_fonacot = calcular_fonacot(fonacot,catorcena_actual)
         
         print("EMPLEADO: ",prenomina.empleado)
         print("infonavit", prestamo_infonavit)
@@ -684,7 +638,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         print("salario: ",salario)
         
         #Extrar el conteo de las incidencias de la funcion      
-        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, domingo_laborado, festivo_laborado,festivo_domingo_laborado = calcular_incidencias(request, prenomina, catorcena_actual)
+        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, domingo_laborado, festivo_laborado,festivo_domingo_laborado = calcular_incidencias(prenomina, catorcena_actual)
                 
         #numero de catorena
         catorcena_num = catorcena_actual.catorcena 
@@ -749,7 +703,7 @@ def excel_estado_prenomina(request,prenominas, user_filter):
         prima_vacacional = calcular_prima_vacacional(vacaciones,salario)
         
         #calcular el aguinaldo
-        aguinaldo = obtener_aguinaldo(prenomina)
+        aguinaldo = obtener_aguinaldo(prenomina,catorcena_actual)
                     
         #realiza el calculo del ISR
         calculo_isr = calcular_isr(salario,prima_dominical,aguinaldo,prenomina,catorcena_actual)
@@ -959,7 +913,8 @@ def obtener_fechas_con_incidencias(request, prenomina, catorcena_actual):
         12: "incapacidad_maternidad",
         13: "festivo",
         14: "economicos",
-        15: "vacaciones"
+        15: "vacaciones",
+        17: "festivo_laborado"
     }
 
     # Crear un diccionario para almacenar las fechas con su incidencia
@@ -976,6 +931,7 @@ def obtener_fechas_con_incidencias(request, prenomina, catorcena_actual):
     fechas_con_etiquetas = [(fecha, etiqueta) for fecha, etiqueta in fecha_a_etiqueta.items()]
 
     return fechas_con_etiquetas
+
 
 #GENERAR REPORTE PRENOMINA VISTA DIAS
 @login_required(login_url='user-login')
@@ -1058,143 +1014,11 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
     sub_total_bonos = Decimal(0.00)
     sub_total_percepciones = Decimal(0.00)
     sub_prestamo_infonavit = Decimal(0.00)
+    sub_calculo_isr = Decimal(0.00)
+    sub_calculo_imss = Decimal(0.00)
     sub_prestamo_fonacot = Decimal(0.00)
     sub_total_deducciones = Decimal(0.00)
     sub_pagar_nomina = Decimal(0.00)
-        
-    for prenomina in prenominas:
-        #datos para obtener los calculos de la prenomina dependiendo el empleado
-        salario_catorcenal_costo = (prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones)
-        
-        salario = Decimal(prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones) / 14
-        neto_catorcenal =  prenomina.empleado.status.costo.neto_catorcenal_sin_deducciones
-        apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
-        infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
-        fonacot = prenomina.empleado.status.costo.fonacot 
-        
-        #Fecha para obtener los bonos agregando la hora y la fecha de acuerdo a la catorcena
-        fecha_inicial = datetime.combine(catorcena_actual.fecha_inicial, datetime.min.time()) + timedelta(hours=00, minutes=00,seconds=00)
-        fecha_final = datetime.combine(catorcena_actual.fecha_final, datetime.min.time()) + timedelta(hours=23, minutes=59,seconds=59)
-        
-        total_bonos = BonoSolicitado.objects.filter(
-            trabajador_id=prenomina.empleado.status.perfil.id,
-            solicitud__fecha_autorizacion__isnull=False,
-            solicitud__fecha_autorizacion__range=(fecha_inicial, fecha_final)
-        ).aggregate(total=Sum('cantidad'))['total'] or 0
-
-        print("Total Bonos:", total_bonos)
-           
-        #calculo del infonavit
-        if infonavit == 0:
-            prestamo_infonavit = Decimal(0.00)
-        else:
-            prestamo_infonavit = Decimal((infonavit / Decimal(30.4) ) * 14 )
-       
-        #calculo del fonacot
-        if fonacot == 0:
-            prestamo_fonacot = Decimal(0.00)
-        else:
-            #Se haya la catorcena actual, y cuenta cuantas catorcenas le corresponden al mes actual
-            primer_dia_mes = datetime(datetime.now().year, datetime.now().month, 1).date()
-            ultimo_dia_mes = datetime(datetime.now().year, datetime.now().month,
-                                    calendar.monthrange(datetime.now().year, datetime.now().month)[1]).date()
-            numero_catorcenas =  Catorcenas.objects.filter(fecha_final__range=(primer_dia_mes,ultimo_dia_mes)).count()
-            prestamo_fonacot = prestamo_fonacot / numero_catorcenas
-            
-        #Contar las incidencias        
-        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago, festivos, economicos, vacaciones, domingo_laborado,festivo_laborado,festivo_domingo_laborado= calcular_incidencias(request, prenomina, catorcena_actual)
-
-        
-        #numero de catorena
-        catorcena_num = catorcena_actual.catorcena 
-        
-        incidencias = 0
-        incidencias_retardos = 0
-        
-        if faltas > 0:
-            incidencias = incidencias + faltas
-            print("Faltas: ", faltas)
-            
-        if retardos > 0:
-            incidencias_retardos = retardos // 3 #3 retardos se decuenta 1 dia
-            
-        if castigos > 0:
-            incidencias = incidencias + castigos
-            print("Castigos incidencias contadas", castigos)
-        
-        if permisos_sin_goce  > 0:
-            incidencias = incidencias + permisos_sin_goce
-        
-        pago_doble = 0  
-        if dia_extra > 0:
-            pago_doble = Decimal(dia_extra * salario)
-        
-        incapacidad = str("")   
-        incidencias_incapacidades = 0 #Modificar
-        incidencias_incapacidades_pasajes = 0          
-        incapacidades = 0         
-        cantidad_dias_vacacion = 0
-        #calculo de la prenomina - regla de tres   
-        dias_de_pago = 12
-        dias_laborados = dias_de_pago - (incidencias + incidencias_retardos + incidencias_incapacidades)
-        proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
-        proporcion_laborados = proporcion_septimos_dias + dias_laborados
-        salario_catorcenal = (proporcion_laborados * salario) + pago_doble
-        
-        print("las incidencias incapacidades", incidencias_incapacidades)
-        if incidencias_incapacidades_pasajes > 0:
-            apoyo_pasajes = (apoyo_pasajes / 12 * (12 - (incidencias + incidencias_incapacidades_pasajes))) #12 son los dias trabajados
-            print("Aqui es donde se ejecuta el codigo")
-        else:
-            apoyo_pasajes = (apoyo_pasajes / 12 * (12 - (incidencias))) #12 son los dias trabajados
-            print("Aqui no se deberia ejecutar el codigo")
-        
-        print("apoyos pasajes: ", apoyo_pasajes)
-        print("total: ", salario_catorcenal)
-        print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
-        
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos
-        total_deducciones = prestamo_infonavit + prestamo_fonacot
-        pagar_nomina = total_percepciones - total_deducciones
-        
-        if retardos == 0: 
-            retardos = ''
-        
-        if castigos == 0:
-            castigos = ''
-            
-        if permisos_con_goce == 0:
-            permisos_con_goce = ''
-            
-        if permisos_sin_goce == 0:
-            permisos_sin_goce = ''
-            
-        if descansos == 0:
-            descansos = ''
-
-        if dia_extra == 0:
-            dia_extra = ''
-                    
-        if incapacidades == 0:
-            incapacidades = ''
-        
-        if faltas == 0:
-            faltas = ''
-        
-        if comisiones == 0:
-            comisiones = ''
-            
-        if domingos == 0:
-            domingos = ''
-            
-        if festivos == 0:
-            festivos = ''
-            
-        if economicos == 0:
-            economicos = ''
-            
-        if cantidad_dias_vacacion == 0:
-            cantidad_dias_vacacion = ''
     abreviaciones = {
         "economicos": "D/E",
         "castigos": "CAS",
@@ -1209,6 +1033,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
         "descanso": "DEZ",
         "asistencia": "x",
         "domingo": "D",
+        "festivo_laborado": "FL",
     }
     abreviaciones_colores_cortas = {
         "D/E": "FF92d050",    # Verde claro
@@ -1223,10 +1048,221 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
         "PSS": "FFc00000",    # Rojo oscuro
         "DEZ": "FF00b050",    # Verde
         "x": "FFFFFF",         # Blanco
-        "D": "FFFF00"         # Amarillo
+        "D": "FFFF00",         # Amarillo
+        "FL": "FFFF00",     
     }
-    rows = []
-    for prenomina in prenominas:
+    for prenomina in prenominas:        
+        RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
+        CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
+        G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
+
+        if G is not None and G.estado.tipo == 'aprobado':
+            estado = 'aprobado'
+        elif G is not None and G.estado == 'rechazado':
+            estado = 'rechazado'
+        else:
+            estado = 'pendiente'
+
+        if RH is None:
+            RH ="Ninguno"   
+        else:
+            RH = str(RH.perfil.nombres)+(" ")+str(RH.perfil.apellidos)
+        if CT is None:
+            CT ="Ninguno"
+        else:
+            CT = str(CT.perfil.nombres)+(" ")+str(CT.perfil.apellidos)
+        if G is None:
+            G ="Ninguno"
+        else:
+            G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
+        
+        #datos para obtener los calculos de la prenomina dependiendo el empleado
+        salario = Decimal(prenomina.empleado.status.costo.sueldo_diario)
+        apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
+        infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
+        fonacot = prenomina.empleado.status.costo.fonacot 
+        sdi_imss = prenomina.empleado.status.costo.sdi_imss
+                
+        #realiza el calculo de las cuotas imss
+        calculo_imss = calcular_cuotas_imss(request,sdi_imss)
+        
+        #Obtener el total de los bonos
+        total_bonos = obtener_total_bonos(request,prenomina,catorcena_actual)
+                           
+        #calculo del infonavit
+        prestamo_infonavit = calcular_infonavit(request,infonavit)
+                                        
+        #calculo del fonacot
+        prestamo_fonacot = calcular_fonacot(request,fonacot)
+        
+        print("EMPLEADO: ",prenomina.empleado)
+        print("infonavit", prestamo_infonavit)
+        print("fonacot", prestamo_fonacot)
+        print("IMSS", calculo_imss)
+        print("salario: ",salario)
+        
+        #Extrar el conteo de las incidencias de la funcion      
+        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, domingo_laborado, festivo_laborado,festivo_domingo_laborado = calcular_incidencias(request, prenomina, catorcena_actual)
+                
+        #numero de catorena
+        catorcena_num = catorcena_actual.catorcena 
+        
+        incidencias = 0
+        incapacidades = 0
+        descuento_pasajes = 0
+        
+        if faltas > 0:
+            incidencias = incidencias + faltas
+            descuento_pasajes = descuento_pasajes + faltas
+            
+        if retardos > 0:
+            incidencias = retardos // 3 # Tres retardos se descuenta 1 dia
+            
+        if castigos > 0:
+            incidencias = incidencias + castigos
+            descuento_pasajes = descuento_pasajes + castigos
+            
+        if permisos_sin_goce  > 0:
+            incidencias = incidencias + permisos_sin_goce
+            descuento_pasajes = descuento_pasajes + permisos_sin_goce 
+            
+        #dia de descanso laborado 
+        pago_doble = 0  
+        if dia_extra > 0:
+            pago_doble = Decimal(dia_extra * (salario * 2))
+        
+        #dia de descando laborado - domingo
+        prima_dominical = 0
+        pago_doble_domingo = 0  
+        if domingo_laborado > 0:
+            pago_doble_domingo = Decimal(domingo_laborado * (salario * 2))
+            dia_extra = dia_extra + domingo_laborado
+            
+        #festivo laborado
+        pago_doble_festivo = 0
+        if festivo_laborado > 0:
+            pago_doble_festivo = Decimal(festivo_laborado * (salario * 2))
+            
+        #festivo laborado - domingo
+        pago_festivo_domingo = 0
+        if festivo_domingo_laborado > 0:
+            pago_festivo_domingo = Decimal(festivo_domingo_laborado * (salario * 2 ))
+            festivo_laborado = festivo_laborado + festivo_domingo_laborado
+            
+        if incapacidad_maternidad > 0:
+            descuento_pasajes = incapacidad_maternidad
+            
+        if incapacidad_riesgo_laboral > 0:
+            descuento_pasajes = incapacidad_riesgo_laboral
+            
+        if incapacidad_enfermedad > 0:
+            incidencias = incapacidad_enfermedad - incapacidad_dias_pago
+            descuento_pasajes = incapacidad_enfermedad
+                 
+        #calcular la prima dominical
+        prima_dominical = calcular_prima_dominical(request,festivo_domingo_laborado,domingo_laborado,salario)
+        
+        #calcular la prima vacacional
+        prima_vacacional = calcular_prima_vacacional(vacaciones,salario)
+        
+        
+        #calcular aguinaldo - siempre de ejecutara al momento de generar al reporte - verifica si es diciembre
+        calulo_aguinaldo = calcular_aguinaldo(request,salario,prenomina)
+         
+        #calcular aguinaldo eventual - siempre se ejecutara al momento de generar el reporte
+        #calcular_aguinaldo_eventual(request,salario,prenomina)
+        
+        #se realiza el calculo del aguinaldo por el tiempo del contrato, se calcula en una catorcena y se paga en la siguiente
+        """
+        aguinaldo_contrato = Aguinaldo_Contrato.objects.filter(empleado_id=prenomina.empleado.id).last()
+        calculo_aguinaldo_eventual = 0
+        if aguinaldo_contrato is not None and catorcena_actual.id == aguinaldo_contrato.catorcena:
+            calculo_aguinaldo_eventual = aguinaldo_contrato.aguinaldo # se pasa el valor del aguinaldo del contrato para ser calculado en el ISR
+            aguinaldo_contrato.complete = True #se actualiza el registro para definir que se ha pagado en la catorcena correspondiente
+            aguinaldo_contrato.save()
+        """ 
+        
+        
+        #realiza el calculo del ISR
+        calcular_aguinaldo_eventual = 0
+        calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calcular_aguinaldo_eventual,prenomina,catorcena_actual)
+         
+        #pagos dobles de los dias laborados - domingos, domingos-laborados, festivos, festivos-domingos
+        pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
+        
+        #calculo de la prenomina - regla de tres   
+        dias_de_pago = 12
+        dias_laborados = dias_de_pago - incidencias
+        print("estos son los dias laborados: ", dias_laborados)
+        proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
+        proporcion_laborados = proporcion_septimos_dias + dias_laborados
+        salario_catorcenal = (proporcion_laborados * salario) + pagos_dobles
+        print("ESTE ES EL SALARIO CATORCENAL ", salario_catorcenal)
+        
+        
+        print("ESTE ES EL APOYO PASAJES ahora: ", apoyo_pasajes)
+        apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (descuento_pasajes))
+          
+        print("apoyos pasajes: ", apoyo_pasajes)
+        print("total: ", salario_catorcenal)
+        print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
+        
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical + prima_vacacional # + calulo_aguinaldo
+        #IMSS y el ISR
+        total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
+        pagar_nomina = (total_percepciones - total_deducciones)
+               
+        if retardos == 0: 
+            retardos = ''
+        
+        if castigos == 0:
+            castigos = ''
+            
+        if permisos_con_goce  == 0:
+            permisos_con_goce  = ''
+            
+        if permisos_sin_goce  == 0:
+            permisos_sin_goce  = ''
+            
+        if descansos == 0:
+            descansos = ''
+
+        if dia_extra == 0:
+            dia_extra = ''
+                    
+        if incapacidades == 0:
+            incapacidades = ''
+            
+        if incapacidad_enfermedad == 0:
+            incapacidad_enfermedad = ''
+            
+        if incapacidad_riesgo_laboral == 0:
+            incapacidad_riesgo_laboral = ''
+            
+        if incapacidad_maternidad == 0:
+            incapacidad_maternidad = ''
+            
+        if faltas == 0:
+            faltas = ''
+        
+        if comisiones == 0:
+            comisiones = ''
+            
+        if domingos == 0:
+            domingos = ''
+            
+        if festivos == 0:
+            festivos = ''
+            
+        if festivo_laborado == 0:
+            festivo_laborado = ''
+            
+        if economicos == 0:
+            economicos  = ''
+        
+        if vacaciones == 0:
+            vacaciones = ''
+
         fechas_con_etiquetas = obtener_fechas_con_incidencias(request, prenomina, catorcena_actual)
         estados_por_dia = [abreviaciones.get(estado, estado) for _, estado in fechas_con_etiquetas]
         row = (
@@ -1236,7 +1272,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
             prenomina.empleado.status.perfil.proyecto.proyecto,
             prenomina.empleado.status.perfil.subproyecto.subproyecto,
             *estados_por_dia,  # Desempaquetar estados_por_dia aquí
-            salario_catorcenal_costo,
+            salario*14,
             salario_catorcenal,
             apoyo_pasajes,  # Prevision social pasajes
             total_bonos,
@@ -1250,7 +1286,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
         )
         rows.append(row)
         
-        sub_salario_catorcenal_costo = sub_salario_catorcenal_costo + salario_catorcenal_costo
+        sub_salario_catorcenal_costo = salario*14 + sub_salario_catorcenal_costo
         sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
         sub_apoyo_pasajes = sub_apoyo_pasajes + apoyo_pasajes
         sub_total_bonos = sub_total_bonos + total_bonos

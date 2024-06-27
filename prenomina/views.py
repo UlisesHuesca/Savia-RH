@@ -253,8 +253,8 @@ def Tabla_prenomina(request):
                     messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
         
         if request.method =='POST' and 'Excel' in request.POST:
-            #return Excel_estado_prenomina(request,prenominas, user_filter)
-            return excel_estado_prenomina(request,prenominas,user_filter)
+            filtro = False
+            return excel_estado_prenomina(request,prenominas,filtro,user_filter)
         if request.method =='POST' and 'Excel2' in request.POST:
             return excel_estado_prenomina_formato(request,prenominas, user_filter)
         
@@ -504,12 +504,12 @@ def PrenominaRevisar(request, pk):
                 calcular_aguinaldo_eventual(prenomina)
                 calcular_aguinaldo(prenomina)
                 
-                #revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
-                #revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
-                #perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                #revisado_rh.perfil=perfil_rh
-                #revisado_rh.comentario="Revisado por RH"
-                #revisado_rh.save()
+                revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
+                revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
+                perfil_rh = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                revisado_rh.perfil=perfil_rh
+                revisado_rh.comentario="Revisado por RH"
+                revisado_rh.save()
                 
                 messages.success(request, 'Se ha enviado la prenomina para revisión')  
                 return redirect("Prenomina")
@@ -697,6 +697,101 @@ def determinar_estado_general(request, ultima_autorizacion):
         return 'RH pendiente (rechazado por Gerencia)'
 
     return 'Estado no reconocido'
+
+@login_required(login_url='user-login')
+def filtrar_prenominas(request, pk):
+    user_filter = UserDatos.objects.get(user=request.user)
+    if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
+        prenomina = Prenomina.objects.get(id = pk)
+        verificado_rh = AutorizarPrenomina.objects.filter(prenomina_id=prenomina).first()
+        
+        #Se crean las fechas para ser mostradas en el template
+        fecha_inicio = prenomina.catorcena.fecha_inicial
+        fecha_fin = prenomina.catorcena.fecha_final
+
+        # Generamos la lista de fechas
+        fechas = []
+        while fecha_inicio <= fecha_fin:
+            fechas.append(fecha_inicio)
+            fecha_inicio += timedelta(days=1)
+
+        # Obtenemos las incidencias
+        get_incidencias = PrenominaIncidencias.objects.filter(prenomina_id=prenomina.id)
+        
+        # Creamos un diccionario de incidencias indexado por fecha
+        incidencias_dict = {incidencia.fecha: incidencia for incidencia in get_incidencias}
+        
+        # Preparamos los datos para el template
+        incidencias = []
+        for fecha in fechas:
+            if fecha in incidencias_dict:
+                incidencia = incidencias_dict[fecha]
+                incidencias.append({
+                    'fecha': incidencia.fecha,
+                    'incidencia': incidencia.incidencia,
+                    'comentario': incidencia.comentario,
+                    'soporte': incidencia.soporte
+                })
+            else:
+                incidencias.append({
+                    'fecha': fecha,
+                    'incidencia': 'Asistencia',
+                    'comentario':None,
+                    'soporte': None
+                })
+        
+           
+        autorizacion1 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Control Tecnico").first()
+        autorizacion2 = prenomina.autorizarprenomina_set.filter(tipo_perfil__nombre="Gerencia").first()
+
+        if request.method =='POST' and 'economico_pdf' in request.POST:
+            fecha_economico = request.POST['economico_pdf']
+            fecha_economico = parser.parse(fecha_economico).date()
+            solicitud= Solicitud_economicos.objects.get(status=prenomina.empleado.status,fecha=fecha_economico)
+            return PdfFormatoEconomicos(request, solicitud)
+        
+        if request.method =='POST' and 'vacaciones_pdf' in request.POST:
+            fecha_vacaciones = request.POST['vacaciones_pdf']
+            fecha_vacaciones = parser.parse(fecha_vacaciones).date()
+            solicitud = Solicitud_vacaciones.objects.filter(status=prenomina.empleado.status, fecha_inicio__lte=fecha_vacaciones, fecha_fin__gte=fecha_vacaciones).first()
+            return PdfFormatoVacaciones(request, solicitud)
+        
+        #Enviar autorizacion
+        if request.method == 'POST' and 'aprobar' or request.method == 'POST' and 'rechazar' in request.POST:
+            if 'aprobar' in request.POST:
+                estado = 'aprobado'
+            elif 'rechazar' in request.POST:
+                estado = 'rechazado'
+            else:
+                estado = None
+            if estado:
+                revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
+                revisado.tipo_perfil=user_filter.tipo
+                revisado.estado = Estado.objects.get(tipo=estado)
+                nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                revisado.perfil=nombre
+                comentario = request.POST.get('comentario')
+                revisado.comentario=comentario
+                revisado.save()
+                messages.success(request, 'Cambios guardados exitosamente')
+                return redirect('Prenominas_solicitudes')
+            else:
+                messages.error(request,'No se pudo procesar el estado intentalo de nuevo')
+        context = {
+            'prenomina':prenomina,
+            'verificado_rh':verificado_rh,
+            'autorizacion1':autorizacion1,
+            'autorizacion2':autorizacion2,
+            'incidencias':incidencias,
+            'fechas':fechas,
+            }
+
+        return render(request, 'prenomina/filtrar_prenominas.html',context)
+    else:
+        return render(request, 'revisar/403.html')
+    
+    
+    
 
 @login_required(login_url='user-login')
 def PdfFormatoEconomicos(request, solicitud):
