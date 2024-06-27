@@ -227,17 +227,16 @@ def calcular_aguinaldo_eventual(prenomina):
     salario = prenomina.empleado.status.costo.sueldo_diario
     mes = 0 #corresponde al mes 1er ,3er y 6to
     aguinaldo = Decimal(0.00)
+    
     if tipo_contrato == 2: #eventual
-        fecha_ingreso =  prenomina.empleado.status.fecha_ingreso #fecha ingreso  
-        
+        fecha_ingreso =  prenomina.empleado.status.fecha_ingreso #fecha ingreso
         #se lleva un registro de los aguinaldos que se van registrando - tipo eventual
         aguinaldo_registrado = Aguinaldo.objects.filter(empleado_id = prenomina.empleado.id, tipo_id = 3).last()
+        catorcena = obtener_catorcena()
         
-        if aguinaldo_registrado is None: #primer contrato
+        if aguinaldo_registrado is None or aguinaldo_registrado.catorcena.id == catorcena.id: #primer contrato
             #se realiza el calculo por los meses y por los dias laborados correspondientes a cada condicion
             fecha = fecha_ingreso + relativedelta(months=1)
-            catorcena = obtener_catorcena()
-            
             if catorcena.fecha_inicial <= fecha <= catorcena.fecha_final:
                 #verifica si cae en la catorcena 
                 #La fecha de ingreso se le suma un mes y se le pasa como parametros los rangos de incidencias para realizar el conteo
@@ -250,10 +249,8 @@ def calcular_aguinaldo_eventual(prenomina):
                 aguinaldo = dias_aguinaldo * salario
                 mes = 1
         else:
-            if aguinaldo_registrado.mes == 1: #segundo contrato
+            if aguinaldo_registrado.mes == 1 or aguinaldo_registrado.catorcena.id == catorcena.id: #catorcena.id: #segundo contrato
                 fecha = fecha_ingreso + relativedelta(months=3)
-                catorcena = obtener_catorcena()
-                
                 if catorcena.fecha_inicial <= fecha <= catorcena.fecha_final:
                     #La fecha de ingreso se le suman 3 meses y se le pasa como parametros los rangos de incidencias para realizar el conteo por los tres meses
                     fecha_ingreso = fecha_ingreso + relativedelta(months=1) #rango de fechas para el segundo contrado 
@@ -265,9 +262,8 @@ def calcular_aguinaldo_eventual(prenomina):
                     dias_aguinaldo = Decimal(dias_laborados * 15) / 365
                     aguinaldo = dias_aguinaldo * salario
                     mes = 3
-            elif aguinaldo_registrado.mes == 3: #Tercer contrato
+            elif aguinaldo_registrado.mes == 3 or aguinaldo_registrado.catorcena.id == catorcena.id: #Tercer contrato
                 fecha = fecha_ingreso + relativedelta(months=6)
-                catorcena = obtener_catorcena()
                 if catorcena.fecha_inicial <= fecha <= catorcena.fecha_final:
                     fecha_ingreso = fecha_ingreso + relativedelta(months=3)
                     fecha_fin = fecha_ingreso + relativedelta(months=3)
@@ -278,22 +274,25 @@ def calcular_aguinaldo_eventual(prenomina):
                     dias_aguinaldo = Decimal(dias_laborados * 15) / 365
                     aguinaldo = dias_aguinaldo * salario
                     mes = 6
-                            
+                    
         if aguinaldo != 0:
             #obtiene la catorcena actual y la fecha
             fecha_actual = datetime.now().date()
             catorcena = obtener_catorcena()
             #Guardar el aguinaldo
-            aguinaldo_contrato = Aguinaldo(
+            
+            aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
                 empleado_id = prenomina.empleado_id,
-                monto = aguinaldo,
-                fecha = fecha_actual,
-                catorcena_id = catorcena.id, #considerar que se paga en la cat siguiente
-                complete=False,
-                tipo_id = 3,
-                mes = mes
+                catorcena_id = catorcena.id,
+                defaults={
+                    'monto':aguinaldo,
+                    'fecha': fecha_actual,
+                    'complete': False,
+                    'tipo_id':3, #eventual
+                    'mes':mes
+                                        
+                }
             )
-            aguinaldo_contrato.save()
 
 #CALCULAR AGUINALDO ANUAL O PROPORCIONAL
 def calcular_aguinaldo(prenomina):
@@ -308,13 +307,14 @@ def calcular_aguinaldo(prenomina):
     #obtener catorcena para generar y guardar el calculo del aguinaldo | posteriormente falta pagarlo, solo se registra
     cat_registro_aguinaldo = Catorcenas.objects.filter(fecha_inicial__month=11,fecha_final__month=12).last()
     
+    
     #verifica si es la primera catorcena de diciembre  para realizar el calculo y registro del aguinaldo - la siguiente cat se paga en la prenomina
-    if catorcena_actual.id == cat_registro_aguinaldo.id:
+    #if catorcena_actual.id == cat_registro_aguinaldo.id:
+    if 1 == 1:
         #Verifica si el aguinaldo ya fue registrado tipo_id: 1 anual, 2 proporcional, 3 eventual | solo se registrar un aguinaldo por empleado al año
-        aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id, fecha__year=ahora.year).exclude(tipo_id = 3).exists()
-        
+        aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id, fecha__year=ahora.year).exclude(tipo_id = 3).last()
         #Para que no no haga el flujo cuando el aguinaldo ya existe
-        if aguinaldo == False:
+        if aguinaldo is None or aguinaldo.catorcena.id == catorcena_actual.id:
             #se obtiene el tipo de contrato que aplica para el aguinaldo
             tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id       
             salario = prenomina.empleado.status.costo.sueldo_diario
@@ -351,8 +351,9 @@ def calcular_aguinaldo(prenomina):
                         aguinaldo = Decimal(dias_pago * salario)
                         
                         #Se guardarda el aguinaldo - Saber la catorcena actual
-                        ahora = datetime.today()
-                        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+                        #ahora = datetime.today()
+                        #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+                        """
                         aguinaldo_contrato = Aguinaldo(
                             empleado_id = prenomina.empleado_id,
                             monto = aguinaldo,
@@ -362,6 +363,23 @@ def calcular_aguinaldo(prenomina):
                             tipo_id = 1, #anual
                         )
                         aguinaldo_contrato.save()
+                        """
+                        aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
+                            empleado_id = prenomina.empleado_id,
+                            catorcena_id = catorcena_actual.id,
+                            defaults={
+                                'monto':aguinaldo,
+                                'fecha': ahora,
+                                'complete': False,
+                                'tipo_id':1, #eventual
+                            }
+                        )
+                        
+                        if created:
+                            print("Se creo")
+
+                        else:
+                            print("se actualizo")                        
                                     
                     else: #aguinaldo proporcional 
                         #No cumple el año y se obtiene el proporcional
@@ -374,11 +392,29 @@ def calcular_aguinaldo(prenomina):
                         dias_laborados = dias_aguinaldo - total_incidencias   
                         dias_pago = Decimal((dias_laborados * 15)/365)
                         aguinaldo = Decimal( dias_pago * salario)
-                                    
+                           
+                        aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
+                            empleado_id = prenomina.empleado_id,
+                            catorcena_id = catorcena_actual.id,
+                            defaults={
+                                'monto':aguinaldo,
+                                'fecha': ahora,
+                                'complete': False,
+                                'tipo_id':1, #eventual
+                            }
+                        )
+                        
+                        if created:
+                            print("Se creo")
+
+                        else:
+                            print("se actualizo")
+                                 
                         #saber la catorcena actual
-                        ahora = datetime.today()
-                        catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+                        #ahora = datetime.today()
+                        #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
                         #Guardar el aguinaldo
+                        """
                         aguinaldo_contrato = Aguinaldo(
                             empleado_id = prenomina.empleado_id,
                             monto = aguinaldo,
@@ -388,6 +424,7 @@ def calcular_aguinaldo(prenomina):
                             tipo_id = 2, #anual
                         )
                         aguinaldo_contrato.save()
+                        """
                         
 def calcular_subsidio(salario, isr):
     #el salario del empleado * catorcena
@@ -558,16 +595,25 @@ def excel_estado_prenomina(request,prenominas, user_filter):
 
     columna_max = len(columns)+2
     
-    
-    
-    ahora = datetime.now()
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    if request.method == 'POST':
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        
+    #ahora = datetime.now()
+    #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
          
     (ws.cell(column = columna_max, row = 1, value='{Reporte Creado Automáticamente por Savia RH. JH}')).style = messages_style
     (ws.cell(column = columna_max, row = 2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    #(ws.cell(column = columna_max, row = 3, value='Algún dato')).style = messages_style
-    #(ws.cell(column = columna_max +1, row=3, value = 'alguna sumatoria')).style = money_resumen_style
-    (ws.cell(column = columna_max, row = 4, value=f'Catorcena: {catorcena_actual.catorcena}: {catorcena_actual.fecha_inicial.strftime("%d/%m/%Y")} - {catorcena_actual.fecha_final.strftime("%d/%m/%Y")}')).style = dato_style
+    (ws.cell(column = columna_max, row = 4, value='{Rango del reporte}')).style = messages_style
+    if start_date is None:
+            (ws.cell(column = columna_max, row = 5, value= 'Todas las prenominas' )).style = messages_style  
+    else:
+        (ws.cell(column = columna_max, row = 5, value= str(start_date) )).style = messages_style
+    if end_date is None:
+        (ws.cell(column = columna_max, row = 6, value= '' )).style = messages_style
+    else:  
+        (ws.cell(column = columna_max, row = 6, value=str(end_date) )).style = messages_style
+    
     ws.column_dimensions[get_column_letter(columna_max)].width = 50
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 50
 
@@ -585,7 +631,9 @@ def excel_estado_prenomina(request,prenominas, user_filter):
     sub_total_deducciones = Decimal(0.00)
     sub_pagar_nomina = Decimal(0.00)
         
-    for prenomina in prenominas:        
+    for prenomina in prenominas:
+        catorcena_actual = prenomina.catorcena
+                  
         RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
         CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
         G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
