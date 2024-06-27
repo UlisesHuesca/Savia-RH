@@ -254,10 +254,7 @@ def Tabla_solicitudes_prenomina(request):
         catorcena_actual = obtener_catorcena()
         
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-        empresa_faxton = Empresa.objects.get(empresa="Faxton")
-        if revisar_perfil.empresa == empresa_faxton:
-            costo = Costo.objects.filter(complete=True, status__perfil__baja=False,status__perfil__empresa=empresa_faxton).order_by("status__perfil__numero_de_trabajador")
-        elif user_filter.distrito.distrito == 'Matriz':
+        if user_filter.distrito.distrito == 'Matriz':
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
