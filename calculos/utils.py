@@ -60,6 +60,7 @@ def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):
     limite_inferior = 0
     porcentaje = 0
     cuota_fija = 0
+    
     #Salario minino queda exento
     if salario > salario_datos.Salario_minimo:
         #PRIMA DOMINICAL
@@ -70,23 +71,7 @@ def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):
         else:
             #gravable
             prima_dominical_isr = Decimal(prima_dominical_isr - salario_datos.UMA)
-            print("prima dominical gravable: ", prima_dominical_isr)
-            
-        #PRIMA VACACIONAL
-        fecha_inicio = datetime(catorcena.fecha_inicial.year,1,1).date()
-        num_vacaciones = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado.id,incidencia_id=15,fecha__range=(fecha_inicio, catorcena.fecha_final)).count()
-        prima_vacacional_isr = Decimal(num_vacaciones * salario) * salario_datos.prima_vacacional # 0.25
-        print("prima vacacional ISR acumulado: ", prima_vacacional_isr)
-        
-        if prima_vacacional_isr < (salario_datos.UMA * 15):
-            #exento
-            prima_vacacional_isr = 0
-            print("prima vacacional exenta: ",prima_vacacional_isr)
-        else:
-            #gravado
-            prima_vacacional_isr = Decimal(prima_vacacional_isr - (salario_datos.UMA * 15))
-            print("prima vacacional gravada: ",prima_vacacional_isr)
-        
+            print("prima dominical gravable: ", prima_dominical_isr)  
         #AGUINALDO
         if aguinaldo_isr is not None:
             if aguinaldo_isr.monto < (salario_datos.UMA * 30):
@@ -99,13 +84,26 @@ def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):
                 aguinaldo_isr = Decimal(aguinaldo_isr.monto - (salario_datos.UMA *30))            
         else:
             aguinaldo_isr = 0
-        
-        
+                  
     else:
         #exento
         prima_dominical_isr = 0
-        prima_vacacional_isr = 0
         aguinaldo_isr = 0
+        
+    #PRIMA VACACIONAL
+    fecha_inicio = datetime(catorcena.fecha_inicial.year,1,1).date()
+    num_vacaciones = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado.id,incidencia_id=15,fecha__range=(fecha_inicio, catorcena.fecha_final)).count()
+    prima_vacacional_isr = Decimal(num_vacaciones * salario) * salario_datos.prima_vacacional # 0.25
+    print("prima vacacional ISR acumulado: ", prima_vacacional_isr)
+    
+    if prima_vacacional_isr < (salario_datos.UMA * 15):
+        #exento
+        prima_vacacional_isr = 0
+        print("prima vacacional exenta: ",prima_vacacional_isr)
+    else:
+        #gravado
+        prima_vacacional_isr = Decimal(prima_vacacional_isr - (salario_datos.UMA * 15))
+        print("prima vacacional gravada: ",prima_vacacional_isr)
         
     #multiplicar el salario por 30.4
     salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
@@ -280,6 +278,7 @@ def calcular_aguinaldo_eventual(prenomina):
             catorcena = obtener_catorcena()
             #Guardar el aguinaldo
             
+            #Actuliza la infomacion cada que ve le de enviar en revisar la infomación siempre y cuando este en la misma catorcena
             aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
                 empleado_id = prenomina.empleado_id,
                 catorcena_id = catorcena.id,
@@ -398,7 +397,7 @@ def calcular_subsidio(salario, isr):
     #Depende del salario si se aplica el subsidio o no 
     isr = (isr - subsidio)
     
-    return isr 
+    return isr, subsidio
 
 #Obtener el aguinaldo
 def obtener_aguinaldo(prenomina, catorcena):
@@ -535,7 +534,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         
     columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce de sueldo',
                'Permiso sin goce de sueldo','Descansos','Incapacidad Enfermedad','Incapacidad Riesgo Laboral','Incapacidad Maternidad','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Festivos laborados','Economicos','Vacaciones','Salario Cartocenal',
-               'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','IMSS','Fonacot','ISR Retenido','Total deducciones','Neto a pagar en nomina']
+               'Previsión social', 'Total bonos','Prima Vacacional','Prima dominical','Aguinaldo','Total percepciones','Prestamo infonavit','IMSS','Fonacot','Subsidio','ISR Retenido','Total deducciones','Neto a pagar en nomina']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
@@ -578,11 +577,15 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
     sub_salario_catorcenal = Decimal(0.00)
     sub_apoyo_pasajes = Decimal(0.00)
     sub_total_bonos = Decimal(0.00)
+    prima_vacacional_total = Decimal(0.00)
+    prima_dominical_total = Decimal(0.00)
+    aguinaldo_total = Decimal(0.00)
     sub_total_percepciones = Decimal(0.00)
     sub_prestamo_infonavit = Decimal(0.00)
     sub_calculo_isr = Decimal(0.00)
     sub_calculo_imss = Decimal(0.00)
     sub_prestamo_fonacot = Decimal(0.00)
+    subsidio_total = Decimal(0.00)
     sub_total_deducciones = Decimal(0.00)
     sub_pagar_nomina = Decimal(0.00)
     
@@ -591,6 +594,481 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         catorcena_actual = prenomina.catorcena
         print("Prenomina: ",prenomina)
                   
+        RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
+        CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
+        G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
+
+        if G is not None and G.estado.tipo == 'aprobado':
+            estado = 'aprobado'
+        elif G is not None and G.estado == 'rechazado':
+            estado = 'rechazado'
+        else:
+            estado = 'pendiente'
+
+        if RH is None:
+            RH ="Ninguno"   
+        else:
+            RH = str(RH.perfil.nombres)+(" ")+str(RH.perfil.apellidos)
+        if CT is None:
+            CT ="Ninguno"
+        else:
+            CT = str(CT.perfil.nombres)+(" ")+str(CT.perfil.apellidos)
+        if G is None:
+            G ="Ninguno"
+        else:
+            G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
+        
+        #datos para obtener los calculos de la prenomina dependiendo el empleado
+        salario = Decimal(prenomina.empleado.status.costo.sueldo_diario)
+        apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
+        infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
+        fonacot = prenomina.empleado.status.costo.fonacot 
+        sdi_imss = prenomina.empleado.status.costo.sdi_imss
+                
+        #realiza el calculo de las cuotas imss
+        calculo_imss = calcular_cuotas_imss(request,sdi_imss)
+        
+        #obtener el total de los bonos
+        total_bonos = obtener_total_bonos(request,prenomina,catorcena_actual)
+                           
+        #calculo del infonavit
+        prestamo_infonavit = calcular_infonavit(request,infonavit)
+                                        
+        #calculo del fonacot
+        prestamo_fonacot = calcular_fonacot(fonacot,catorcena_actual)
+        
+        print("EMPLEADO: ",prenomina.empleado)
+        print("infonavit", prestamo_infonavit)
+        print("fonacot", prestamo_fonacot)
+        print("IMSS", calculo_imss)
+        print("salario: ",salario)
+        
+        #Extrar el conteo de las incidencias de la funcion      
+        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, domingo_laborado, festivo_laborado,festivo_domingo_laborado = calcular_incidencias(prenomina, catorcena_actual)
+                
+        #numero de catorena
+        catorcena_num = catorcena_actual.catorcena 
+        
+        incidencias = 0 #contador de incidencias
+        descuento_pasajes = 0 #contador de las incidencias para descontar pasajes
+        
+        if faltas > 0:
+            incidencias += faltas
+            descuento_pasajes += faltas
+            
+        if retardos > 0:
+            incidencias_retardos = retardos // 3 # Tres retardos se descuenta 1 dia
+            incidencias += incidencias_retardos
+            
+        if castigos > 0:
+            incidencias += castigos
+            descuento_pasajes += castigos
+            
+        if permisos_sin_goce  > 0:
+            incidencias += permisos_sin_goce
+            descuento_pasajes += permisos_sin_goce 
+            
+        #dia de descanso laborado 
+        pago_doble = 0  
+        if dia_extra > 0:
+            pago_doble = Decimal(dia_extra * (salario * 2))
+        
+        #dia de descando laborado - domingo
+        prima_dominical = 0
+        pago_doble_domingo = 0  
+        if domingo_laborado > 0:
+            pago_doble_domingo = Decimal(domingo_laborado * (salario * 2))
+            dia_extra = dia_extra + domingo_laborado
+            
+        #festivo laborado
+        pago_doble_festivo = 0
+        if festivo_laborado > 0:
+            pago_doble_festivo = Decimal(festivo_laborado * (salario * 2))
+            
+        #festivo laborado - domingo
+        pago_festivo_domingo = 0
+        if festivo_domingo_laborado > 0:
+            pago_festivo_domingo = Decimal(festivo_domingo_laborado * (salario * 2 ))
+            festivo_laborado = festivo_laborado + festivo_domingo_laborado
+        
+        #incapacidades 
+        if incapacidad_maternidad > 0:
+            descuento_pasajes += incapacidad_maternidad
+            
+        if incapacidad_riesgo_laboral > 0:
+            descuento_pasajes += incapacidad_riesgo_laboral
+            
+        if incapacidad_enfermedad > 0:
+            incidencias += (incapacidad_enfermedad - incapacidad_dias_pago) #solo se consideran los primeros 3 dias que caigan en la cat y no sean subsecuentes
+            descuento_pasajes += incapacidad_enfermedad #pasajes se descuentan por el total de numero de dias de la incapacidad
+                 
+        #calcular la prima dominical
+        prima_dominical = calcular_prima_dominical(festivo_domingo_laborado,domingo_laborado,salario)
+        
+        #calcular la prima vacacional
+        prima_vacacional = calcular_prima_vacacional(vacaciones,salario)
+        
+        #calcular el aguinaldo
+        aguinaldo = obtener_aguinaldo(prenomina,catorcena_actual)
+                    
+        #realiza el calculo del ISR
+        calculo_isr = calcular_isr(salario,prima_dominical,aguinaldo,prenomina,catorcena_actual)
+        
+        #Como es un objeto, se sobreescribe aguinaldo para que tome un valor entero
+        if aguinaldo is None:
+            aguinaldo = 0
+        else:
+            aguinaldo = aguinaldo.monto
+            
+        #calcular el subsidio
+        total_isr, subsidio = calcular_subsidio(salario, calculo_isr)
+            
+        #pagos dobles de los dias laborados - domingos, domingos-laborados, festivos, festivos-domingos
+        pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
+        
+        #calculo de la prenomina - regla de tres   
+        dias_de_pago = 12
+        print("total incidencias: ", incidencias)
+        dias_laborados = dias_de_pago - incidencias
+        print("estos son los dias laborados: ", dias_laborados)
+        proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
+        proporcion_laborados = proporcion_septimos_dias + dias_laborados
+        salario_catorcenal = (proporcion_laborados * salario) + pagos_dobles
+        print("ESTE ES EL SALARIO CATORCENAL ", salario_catorcenal)
+                
+        print("ESTE ES EL APOYO PASAJES ahora: ", apoyo_pasajes)
+        apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (descuento_pasajes))
+          
+        print("apoyos pasajes: ", apoyo_pasajes)
+        print("total: ", salario_catorcenal)
+        print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
+        
+        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical + prima_vacacional + aguinaldo
+        #IMSS y el ISR
+        total_deducciones = prestamo_infonavit + prestamo_fonacot + total_isr + calculo_imss
+        pagar_nomina = (total_percepciones - total_deducciones)
+        
+        #Mostrar el conteo de las incidencias del empleado    
+        if retardos == 0: 
+            retardos = ''
+        
+        if castigos == 0:
+            castigos = ''
+            
+        if permisos_con_goce  == 0:
+            permisos_con_goce  = ''
+            
+        if permisos_sin_goce  == 0:
+            permisos_sin_goce  = ''
+            
+        if descansos == 0:
+            descansos = ''
+
+        if dia_extra == 0:
+            dia_extra = ''
+            
+        if incapacidad_enfermedad == 0:
+            incapacidad_enfermedad = ''
+            
+        if incapacidad_riesgo_laboral == 0:
+            incapacidad_riesgo_laboral = ''
+            
+        if incapacidad_maternidad == 0:
+            incapacidad_maternidad = ''
+            
+        if faltas == 0:
+            faltas = ''
+        
+        if comisiones == 0:
+            comisiones = ''
+            
+        if domingos == 0:
+            domingos = ''
+            
+        if festivos == 0:
+            festivos = ''
+            
+        if festivo_laborado == 0:
+            festivo_laborado = ''
+            
+        if economicos == 0:
+            economicos  = ''
+        
+        if vacaciones == 0:
+            vacaciones = ''
+        
+        # Agregar los valores a la lista rows para cada prenomina
+        row = (
+            prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
+            prenomina.empleado.status.perfil.numero_de_trabajador,
+            prenomina.empleado.status.perfil.distrito.distrito,
+            catorcena_num,
+            str(prenomina.catorcena.fecha_inicial) + " " + str(prenomina.catorcena.fecha_final),
+            prenomina.estado_general,
+            str(RH),
+            str(CT),
+            str(G),
+            estado,
+            retardos,
+            castigos,
+            permisos_con_goce,
+            permisos_sin_goce,
+            descansos,
+            incapacidad_enfermedad,
+            incapacidad_riesgo_laboral,
+            incapacidad_maternidad,
+            faltas,
+            comisiones,
+            domingos,
+            dia_extra,
+            festivos,
+            festivo_laborado,
+            economicos,
+            vacaciones,
+            salario_catorcenal,
+            apoyo_pasajes,
+            total_bonos,
+            prima_vacacional,
+            prima_dominical,
+            aguinaldo,
+            total_percepciones,
+            prestamo_infonavit,
+            calculo_imss,
+            prestamo_fonacot,
+            subsidio,
+            calculo_isr,
+            total_deducciones,
+            pagar_nomina,
+        )
+        rows.append(row)
+        
+        #es la suma del total de cada columna
+        sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
+        sub_apoyo_pasajes = sub_apoyo_pasajes + apoyo_pasajes
+        sub_total_bonos = sub_total_bonos + total_bonos            
+        prima_vacacional_total = prima_vacacional_total + prima_vacacional
+        prima_dominical_total = prima_dominical_total + prima_dominical
+        aguinaldo_total   = aguinaldo_total + aguinaldo
+        sub_total_percepciones = sub_total_percepciones + total_percepciones
+        sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
+        sub_calculo_imss = sub_calculo_imss + calculo_imss
+        sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
+        subsidio_total = subsidio_total + subsidio
+        sub_calculo_isr = sub_calculo_isr + calculo_isr
+        sub_total_deducciones = sub_total_deducciones + total_deducciones
+        sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
+        
+    # Ahora puedes usar la lista rows como lo estás haciendo actualmente en tu código
+    for row_num, row in enumerate(rows, start=2):
+        for col_num, value in enumerate(row, start=1):
+            if col_num < 4:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+            elif col_num == 5: #fecha
+                ws.cell(row=row_num, column=col_num, value=value).style = date_style
+            elif col_num > 5 and col_num < 27: #Salario catorcenal
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+            elif col_num >= 24:
+                ws.cell(row=row_num, column=col_num, value=value).style = money_style
+            else:
+                ws.cell(row=row_num, column=col_num, value=value).style = body_style
+       
+    #Muestra la suma total de cada columna             
+    add_last_row = ['Total','','','','','','','','','','','','','','','','','','','','','','','','','',
+                    #sub_salario_catorcenal_costo,
+                    sub_salario_catorcenal,
+                    sub_apoyo_pasajes,
+                    sub_total_bonos,
+                    prima_vacacional_total,
+                    prima_dominical_total,
+                    aguinaldo_total,
+                    sub_total_percepciones,
+                    sub_prestamo_infonavit,
+                    sub_calculo_imss,
+                    sub_prestamo_fonacot,
+                    subsidio_total,
+                    sub_calculo_isr,
+                    sub_total_deducciones,
+                    sub_pagar_nomina
+                    ]
+    ws.append(add_last_row) 
+    
+    # Aplicar el estilo money_style a cada celda de la fila
+    for row in ws.iter_rows(min_row=ws.max_row, max_row=ws.max_row):
+        for cell in row:
+            cell.style = bold_money_style
+            
+    sheet = wb['Sheet']
+    wb.remove(sheet)
+    wb.save(response)
+        
+    return(response)
+
+#SE UTILIZA PARA MOSTRAR EL REPORTE CON LOS DIAS
+@login_required(login_url='user-login')
+def obtener_fechas_con_incidencias(request, prenomina, catorcena_actual):
+    # Crear lista de fechas entre fecha_inicial y fecha_final de la catorcena
+    dias_entre_fechas = [(catorcena_actual.fecha_inicial + timedelta(days=i)) for i in range((catorcena_actual.fecha_final - catorcena_actual.fecha_inicial).days + 1)]
+
+    # Obtener todas las incidencias en una sola consulta
+    todas_incidencias = PrenominaIncidencias.objects.filter(
+        prenomina__empleado_id=prenomina.empleado_id,
+        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
+    ).values('fecha', 'incidencia__id')
+
+    # Mapeo de id de incidencia a su etiqueta
+    id_to_etiqueta = {
+        1: "retardos",
+        2: "descanso",
+        3: "faltas",
+        4: "comision",
+        5: "domingo",
+        6: "dia_extra",
+        7: "castigos",
+        8: "permisos_sin_goce",
+        9: "permisos_con_goce",
+        10: "incapacidad_enfermedad_general",
+        11: "incapacidad_riesgo_laboral",
+        12: "incapacidad_maternidad",
+        13: "festivo",
+        14: "economicos",
+        15: "vacaciones",
+        17: "festivo_laborado"
+    }
+
+    # Crear un diccionario para almacenar las fechas con su incidencia
+    fecha_a_etiqueta = {fecha: "asistencia" for fecha in dias_entre_fechas}
+
+    # Asignar etiquetas a las fechas según las incidencias
+    for incidencia in todas_incidencias:
+        fecha = incidencia['fecha']
+        incidencia_id = incidencia['incidencia__id']
+        etiqueta = id_to_etiqueta.get(incidencia_id, "asistencia")
+        fecha_a_etiqueta[fecha] = etiqueta
+
+    # Crear la lista final de fechas con sus etiquetas
+    fechas_con_etiquetas = [(fecha, etiqueta) for fecha, etiqueta in fecha_a_etiqueta.items()]
+
+    return fechas_con_etiquetas
+
+#GENERAR REPORTE PRENOMINA VISTA DIAS
+@login_required(login_url='user-login')
+def excel_estado_prenomina_formato(request,prenominas, user_filter):
+    from datetime import datetime
+    
+    response= HttpResponse(content_type = "application/ms-excel")
+    response['Content-Disposition'] = 'attachment; filename = Reporte_prenomina_días_' + str(datetime.now())+'.xlsx'
+    wb = Workbook()
+    ws = wb.create_sheet(title='Reporte')
+    #Comenzar en la fila 1
+    row_num = 3
+
+    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+    head_style = NamedStyle(name = "head_style")
+    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
+    head_style.fill = PatternFill("solid", fgColor = '00003366')
+    wb.add_named_style(head_style)
+    #Create body style and adding to workbook
+    body_style = NamedStyle(name = "body_style")
+    body_style.font = Font(name ='Calibri', size = 11)
+    wb.add_named_style(body_style)
+    #Create messages style and adding to workbook
+    messages_style = NamedStyle(name = "mensajes_style")
+    messages_style.font = Font(name="Arial Narrow", size = 11)
+    wb.add_named_style(messages_style)
+    #Create date style and adding to workbook
+    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
+    date_style.font = Font(name ='Calibri', size = 11)
+    wb.add_named_style(date_style)
+    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+    money_style.font = Font(name ='Calibri', size = 11)
+    bold_money_style = NamedStyle(name='bold_money_style', number_format='$#,##0.00', font=Font(bold=True))
+    wb.add_named_style(money_style)
+    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
+    wb.add_named_style(money_resumen_style)
+    dato_style = NamedStyle(name='dato_style',number_format='DD/MM/YYYY')
+    dato_style.font = Font(name="Arial Narrow", size = 11)
+    ahora = datetime.now()
+    #ahora = datetime.now() + timedelta(days=10)
+    # todas las fechas de la catorcena actual
+    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
+    dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
+    # Generar los nombres de las columnas de los días
+    dias_columnas = [str(fecha.day) for fecha in dias_entre_fechas]
+        
+    columns = ['No.','NOMBRE DE EMPLEADO','PUESTO','PROYECTO','SUBPROYECTO','CATORCENA','FECHA','ESTADO PRENOMINA','RH','CT','GERENCIA'] + dias_columnas + ['Salario Catorcenal','Salario Catorcenal',
+               'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','IMSS','Fonacot','Total deducciones','Neto a pagar en nomina','Salario','Salario Domingo',]
+    
+    for col_num in range(len(columns)):
+        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
+        if col_num == 1:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 50
+        if col_num < 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        if col_num == 4:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
+        else:
+            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+
+
+    columna_max = len(columns)+2
+    
+    #ahora = datetime.now()
+    #ahora = datetime.now() + timedelta(days=10)
+    
+    #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+    (ws.cell(column = 1, row = 1, value='Reporte Prenomina SAVIA RH')).style = messages_style
+    (ws.cell(column = 1, row = 2, value=f'Catorcena: {catorcena_actual.catorcena}: {catorcena_actual.fecha_inicial.strftime("%d/%m/%Y")} - {catorcena_actual.fecha_final.strftime("%d/%m/%Y")}')).style = dato_style
+    ws.column_dimensions[get_column_letter(columna_max)].width = 50
+    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 50
+
+    rows = []
+
+    sub_salario_catorcenal_costo = Decimal(0.00) #Valor de referencia del costo
+    sub_salario_catorcenal = Decimal(0.00)
+    sub_apoyo_pasajes = Decimal(0.00)
+    sub_total_bonos = Decimal(0.00)
+    sub_total_percepciones = Decimal(0.00)
+    sub_prestamo_infonavit = Decimal(0.00)
+    sub_calculo_isr = Decimal(0.00)
+    sub_calculo_imss = Decimal(0.00)
+    sub_prestamo_fonacot = Decimal(0.00)
+    sub_total_deducciones = Decimal(0.00)
+    sub_pagar_nomina = Decimal(0.00)
+    abreviaciones = {
+        "economicos": "D/E",
+        "castigos": "CAS",
+        "retardos": "R",
+        "vacaciones": "V",
+        "comision": "C",
+        "faltas": "F",
+        "permisos_con_goce": "PGS",
+        "festivo": "FE",
+        "incapacidades": "I",
+        "permisos_sin_goce": "PSS",
+        "descanso": "DEZ",
+        "asistencia": "x",
+        "domingo": "D",
+        "festivo_laborado": "FL",
+    }
+    abreviaciones_colores_cortas = {
+        "D/E": "FF92d050",    # Verde claro
+        "CAS": "FF948a54",    # Marrón
+        "R": "FFe26b0a",      # Naranja
+        "V": "FF00b0f0",      # Azul claro
+        "C": "FF538dd5",      # Azul
+        "F": "FFFF0000",      # Rojo
+        "PGS": "FFfcd5b4",    # Beige
+        "FE": "FFb1a0c7",     # Púrpura claro
+        "I": "FF963634",      # Rojo oscuro
+        "PSS": "FFc00000",    # Rojo oscuro
+        "DEZ": "FF00b050",    # Verde
+        "x": "FFFFFF",         # Blanco
+        "D": "FFFF00",         # Amarillo
+        "FL": "FFFF00",     
+    }
+    for prenomina in prenominas:        
         RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
         CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
         G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
@@ -793,478 +1271,6 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         
         if vacaciones == 0:
             vacaciones = ''
-        
-        # Agregar los valores a la lista rows para cada prenomina
-        row = (
-            prenomina.empleado.status.perfil.nombres + ' ' + prenomina.empleado.status.perfil.apellidos,
-            prenomina.empleado.status.perfil.numero_de_trabajador,
-            prenomina.empleado.status.perfil.distrito.distrito,
-            catorcena_num,
-            str(prenomina.catorcena.fecha_inicial) + " " + str(prenomina.catorcena.fecha_final),
-            prenomina.estado_general,
-            str(RH),
-            str(CT),
-            str(G),
-            estado,
-            retardos,
-            castigos,
-            permisos_con_goce,
-            permisos_sin_goce,
-            descansos,
-            incapacidad_enfermedad,
-            incapacidad_riesgo_laboral,
-            incapacidad_maternidad,
-            faltas,
-            comisiones,
-            domingos,
-            dia_extra,
-            festivos,
-            festivo_laborado,
-            economicos,
-            vacaciones,
-            salario_catorcenal,
-            apoyo_pasajes,
-            total_bonos,
-            total_percepciones,
-            prestamo_infonavit,
-            calculo_imss,
-            prestamo_fonacot,
-            calculo_isr,
-            total_deducciones,
-            pagar_nomina,
-        )
-        rows.append(row)
-        
-        #es la suma del total de cada columna
-        sub_salario_catorcenal = sub_salario_catorcenal + salario_catorcenal
-        sub_apoyo_pasajes = sub_apoyo_pasajes + apoyo_pasajes
-        sub_total_bonos = sub_total_bonos + total_bonos
-        sub_total_percepciones = sub_total_percepciones + total_percepciones
-        sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
-        sub_calculo_imss = sub_calculo_imss + calculo_imss
-        sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
-        sub_calculo_isr = sub_calculo_isr + calculo_isr
-        sub_total_deducciones = sub_total_deducciones + total_deducciones
-        sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
-        
-    # Ahora puedes usar la lista rows como lo estás haciendo actualmente en tu código
-    for row_num, row in enumerate(rows, start=2):
-        for col_num, value in enumerate(row, start=1):
-            if col_num < 4:
-                ws.cell(row=row_num, column=col_num, value=value).style = body_style
-            elif col_num == 5: #fecha
-                ws.cell(row=row_num, column=col_num, value=value).style = date_style
-            elif col_num > 5 and col_num < 27: #Salario catorcenal
-                ws.cell(row=row_num, column=col_num, value=value).style = body_style
-            elif col_num >= 24:
-                ws.cell(row=row_num, column=col_num, value=value).style = money_style
-            else:
-                ws.cell(row=row_num, column=col_num, value=value).style = body_style
-       
-    #Muestra la suma total de cada columna             
-    add_last_row = ['Total','','','','','','','','','','','','','','','','','','','','','','','','','',
-                    #sub_salario_catorcenal_costo,
-                    sub_salario_catorcenal,
-                    sub_apoyo_pasajes,
-                    sub_total_bonos,
-                    sub_total_percepciones,
-                    sub_prestamo_infonavit,
-                    sub_calculo_imss,
-                    sub_prestamo_fonacot,
-                    sub_calculo_isr,
-                    sub_total_deducciones,
-                    sub_pagar_nomina
-                    ]
-    ws.append(add_last_row) 
-    
-    # Aplicar el estilo money_style a cada celda de la fila
-    for row in ws.iter_rows(min_row=ws.max_row, max_row=ws.max_row):
-        for cell in row:
-            cell.style = bold_money_style
-            
-    sheet = wb['Sheet']
-    wb.remove(sheet)
-    wb.save(response)
-        
-    return(response)
-
-#SE UTILIZA PARA MOSTRAR EL REPORTE CON LOS DIAS
-@login_required(login_url='user-login')
-def obtener_fechas_con_incidencias(request, prenomina, catorcena_actual):
-    # Crear lista de fechas entre fecha_inicial y fecha_final de la catorcena
-    dias_entre_fechas = [(catorcena_actual.fecha_inicial + timedelta(days=i)) for i in range((catorcena_actual.fecha_final - catorcena_actual.fecha_inicial).days + 1)]
-
-    # Obtener todas las incidencias en una sola consulta
-    todas_incidencias = PrenominaIncidencias.objects.filter(
-        prenomina__empleado_id=prenomina.empleado_id,
-        fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
-    ).values('fecha', 'incidencia__id')
-
-    # Mapeo de id de incidencia a su etiqueta
-    id_to_etiqueta = {
-        1: "retardos",
-        2: "descanso",
-        3: "faltas",
-        4: "comision",
-        5: "domingo",
-        6: "dia_extra",
-        7: "castigos",
-        8: "permisos_sin_goce",
-        9: "permisos_con_goce",
-        10: "incapacidad_enfermedad_general",
-        11: "incapacidad_riesgo_laboral",
-        12: "incapacidad_maternidad",
-        13: "festivo",
-        14: "economicos",
-        15: "vacaciones",
-        17: "festivo_laborado"
-    }
-
-    # Crear un diccionario para almacenar las fechas con su incidencia
-    fecha_a_etiqueta = {fecha: "asistencia" for fecha in dias_entre_fechas}
-
-    # Asignar etiquetas a las fechas según las incidencias
-    for incidencia in todas_incidencias:
-        fecha = incidencia['fecha']
-        incidencia_id = incidencia['incidencia__id']
-        etiqueta = id_to_etiqueta.get(incidencia_id, "asistencia")
-        fecha_a_etiqueta[fecha] = etiqueta
-
-    # Crear la lista final de fechas con sus etiquetas
-    fechas_con_etiquetas = [(fecha, etiqueta) for fecha, etiqueta in fecha_a_etiqueta.items()]
-
-    return fechas_con_etiquetas
-
-
-#GENERAR REPORTE PRENOMINA VISTA DIAS
-@login_required(login_url='user-login')
-def excel_estado_prenomina_formato(request,prenominas, user_filter):
-    from datetime import datetime
-    
-    response= HttpResponse(content_type = "application/ms-excel")
-    response['Content-Disposition'] = 'attachment; filename = Reporte_prenomina_días_' + str(datetime.now())+'.xlsx'
-    wb = Workbook()
-    ws = wb.create_sheet(title='Reporte')
-    #Comenzar en la fila 1
-    row_num = 3
-
-    #Create heading style and adding to workbook | Crear el estilo del encabezado y agregarlo al Workbook
-    head_style = NamedStyle(name = "head_style")
-    head_style.font = Font(name = 'Arial', color = '00FFFFFF', bold = True, size = 11)
-    head_style.fill = PatternFill("solid", fgColor = '00003366')
-    wb.add_named_style(head_style)
-    #Create body style and adding to workbook
-    body_style = NamedStyle(name = "body_style")
-    body_style.font = Font(name ='Calibri', size = 11)
-    wb.add_named_style(body_style)
-    #Create messages style and adding to workbook
-    messages_style = NamedStyle(name = "mensajes_style")
-    messages_style.font = Font(name="Arial Narrow", size = 11)
-    wb.add_named_style(messages_style)
-    #Create date style and adding to workbook
-    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
-    date_style.font = Font(name ='Calibri', size = 11)
-    wb.add_named_style(date_style)
-    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
-    money_style.font = Font(name ='Calibri', size = 11)
-    bold_money_style = NamedStyle(name='bold_money_style', number_format='$#,##0.00', font=Font(bold=True))
-    wb.add_named_style(money_style)
-    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
-    money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
-    wb.add_named_style(money_resumen_style)
-    dato_style = NamedStyle(name='dato_style',number_format='DD/MM/YYYY')
-    dato_style.font = Font(name="Arial Narrow", size = 11)
-    ahora = datetime.now()
-    #ahora = datetime.now() + timedelta(days=10)
-    # todas las fechas de la catorcena actual
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
-    dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
-    # Generar los nombres de las columnas de los días
-    dias_columnas = [str(fecha.day) for fecha in dias_entre_fechas]
-        
-    columns = ['No.','NOMBRE DE EMPLEADO','PUESTO','PROYECTO','SUBPROYECTO'] + dias_columnas + ['Salario Catorcenal','Salario Catorcenal',
-               'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','Fonacot','Total deducciones','Neto a pagar en nomina','Salario','Salario Domingo',]
-    
-    for col_num in range(len(columns)):
-        (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
-        if col_num == 1:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 50
-        if col_num < 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
-        if col_num == 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 30
-        else:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
-
-
-    columna_max = len(columns)+2
-    
-    ahora = datetime.now()
-    #ahora = datetime.now() + timedelta(days=10)
-    
-    catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    (ws.cell(column = 1, row = 1, value='Reporte Prenomina SAVIA RH')).style = messages_style
-    (ws.cell(column = 1, row = 2, value=f'Catorcena: {catorcena_actual.catorcena}: {catorcena_actual.fecha_inicial.strftime("%d/%m/%Y")} - {catorcena_actual.fecha_final.strftime("%d/%m/%Y")}')).style = dato_style
-    ws.column_dimensions[get_column_letter(columna_max)].width = 50
-    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 50
-
-    rows = []
-
-    sub_salario_catorcenal_costo = Decimal(0.00) #Valor de referencia del costo
-    sub_salario_catorcenal = Decimal(0.00)
-    sub_apoyo_pasajes = Decimal(0.00)
-    sub_total_bonos = Decimal(0.00)
-    sub_total_percepciones = Decimal(0.00)
-    sub_prestamo_infonavit = Decimal(0.00)
-    sub_calculo_isr = Decimal(0.00)
-    sub_calculo_imss = Decimal(0.00)
-    sub_prestamo_fonacot = Decimal(0.00)
-    sub_total_deducciones = Decimal(0.00)
-    sub_pagar_nomina = Decimal(0.00)
-    abreviaciones = {
-        "economicos": "D/E",
-        "castigos": "CAS",
-        "retardos": "R",
-        "vacaciones": "V",
-        "comision": "C",
-        "faltas": "F",
-        "permisos_con_goce": "PGS",
-        "festivo": "FE",
-        "incapacidades": "I",
-        "permisos_sin_goce": "PSS",
-        "descanso": "DEZ",
-        "asistencia": "x",
-        "domingo": "D",
-        "festivo_laborado": "FL",
-    }
-    abreviaciones_colores_cortas = {
-        "D/E": "FF92d050",    # Verde claro
-        "CAS": "FF948a54",    # Marrón
-        "R": "FFe26b0a",      # Naranja
-        "V": "FF00b0f0",      # Azul claro
-        "C": "FF538dd5",      # Azul
-        "F": "FFFF0000",      # Rojo
-        "PGS": "FFfcd5b4",    # Beige
-        "FE": "FFb1a0c7",     # Púrpura claro
-        "I": "FF963634",      # Rojo oscuro
-        "PSS": "FFc00000",    # Rojo oscuro
-        "DEZ": "FF00b050",    # Verde
-        "x": "FFFFFF",         # Blanco
-        "D": "FFFF00",         # Amarillo
-        "FL": "FFFF00",     
-    }
-    for prenomina in prenominas:        
-        RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
-        CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
-        G = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Gerencia").first()
-
-        if G is not None and G.estado.tipo == 'aprobado':
-            estado = 'aprobado'
-        elif G is not None and G.estado == 'rechazado':
-            estado = 'rechazado'
-        else:
-            estado = 'pendiente'
-
-        if RH is None:
-            RH ="Ninguno"   
-        else:
-            RH = str(RH.perfil.nombres)+(" ")+str(RH.perfil.apellidos)
-        if CT is None:
-            CT ="Ninguno"
-        else:
-            CT = str(CT.perfil.nombres)+(" ")+str(CT.perfil.apellidos)
-        if G is None:
-            G ="Ninguno"
-        else:
-            G = str(G.perfil.nombres)+(" ")+str(G.perfil.apellidos)
-        
-        #datos para obtener los calculos de la prenomina dependiendo el empleado
-        salario = Decimal(prenomina.empleado.status.costo.sueldo_diario)
-        apoyo_pasajes = prenomina.empleado.status.costo.apoyo_de_pasajes
-        infonavit = prenomina.empleado.status.costo.amortizacion_infonavit
-        fonacot = prenomina.empleado.status.costo.fonacot 
-        sdi_imss = prenomina.empleado.status.costo.sdi_imss
-                
-        #realiza el calculo de las cuotas imss
-        calculo_imss = calcular_cuotas_imss(request,sdi_imss)
-        
-        #Obtener el total de los bonos
-        total_bonos = obtener_total_bonos(request,prenomina,catorcena_actual)
-                           
-        #calculo del infonavit
-        prestamo_infonavit = calcular_infonavit(request,infonavit)
-                                        
-        #calculo del fonacot
-        prestamo_fonacot = calcular_fonacot(request,fonacot)
-        
-        print("EMPLEADO: ",prenomina.empleado)
-        print("infonavit", prestamo_infonavit)
-        print("fonacot", prestamo_fonacot)
-        print("IMSS", calculo_imss)
-        print("salario: ",salario)
-        
-        #Extrar el conteo de las incidencias de la funcion      
-        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, domingo_laborado, festivo_laborado,festivo_domingo_laborado = calcular_incidencias(request, prenomina, catorcena_actual)
-                
-        #numero de catorena
-        catorcena_num = catorcena_actual.catorcena 
-        
-        incidencias = 0
-        incapacidades = 0
-        descuento_pasajes = 0
-        
-        if faltas > 0:
-            incidencias = incidencias + faltas
-            descuento_pasajes = descuento_pasajes + faltas
-            
-        if retardos > 0:
-            incidencias = retardos // 3 # Tres retardos se descuenta 1 dia
-            
-        if castigos > 0:
-            incidencias = incidencias + castigos
-            descuento_pasajes = descuento_pasajes + castigos
-            
-        if permisos_sin_goce  > 0:
-            incidencias = incidencias + permisos_sin_goce
-            descuento_pasajes = descuento_pasajes + permisos_sin_goce 
-            
-        #dia de descanso laborado 
-        pago_doble = 0  
-        if dia_extra > 0:
-            pago_doble = Decimal(dia_extra * (salario * 2))
-        
-        #dia de descando laborado - domingo
-        prima_dominical = 0
-        pago_doble_domingo = 0  
-        if domingo_laborado > 0:
-            pago_doble_domingo = Decimal(domingo_laborado * (salario * 2))
-            dia_extra = dia_extra + domingo_laborado
-            
-        #festivo laborado
-        pago_doble_festivo = 0
-        if festivo_laborado > 0:
-            pago_doble_festivo = Decimal(festivo_laborado * (salario * 2))
-            
-        #festivo laborado - domingo
-        pago_festivo_domingo = 0
-        if festivo_domingo_laborado > 0:
-            pago_festivo_domingo = Decimal(festivo_domingo_laborado * (salario * 2 ))
-            festivo_laborado = festivo_laborado + festivo_domingo_laborado
-            
-        if incapacidad_maternidad > 0:
-            descuento_pasajes = incapacidad_maternidad
-            
-        if incapacidad_riesgo_laboral > 0:
-            descuento_pasajes = incapacidad_riesgo_laboral
-            
-        if incapacidad_enfermedad > 0:
-            incidencias = incapacidad_enfermedad - incapacidad_dias_pago
-            descuento_pasajes = incapacidad_enfermedad
-                 
-        #calcular la prima dominical
-        prima_dominical = calcular_prima_dominical(request,festivo_domingo_laborado,domingo_laborado,salario)
-        
-        #calcular la prima vacacional
-        prima_vacacional = calcular_prima_vacacional(vacaciones,salario)
-        
-        
-        #calcular aguinaldo - siempre de ejecutara al momento de generar al reporte - verifica si es diciembre
-        calulo_aguinaldo = calcular_aguinaldo(request,salario,prenomina)
-         
-        #calcular aguinaldo eventual - siempre se ejecutara al momento de generar el reporte
-        #calcular_aguinaldo_eventual(request,salario,prenomina)
-        
-        #se realiza el calculo del aguinaldo por el tiempo del contrato, se calcula en una catorcena y se paga en la siguiente
-        """
-        aguinaldo_contrato = Aguinaldo_Contrato.objects.filter(empleado_id=prenomina.empleado.id).last()
-        calculo_aguinaldo_eventual = 0
-        if aguinaldo_contrato is not None and catorcena_actual.id == aguinaldo_contrato.catorcena:
-            calculo_aguinaldo_eventual = aguinaldo_contrato.aguinaldo # se pasa el valor del aguinaldo del contrato para ser calculado en el ISR
-            aguinaldo_contrato.complete = True #se actualiza el registro para definir que se ha pagado en la catorcena correspondiente
-            aguinaldo_contrato.save()
-        """ 
-        
-        
-        #realiza el calculo del ISR
-        calcular_aguinaldo_eventual = 0
-        calculo_isr = calcular_isr(request,salario,prima_dominical,calulo_aguinaldo,calcular_aguinaldo_eventual,prenomina,catorcena_actual)
-         
-        #pagos dobles de los dias laborados - domingos, domingos-laborados, festivos, festivos-domingos
-        pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
-        
-        #calculo de la prenomina - regla de tres   
-        dias_de_pago = 12
-        dias_laborados = dias_de_pago - incidencias
-        print("estos son los dias laborados: ", dias_laborados)
-        proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
-        proporcion_laborados = proporcion_septimos_dias + dias_laborados
-        salario_catorcenal = (proporcion_laborados * salario) + pagos_dobles
-        print("ESTE ES EL SALARIO CATORCENAL ", salario_catorcenal)
-        
-        
-        print("ESTE ES EL APOYO PASAJES ahora: ", apoyo_pasajes)
-        apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (descuento_pasajes))
-          
-        print("apoyos pasajes: ", apoyo_pasajes)
-        print("total: ", salario_catorcenal)
-        print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
-        
-        total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical + prima_vacacional # + calulo_aguinaldo
-        #IMSS y el ISR
-        total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
-        pagar_nomina = (total_percepciones - total_deducciones)
-               
-        if retardos == 0: 
-            retardos = ''
-        
-        if castigos == 0:
-            castigos = ''
-            
-        if permisos_con_goce  == 0:
-            permisos_con_goce  = ''
-            
-        if permisos_sin_goce  == 0:
-            permisos_sin_goce  = ''
-            
-        if descansos == 0:
-            descansos = ''
-
-        if dia_extra == 0:
-            dia_extra = ''
-                    
-        if incapacidades == 0:
-            incapacidades = ''
-            
-        if incapacidad_enfermedad == 0:
-            incapacidad_enfermedad = ''
-            
-        if incapacidad_riesgo_laboral == 0:
-            incapacidad_riesgo_laboral = ''
-            
-        if incapacidad_maternidad == 0:
-            incapacidad_maternidad = ''
-            
-        if faltas == 0:
-            faltas = ''
-        
-        if comisiones == 0:
-            comisiones = ''
-            
-        if domingos == 0:
-            domingos = ''
-            
-        if festivos == 0:
-            festivos = ''
-            
-        if festivo_laborado == 0:
-            festivo_laborado = ''
-            
-        if economicos == 0:
-            economicos  = ''
-        
-        if vacaciones == 0:
-            vacaciones = ''
 
         fechas_con_etiquetas = obtener_fechas_con_incidencias(request, prenomina, catorcena_actual)
         estados_por_dia = [abreviaciones.get(estado, estado) for _, estado in fechas_con_etiquetas]
@@ -1274,6 +1280,12 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
             prenomina.empleado.status.puesto.puesto,
             prenomina.empleado.status.perfil.proyecto.proyecto,
             prenomina.empleado.status.perfil.subproyecto.subproyecto,
+            catorcena_num,
+            str(prenomina.catorcena.fecha_inicial) + " " + str(prenomina.catorcena.fecha_final),
+            prenomina.estado_general,
+            str(RH),
+            str(CT),
+            str(G),
             *estados_por_dia,  # Desempaquetar estados_por_dia aquí
             salario*14,
             salario_catorcenal,
@@ -1281,6 +1293,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
             total_bonos,
             total_percepciones,
             prestamo_infonavit,
+            calculo_imss,
             prestamo_fonacot,
             total_deducciones,
             pagar_nomina,
@@ -1295,6 +1308,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
         sub_total_bonos = sub_total_bonos + total_bonos
         sub_total_percepciones = sub_total_percepciones + total_percepciones
         sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
+        sub_calculo_imss = sub_calculo_imss + calculo_imss
         sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
         sub_total_deducciones = sub_total_deducciones + total_deducciones
         sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
@@ -1308,25 +1322,26 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
                 ws.cell(row=row_num, column=col_num, value=value).style = body_style
             elif col_num == 5:
                 ws.cell(row=row_num, column=col_num, value=value).style = date_style
-            elif 5 < col_num < 24:
+            elif 11 < col_num <= 25:
                 ws.cell(row=row_num, column=col_num, value=value).style = body_style
                 # Verificar si el valor está en la lista de abreviaciones
                 if value in abreviaciones_colores_cortas:
                     color_hex = abreviaciones_colores_cortas[value]
                     fill = PatternFill(start_color=color_hex, end_color=color_hex, fill_type="solid")
                     ws.cell(row=row_num, column=col_num).fill = fill
-            elif col_num >= 24:
+            elif col_num > 25:
                 ws.cell(row=row_num, column=col_num, value=value).style = money_style
             else:
                 ws.cell(row=row_num, column=col_num, value=value).style = body_style
 
-    add_last_row = ['Total','','','','','','','','','','','','','','','','','','',
+    add_last_row = ['Total','','','','','','','','','','','','','','','','','','','','','','','','',
                     sub_salario_catorcenal_costo,
                     sub_salario_catorcenal,
                     sub_apoyo_pasajes,
                     sub_total_bonos,
                     sub_total_percepciones,
                     sub_prestamo_infonavit,
+                    sub_calculo_imss,
                     sub_prestamo_fonacot,
                     sub_total_deducciones,
                     sub_pagar_nomina
@@ -1340,7 +1355,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
     # Aplicar el estilo a cada celda de la tabla de abreviaciones cortas con colores de fondo
     for row_num, row in enumerate(ws.iter_rows(min_row=ws.max_row - len(abreviaciones) + 1, max_row=ws.max_row), start=ws.max_row - len(abreviaciones) + 1):
         for col_num, cell in enumerate(row, start=1):
-            cell.style = bold_money_style
+            cell.style = money_style
             if cell.value is not None:
                 # Obtener el color correspondiente para la abreviación corta actual
                 color = abreviaciones_colores_cortas.get(cell.value, "FFFFFF")  # Por defecto, color blanco

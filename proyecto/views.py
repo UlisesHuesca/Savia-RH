@@ -1336,7 +1336,7 @@ def Costo_revisar(request, pk):
         costo.bono_total=locale.currency(costo.bono_total, grouping=True)
         bonototal = locale.currency(bonototal, grouping=True)
         if request.method =='POST' and 'Pdf' in request.POST:
-            return reporte_pdf_costo_detalles(costo)
+            return reporte_pdf_costo_detalles(request,costo)
         
         if request.method =='POST' and 'Pdf2' in request.POST:
             return reporte_pdf_costo_incidencias(request,costo,bonototal)
@@ -3510,7 +3510,7 @@ def reporte_pdf_uniformes(uniformes, pk):
     return FileResponse(buf, as_attachment=True, filename='Uniforme_reporte.pdf')
 
 @login_required(login_url='user-login')
-def reporte_pdf_costo_detalles(costo):
+def reporte_pdf_costo_detalles(request,costo):
     now = datetime.date.today()
     fecha = str(now)
     buf = io.BytesIO()
@@ -6819,7 +6819,7 @@ def costo_revisar_anterior(request, pk):
     costo.bono_total=locale.currency(costo.bono_total, grouping=True)
     print("bono: ",costo.bono_total)
     if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(costo)
+        return reporte_pdf_costo_detalles(request,costo)
 
     context = {'costo':costo,}
 
@@ -6856,6 +6856,7 @@ def TablaPrenominas(request):
     salidas_list = p.get_page(page)
 
     context= {
+        'user_filter':user_filter,
         'prenominas':prenominas,
         'prenomina_filter':prenomina_filter,
         'salidas_list':salidas_list,

@@ -59,10 +59,15 @@
                         <div class="col-auto">
                                 {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
                         </div>
+                        
+                        {% if user_filter.distrito.id == 1 %}
                         <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                         <div class="col-auto">
                                 {% render_field prenomina_filter.form.distrito class="form-control" %}
-                        </div>
+                        </div>    
+                        {% endif %}
+                                                    
+                        
                     <label for="prenomina_filter.form.start_date" class="col-sm-auto col-form-label text-right"><strong>Fecha inicial desde:</strong></label>
                     <div class="col-auto">
                         {% render_field prenomina_filter.form.start_date type="date" class="form-control" %}

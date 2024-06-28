@@ -119,7 +119,7 @@ def registrar_rango_incidencias(request,pk):
                 return JsonResponse({'poscondicion': 'Ya existen economicos dentro del rango de fechas especificado'}, status=422)
             
             #Busca si existe al menos una incidencia de rango en las fechas: inicio - fin y valida
-            incidencias = PrenominaIncidencias.objects.filter(prenomina__empleado_id=pk,fecha__range=[fecha_start, fecha_end]).values('id').exists()   
+            incidencias = PrenominaIncidencias.objects.filter(prenomina__empleado_id=pk,fecha__range=[fecha_start, fecha_end]).exclude(incidencia_id = 5).values('id').exists()   
             if incidencias:
                 return JsonResponse({'poscondicion': 'Ya existen incidencias dentro del rango de fechas especificado'}, status=422)
             
@@ -197,6 +197,9 @@ def registrar_rango_incidencias(request,pk):
 def Tabla_prenomina(request):
     start_time = time.time()  # Registrar el tiempo de inicio
     user_filter = UserDatos.objects.get(user=request.user)
+    
+    print("este es el filtro del usuario: ",user_filter.distrito)
+    
     revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     if user_filter.tipo.nombre == "RH":
         
@@ -204,7 +207,7 @@ def Tabla_prenomina(request):
         catorcena_actual = obtener_catorcena()
         #para traer los empleados segun el filtro
         if user_filter.distrito.distrito == 'Matriz':
-            costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+            costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
             print(costo)
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
@@ -259,6 +262,7 @@ def Tabla_prenomina(request):
         salidas_list = p.get_page(page)
 
         context = {
+            'user_filter':user_filter,
             'prenomina_filter':prenomina_filter,
             'salidas_list': salidas_list,
             'prenominas':prenominas
@@ -272,7 +276,7 @@ def Tabla_prenomina(request):
 @login_required(login_url='user-login')
 def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
     if request.user.is_authenticated:
-        nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
+        nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito) #persno que autoriza
         festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
         for prenomina in prenominas:    
             incidencias = PrenominaIncidencias.objects.filter(
