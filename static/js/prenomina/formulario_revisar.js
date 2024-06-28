@@ -109,6 +109,7 @@ document.addEventListener("DOMContentLoaded", function() {
         select.options[13].disabled = true
         select.options[14].disabled = true
         select.options[15].disabled = true
+        select.options[17].disabled = true
       
     }
 
@@ -126,6 +127,7 @@ document.addEventListener("DOMContentLoaded", function() {
             select.options[13].disabled = false
             select.options[14].disabled = false
             select.options[15].disabled = false
+            select.options[17].disabled = false
         }
     })
 

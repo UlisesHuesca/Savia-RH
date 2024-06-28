@@ -300,7 +300,8 @@ def Tabla_solicitudes_prenomina(request):
                 prenomina.ultima = ultima_rechazada.tipo_perfil.nombre
             prenomina.estado_general = determinar_estado_general(ultima_autorizacion)
         if request.method =='POST' and 'Excel' in request.POST:
-            return excel_estado_prenomina(request,prenominas, user_filter)
+            filtro = False
+            return excel_estado_prenomina(request,prenominas,filtro,user_filter)
 
         if request.method =='POST' and 'Autorizar' in request.POST:
             if user_filter.tipo.nombre ==  "Control Tecnico":

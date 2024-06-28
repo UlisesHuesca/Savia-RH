@@ -71,7 +71,6 @@ from calculos.utils import excel_estado_prenomina, excel_estado_prenomina_format
 #funcion para obtener la catorcena actual
 def obtener_catorcena():
     fecha_actual = datetime.date.today()
-    #fecha_actual = fecha_actual + datetime.timedelta(days=10)
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=fecha_actual, fecha_final__gte=fecha_actual).first()
     return catorcena_actual
 
@@ -206,6 +205,7 @@ def Tabla_prenomina(request):
         #para traer los empleados segun el filtro
         if user_filter.distrito.distrito == 'Matriz':
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
+            print(costo)
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
 
@@ -500,8 +500,8 @@ def PrenominaRevisar(request, pk):
             if 'enviar_prenomina' in request.POST:
                 
                 #Se ejecutan los aguinaldos
-                calcular_aguinaldo_eventual(prenomina)
-                calcular_aguinaldo(prenomina)
+                #calcular_aguinaldo_eventual(prenomina)
+                #calcular_aguinaldo(prenomina)
                 
                 revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
                 revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado

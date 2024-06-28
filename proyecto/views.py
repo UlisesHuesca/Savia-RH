@@ -1426,7 +1426,7 @@ def Empleado_Costo(request, pk):
 @login_required(login_url='user-login')
 def TablaCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id == 4: #Perfil RH
+    if user_filter.tipo.id in (4,8): #Perfil RH
             
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         if user_filter.distrito.distrito == 'Matriz':

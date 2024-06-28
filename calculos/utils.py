@@ -165,7 +165,7 @@ def calcular_fonacot(fonacot,catorcena_actual):
         ultimo_dia_mes = datetime(catorcena_actual.fecha_inicial.year, catorcena_actual.fecha_inicial.month,
                                 calendar.monthrange(catorcena_actual.fecha_inicial.year, catorcena_actual.fecha_inicial.month)[1]).date()
         numero_catorcenas =  Catorcenas.objects.filter(fecha_final__range=(primer_dia_mes,ultimo_dia_mes)).count()
-        prestamo_fonacot = prestamo_fonacot / numero_catorcenas
+        prestamo_fonacot = fonacot / numero_catorcenas
         
     return prestamo_fonacot
 
@@ -387,6 +387,8 @@ def calcular_subsidio(salario, isr):
     #el salario del empleado * dias de la catorcena
     salario_catorcenal = Decimal(salario * 14) 
     
+    subsidio = 0
+    
     #se obtiene el subsidio en relacion a la catorcena 14
     tabla_subsidio = TablaSubsidio.objects.all()
     for dato in tabla_subsidio:
@@ -587,6 +589,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
     #prenominas = prenominas.order_by('catorcena_id')  
     for prenomina in prenominas:
         catorcena_actual = prenomina.catorcena
+        print("Prenomina: ",prenomina)
                   
         RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
         CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
