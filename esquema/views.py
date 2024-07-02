@@ -160,7 +160,7 @@ def crearSolicitudBonosVarilleros(request):
     usuario = request.user  
     
     #Todos los supervisores pueden crear solicitudes
-    if usuario.userdatos.tipo_id == 5:
+    if usuario.userdatos.tipo_id in (5,4):
         superintendente = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=6).values('numero_de_trabajador').first()
         perfil_superintendente = Perfil.objects.filter(numero_de_trabajador = superintendente['numero_de_trabajador']).values('id').first() 
         #se obtiene el usuario logueado
@@ -173,7 +173,8 @@ def crearSolicitudBonosVarilleros(request):
         requerimientoForm = RequerimientoForm()
         #se hace una consulta con los empleados del distrito que pertenecen
         #empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
-        empleados = Perfil.objects.filter(empresa_id = 5).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
+        #empleados = Perfil.objects.filter(empresa_id = 5).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
+        empleados = Perfil.objects.filter(distrito_id = usuario.distrito.id).exclude(numero_de_trabajador = usuario.numero_de_trabajador).exclude(baja = 1).order_by('nombres')
         #se carga el formulario en automatico definiendo filtros
         bonoSolicitadoForm.fields["trabajador"].queryset = empleados 
         #crea el contexto
@@ -232,7 +233,7 @@ def crearSolicitudBonosVarilleros(request):
                     #Se recorren los archivos para ser almacenados
                     for archivo in archivos:
                         #Comprime imagenes
-                        if archivo.content_type != 'application/pdf':
+                        if archivo.content_type != 'application/pdf' and archivo.content_type != 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and archivo.content_type != 'application/vnd.ms-excel':
                             documento = comprimir_imagen(archivo)
                         #cuando es un PDF
                         else:

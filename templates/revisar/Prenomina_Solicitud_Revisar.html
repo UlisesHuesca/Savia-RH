@@ -95,13 +95,10 @@
                                 </button>
                             </td>
                             {% else %}
-                                <td><span class="text-muted"> No hay soporte</span></td>
+                                <td></td>
                             {% endif %}
-                           
-                            
-                            
                         </tr>
-
+                        
                         {% endfor %}
                     </tbody>
                 </table>
@@ -128,29 +125,6 @@
         </div>
     </div>
 </div>
-
-<script>
-    // JavaScript para mostrar u ocultar el histórico al hacer clic en el botón
-    function toggleHistorico(id) {
-        var historico = document.getElementById("historico" + id);
-        if (historico.style.display === "none") {
-            historico.style.display = "table-row";  // Mostrar fila del histórico
-        } else {
-            historico.style.display = "none";  // Ocultar fila del histórico
-        }
-    }
-
-    function validarFormulario() {
-        var seleccionado = document.getElementById("id_autorizar").value;
-
-        if (seleccionado === 'default') {
-            alert('Por favor, seleccione una opción antes de enviar.');
-            return false;  // Evita que el formulario se envíe
-        }
-
-        return true;  // Permite que el formulario se envíe
-    }
-</script>
 {% endblock %}
 </body>
 </html>

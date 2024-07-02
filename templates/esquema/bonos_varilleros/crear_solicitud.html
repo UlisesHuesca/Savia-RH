@@ -57,7 +57,7 @@ Crear Solicitud - Bonos Varilleros
                                 <form id="archivosForm" class="" action="{% url 'crearSolicitudBonosVarilleros' %}" method="POST" enctype="multipart/form-data">
                                 {% csrf_token %}
                                 <div class="btn-group" role="group" aria-label="Basic example">
-                                    {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png, .jpg, .jpeg, .pdf" %}
+                                    {% render_field requerimientoForm.url class="form-control form-control-sm" id="url" accept=".png,.jpg,.jpeg,.pdf,.xls,.xlsx" %}
                                     <input type="hidden" name="valor" value="{{folio}}">
                                     <button id="subirArchivos" name="btn_archivos" type="submit" class="btn btn-primary btn-sm w-25 subirArchivos" title="Subir Archivos" ><i class="fas fa-arrow-up-from-bracket"></i> <span class="">Subir</span></button>
                                 </div><br>

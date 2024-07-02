@@ -45,7 +45,7 @@
                    
                     
                     {% comment %} Solo el supervisor puede crear solicitudes {% endcomment %}
-                    {% if  usuario.tipo.id == 5 %}
+                    {% if  usuario.tipo.id == 5 or usuario.tipo.id == 4 %}
                         <a href="{% url 'crearSolicitudBonosVarilleros' %}" class="btn btn-azul" ><i class="fas fa-plus"></i> Crear solicitud de bono</a>
                     {% endif %}
                 </div>

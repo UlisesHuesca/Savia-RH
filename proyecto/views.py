@@ -57,7 +57,7 @@ from django.db.models.functions import Cast
 from django.http import HttpResponseRedirect
 import calendar
 
-from calculos.utils import excel_estado_prenomina
+from calculos.utils import excel_estado_prenomina,excel_estado_prenomina_formato
 
 
 from reportlab.pdfgen import canvas
@@ -6848,6 +6848,9 @@ def TablaPrenominas(request):
     if request.method =='POST' and 'Excel' in request.POST:
         filtro = True
         return excel_estado_prenomina(request,prenominas,filtro,user_filter)
+    if request.method =='POST' and 'Excel2' in request.POST:
+        reporte = True
+        return excel_estado_prenomina_formato(request,prenominas, user_filter, reporte)
         
     
     #Set up pagination

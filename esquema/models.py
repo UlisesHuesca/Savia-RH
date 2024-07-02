@@ -74,4 +74,4 @@ def validar_size(value):
 class Requerimiento(models.Model):
     solicitud = models.ForeignKey(Solicitud,on_delete=models.CASCADE,null=False)
     fecha = models.DateTimeField(null=False,auto_now_add=True)
-    url = models.FileField(upload_to="bonos/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg'])])
+    url = models.FileField(upload_to="bonos/",unique=True,null=False,validators=[validar_size,FileExtensionValidator(allowed_extensions=['pdf', 'png', 'jpg','jpeg','xls', 'xlsx'])])

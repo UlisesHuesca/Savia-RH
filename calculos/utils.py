@@ -308,80 +308,85 @@ def calcular_aguinaldo(prenomina):
     
     #verifica si es la primera catorcena de diciembre  para realizar el calculo y registro del aguinaldo - la siguiente cat se paga en la prenomina
     if catorcena_actual.id == cat_registro_aguinaldo.id:
-        #Verifica si el aguinaldo ya fue registrado tipo_id: 1 anual, 2 proporcional, 3 eventual | solo se registrar un aguinaldo por empleado al año
-        aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id, fecha__year=ahora.year).exclude(tipo_id = 3).last()
-        #Para que no no haga el flujo cuando el aguinaldo ya existe
-        if aguinaldo is None or aguinaldo.catorcena.id == catorcena_actual.id:
-            #se obtiene el tipo de contrato que aplica para el aguinaldo
-            tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id       
-            salario = prenomina.empleado.status.costo.sueldo_diario
-               
-            if tipo_contrato in (1,3,5,6): # planta, especial, planta 1, planta 2
-                fecha_planta = prenomina.empleado.status.fecha_planta
-                fecha_planta_anterior = prenomina.empleado.status.fecha_planta_anterior
-                        
-                #Se obtiene la fecha de planta o planta anterior
-                if fecha_planta is None and fecha_planta_anterior is None:
-                    fecha = None
-                elif fecha_planta_anterior is not None and fecha_planta is not None:
-                    fecha = fecha_planta_anterior
-                elif fecha_planta:
-                    fecha = fecha_planta
-                elif fecha_planta_anterior:
-                    fecha = fecha_planta_anterior
-                                    
-                #de acuerdo a la fecha se realiza el calculo para el aguinaldo
-                if fecha is not None:                    
-                    #se obtiene o no los años de antiguedad del empleado
-                    antiguedad = relativedelta(datetime.today(),fecha)                
-                    if antiguedad.years >= 1:#Aguinaldo completo >= al 1 primer año de antiguedad
-                        #aqui es con respecto al año 1/ENE/Y - 31/DIC/Y
-                        año_actual = datetime.today().year
-                        inicio_año = datetime(año_actual, 1, 1).date()
-                        fin_año = datetime(año_actual, 12, 31).date()
-                        
-                        #llama funcion para el conteo de las incidencias necesarias para el aguinaldo
-                        total_incidencias = calcular_incidencias_aguinaldo(prenomina, inicio_año,fin_año)
-                        #se restan las incidencias con los dias laborados proporcionales
-                        dias_laborados = 365 - total_incidencias                   
-                        dias_pago = Decimal((dias_laborados) * 15 / 365)
-                        aguinaldo = Decimal(dias_pago * salario)
-                        
-                        #Se guarda o actualiza el aguinaldo
-                        aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
-                            empleado_id = prenomina.empleado_id,
-                            catorcena_id = catorcena_actual.id,
-                            defaults={
-                                'monto':aguinaldo,
-                                'fecha': ahora,
-                                'complete': False,
-                                'tipo_id':1, #eventual
-                            }
-                        )
-                                     
-                    else: #aguinaldo proporcional 
-                        #No cumple el año y se obtiene el proporcional
-                        fecha_final = datetime(datetime.today().year, 12, 31).date() #obtener fin de año
-                        diferencia = fecha_final - fecha
-                        dias_aguinaldo = diferencia.days #total de dias laborados
-                        #llama funcion para el conteo de las incidencias necesarias para el aguinaldo
-                        total_incidencias = calcular_incidencias_aguinaldo(prenomina, fecha,fecha_final)
-                        #se restan las incidencias con los dias laborados proporcionales
-                        dias_laborados = dias_aguinaldo - total_incidencias   
-                        dias_pago = Decimal((dias_laborados * 15)/365)
-                        aguinaldo = Decimal( dias_pago * salario)
-                           
-                        aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
-                            empleado_id = prenomina.empleado_id,
-                            catorcena_id = catorcena_actual.id,
-                            defaults={
-                                'monto':aguinaldo,
-                                'fecha': ahora,
-                                'complete': False,
-                                'tipo_id':1, #eventual
-                            }
-                        )
-                        
+        
+        tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
+        
+        if tipo_contrato in (1,3,5,6):
+        
+            #Verifica si el aguinaldo ya fue registrado tipo_id: 1 anual, 2 proporcional, 3 eventual | solo se registrar un aguinaldo por empleado al año
+            aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id, fecha__year=ahora.year).exclude(tipo_id = 3).last()
+            #Para que no no haga el flujo cuando el aguinaldo ya existe
+            if aguinaldo is None or aguinaldo.catorcena.id == catorcena_actual.id:
+                #se obtiene el tipo de contrato que aplica para el aguinaldo
+                tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id       
+                salario = prenomina.empleado.status.costo.sueldo_diario
+                
+                if tipo_contrato in (1,3,5,6): # planta, especial, planta 1, planta 2
+                    fecha_planta = prenomina.empleado.status.fecha_planta
+                    fecha_planta_anterior = prenomina.empleado.status.fecha_planta_anterior
+                            
+                    #Se obtiene la fecha de planta o planta anterior
+                    if fecha_planta is None and fecha_planta_anterior is None:
+                        fecha = None
+                    elif fecha_planta_anterior is not None and fecha_planta is not None:
+                        fecha = fecha_planta_anterior
+                    elif fecha_planta:
+                        fecha = fecha_planta
+                    elif fecha_planta_anterior:
+                        fecha = fecha_planta_anterior
+                                        
+                    #de acuerdo a la fecha se realiza el calculo para el aguinaldo
+                    if fecha is not None:                    
+                        #se obtiene o no los años de antiguedad del empleado
+                        antiguedad = relativedelta(datetime.today(),fecha)                
+                        if antiguedad.years >= 1:#Aguinaldo completo >= al 1 primer año de antiguedad
+                            #aqui es con respecto al año 1/ENE/Y - 31/DIC/Y
+                            año_actual = datetime.today().year
+                            inicio_año = datetime(año_actual, 1, 1).date()
+                            fin_año = datetime(año_actual, 12, 31).date()
+                            
+                            #llama funcion para el conteo de las incidencias necesarias para el aguinaldo
+                            total_incidencias = calcular_incidencias_aguinaldo(prenomina, inicio_año,fin_año)
+                            #se restan las incidencias con los dias laborados proporcionales
+                            dias_laborados = 365 - total_incidencias                   
+                            dias_pago = Decimal((dias_laborados) * 15 / 365)
+                            aguinaldo = Decimal(dias_pago * salario)
+                            
+                            #Se guarda o actualiza el aguinaldo
+                            aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
+                                empleado_id = prenomina.empleado_id,
+                                catorcena_id = catorcena_actual.id,
+                                defaults={
+                                    'monto':aguinaldo,
+                                    'fecha': ahora,
+                                    'complete': False,
+                                    'tipo_id':1, #eventual
+                                }
+                            )
+                                        
+                        else: #aguinaldo proporcional 
+                            #No cumple el año y se obtiene el proporcional
+                            fecha_final = datetime(datetime.today().year, 12, 31).date() #obtener fin de año
+                            diferencia = fecha_final - fecha
+                            dias_aguinaldo = diferencia.days #total de dias laborados
+                            #llama funcion para el conteo de las incidencias necesarias para el aguinaldo
+                            total_incidencias = calcular_incidencias_aguinaldo(prenomina, fecha,fecha_final)
+                            #se restan las incidencias con los dias laborados proporcionales
+                            dias_laborados = dias_aguinaldo - total_incidencias   
+                            dias_pago = Decimal((dias_laborados * 15)/365)
+                            aguinaldo = Decimal( dias_pago * salario)
+                            
+                            aguinaldo_contrato, created = Aguinaldo.objects.update_or_create(
+                                empleado_id = prenomina.empleado_id,
+                                catorcena_id = catorcena_actual.id,
+                                defaults={
+                                    'monto':aguinaldo,
+                                    'fecha': ahora,
+                                    'complete': False,
+                                    'tipo_id':1, #eventual
+                                }
+                            )
+                            
 def calcular_subsidio(salario, isr):
     #el salario del empleado * dias de la catorcena
     salario_catorcenal = Decimal(salario * 14) 
@@ -952,7 +957,7 @@ def obtener_fechas_con_incidencias(request, prenomina, catorcena_actual):
 
 #GENERAR REPORTE PRENOMINA VISTA DIAS
 @login_required(login_url='user-login')
-def excel_estado_prenomina_formato(request,prenominas, user_filter):
+def excel_estado_prenomina_formato(request,prenominas, user_filter, reporte):
     from datetime import datetime
     
     response= HttpResponse(content_type = "application/ms-excel")
@@ -993,9 +998,14 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
     # todas las fechas de la catorcena actual
     catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
     delta = catorcena_actual.fecha_final - catorcena_actual.fecha_inicial
-    dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
-    # Generar los nombres de las columnas de los días
-    dias_columnas = [str(fecha.day) for fecha in dias_entre_fechas]
+    if reporte == False:
+        dias_entre_fechas = [catorcena_actual.fecha_inicial + timedelta(days=i) for i in range(delta.days + 1)]
+        # Generar los nombres de las columnas de los días
+        dias_columnas = [str(fecha.day) for fecha in dias_entre_fechas]
+    else:
+        dias_entre_fechas = [f"Día {i+1}" for i in range(14)]
+        # Generar los nombres de las columnas de los días
+        dias_columnas = [f"Día {i+1}" for i in range(14)]
         
     columns = ['No.','NOMBRE DE EMPLEADO','PUESTO','PROYECTO','SUBPROYECTO','CATORCENA','FECHA','ESTADO PRENOMINA','RH','CT','GERENCIA'] + dias_columnas + ['Salario Catorcenal','Salario Catorcenal',
                'Previsión social', 'Total bonos','Total percepciones','Prestamo infonavit','IMSS','Fonacot','Total deducciones','Neto a pagar en nomina','Salario','Salario Domingo',]
@@ -1196,7 +1206,7 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
             aguinaldo = aguinaldo.monto
             
         #calcular el subsidio
-        total_isr = calcular_subsidio(salario, calculo_isr)
+        total_isr, subsidio = calcular_subsidio(salario, calculo_isr)
             
         #pagos dobles de los dias laborados - domingos, domingos-laborados, festivos, festivos-domingos
         pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
@@ -1271,7 +1281,6 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter):
         
         if vacaciones == 0:
             vacaciones = ''
-
         fechas_con_etiquetas = obtener_fechas_con_incidencias(request, prenomina, catorcena_actual)
         estados_por_dia = [abreviaciones.get(estado, estado) for _, estado in fechas_con_etiquetas]
         row = (

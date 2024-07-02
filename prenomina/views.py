@@ -222,7 +222,7 @@ def Tabla_prenomina(request):
             prenomina_existente = prenominas.filter(empleado=empleado).exists()
             #si no existe crear una nueva prenomina
             if not prenomina_existente:
-                nueva_prenomina = Prenomina(empleado=empleado, catorcena=catorcena_actual)
+                nueva_prenomina = Prenomina(empleado_id=empleado, catorcena=catorcena_actual)
                 nuevas_prenominas.append(nueva_prenomina) 
         if nuevas_prenominas:
             Prenomina.objects.bulk_create(nuevas_prenominas)              
@@ -255,7 +255,8 @@ def Tabla_prenomina(request):
             filtro = False
             return excel_estado_prenomina(request,prenominas,filtro,user_filter)
         if request.method =='POST' and 'Excel2' in request.POST:
-            return excel_estado_prenomina_formato(request,prenominas, user_filter)
+            reporte = False
+            return excel_estado_prenomina_formato(request,prenominas, user_filter, reporte)
         
         p = Paginator(prenominas, 50)
         page = request.GET.get('page')
