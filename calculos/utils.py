@@ -113,7 +113,7 @@ def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):
 
      
     #llamar la tabla de IRS
-    tabla_irs = DatosISR.objects.all()
+    tabla_irs = DatosISR.objects.all() #extraer para no caer en el ciclo for
     
     #obtener el valor aproximado hacia abajo para obtener las variables
     for datos_irs in tabla_irs:
