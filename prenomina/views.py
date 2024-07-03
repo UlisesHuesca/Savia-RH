@@ -97,6 +97,9 @@ def registrar_rango_incidencias(request,pk):
             if fecha_start < catorcena_actual.fecha_inicial:
                 return JsonResponse({'poscondicion': 'No puedes agregar una fecha anterior de la catorcena actual'}, status=422)
             
+            if fecha_start > catorcena_actual.fecha_final:
+                return JsonResponse({'poscondicion': 'No puedes agregar una fecha de inicio despues de la fecha de termino de la catorcena actual'}, status=422)
+            
             #Busca si existe al menos una vacacion en el rango de fechas: inicio - fin y valida
             vacaciones = Vacaciones_dias_tomados.objects.filter(
                 prenomina__status=prenomina.empleado.status,
@@ -119,7 +122,7 @@ def registrar_rango_incidencias(request,pk):
                 return JsonResponse({'poscondicion': 'Ya existen economicos dentro del rango de fechas especificado'}, status=422)
             
             #Busca si existe al menos una incidencia de rango en las fechas: inicio - fin y valida
-            incidencias = PrenominaIncidencias.objects.filter(prenomina__empleado_id=pk,fecha__range=[fecha_start, fecha_end]).exclude(incidencia_id = 5).values('id').exists()   
+            incidencias = PrenominaIncidencias.objects.filter(prenomina__empleado_id=pk,fecha__range=[fecha_start, fecha_end]).exclude(incidencia_id__in = (5,2)).values('id').exists()   
             if incidencias:
                 return JsonResponse({'poscondicion': 'Ya existen incidencias dentro del rango de fechas especificado'}, status=422)
             
@@ -208,12 +211,12 @@ def Tabla_prenomina(request):
         #para traer los empleados segun el filtro
         if user_filter.distrito.distrito == 'Matriz':
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
-            print(costo)
+           
         else:
-            costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
-
+            costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
+            print(costo)
         prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena=catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador")
-        #prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador").prefetch_related('incidencias')
+    
         festivos = TablaFestivos.objects.filter(dia_festivo__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #crear las prenominas actuales si es que ya es nueva catorcena
         nuevas_prenominas = []
@@ -292,8 +295,8 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                     for incidencia_rango in incidencias_rango:
                         fecha_actual = incidencia_rango.fecha_fin
                         fecha_fin = incidencia_rango.fecha_fin
-                                    
-                    fecha_actual = incidencia_rango.fecha_inicio #punto de inicio
+                               
+                    fecha_actual = max(incidencia_rango.fecha_inicio,prenomina.catorcena.fecha_inicial) #punto de inicio
                     fecha_fin = min(incidencia_rango.fecha_fin, prenomina.catorcena.fecha_final)#toma la fecha mas chica entre las dos fechas
                     
                     while fecha_actual <= fecha_fin:
@@ -374,6 +377,7 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                         #se agregar un dia para realizar el recorrido de la fecha          
                         fecha_inicio += timedelta(days=1)
                         fecha +=   timedelta(days=1)
+                        
             descansos = PrenominaIncidencias.objects.filter(
                 prenomina__empleado_id=prenomina.empleado_id, 
                 incidencia__id__in=[6, 5, 2],
@@ -505,8 +509,8 @@ def PrenominaRevisar(request, pk):
             if 'enviar_prenomina' in request.POST:
                 
                 #Se ejecutan los aguinaldos
-                #calcular_aguinaldo_eventual(prenomina)
-                #calcular_aguinaldo(prenomina)
+                calcular_aguinaldo_eventual(prenomina)
+                calcular_aguinaldo(prenomina)
                 
                 revisado_rh, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo)
                 revisado_rh.estado =  Estado.objects.get(pk=1) #aprobado
@@ -541,7 +545,7 @@ def PrenominaRevisar(request, pk):
             incidencias_rango = IncidenciaRango.objects.filter(empleado_id=prenomina.empleado_id,fecha_inicio__lte=catorcena.fecha_final,fecha_fin__gte=catorcena.fecha_inicial)
             festivos_laborados = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id,incidencia_id = 17,fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)).exists()
                             
-            #se ejecuta el rango de incidencia en primer lugar - Siempre se tendra una incidencia para la siguiente catorcena
+            #se ejecuta el rango de incidencia en primer lugar - Siempre se tendra un rango de incidencia para la siguiente catorcena
             if incidencias_rango:
                 for incidencia_rango in incidencias_rango:
                     fecha_actual = incidencia_rango.fecha_fin

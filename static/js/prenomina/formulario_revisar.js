@@ -130,10 +130,7 @@ document.addEventListener("DOMContentLoaded", function() {
             select.options[17].disabled = false
         }
     })
-
-
-
-
+    
     //Activar boton eliminar y guardar - checkbox
     var checkboxes = document.querySelectorAll('input[type="checkbox"]');
 

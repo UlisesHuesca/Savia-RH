@@ -4483,9 +4483,8 @@ def SolicitudVacaciones(request):
         pendiente += dato.total_pendiente #Para sacar el total de días pendientes
     solicitud, created = Solicitud_vacaciones.objects.get_or_create(complete=False)
     form = SolicitudVacacionesForm()
-    empleados = Perfil.objects.filter(distrito_id = usuario.distrito_id, empresa_id = 5, baja = False)
+    empleados = Perfil.objects.filter(distrito_id = usuario.distrito_id, baja = False).order_by("nombres")
     form.fields['perfil'].queryset = empleados
-    
     valido = False
 
     now = date.today()
