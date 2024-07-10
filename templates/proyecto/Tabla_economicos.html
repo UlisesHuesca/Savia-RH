@@ -77,7 +77,7 @@
                 <div class="col-auto">
                        {% render_field economico_filter.form.nombres_apellidos class="form-control" %}
                 </div>
-                {% if usuario.distrito.distrito == "Matriz" %}
+                {% if usuario.tipo.id in ids %}
                 <label for="economico_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                 <div class="col-auto">
                      {% render_field economico_filter.form.distrito class="form-control" %}

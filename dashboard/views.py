@@ -154,7 +154,7 @@ def index(request):#Por si se hace una carga de json y no se activan ciertos bol
     año_actual = str(fecha_actual.year)
     fecha_hace_un_año = fecha_actual - relativedelta(years=1)
 
-    if usuario.distrito.distrito == 'Matriz':
+    if usuario.tipo.id in [9,10,11]:
         perfiles = Perfil.objects.filter(complete = True, baja=False)
         cantidad = perfiles.count()
         status = Status.objects.filter(complete = True, perfil__baja=False)

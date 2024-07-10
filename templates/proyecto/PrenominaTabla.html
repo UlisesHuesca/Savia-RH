@@ -60,7 +60,7 @@
                                 {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
                         </div>
                         
-                        {% if user_filter.distrito.id == 1 %}
+                        {% if user_filter.tipo.id in ids %}
                         <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                         <div class="col-auto">
                                 {% render_field prenomina_filter.form.distrito class="form-control" %}

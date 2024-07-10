@@ -245,16 +245,12 @@ def autorizarSolicitud(request,solicitud):
 @login_required(login_url='user-login')
 def Tabla_solicitudes_prenomina(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.nombre == "Gerencia" or "Control Tecnico":
-        #ahora = datetime.date.today()
-        #ahora = datetime.date.today() + timedelta(days=10)
-        #catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-        
+    if user_filter.tipo.id in [7,8,9,10,11]:
         #se llama la funcion para obtener la cartocena actual - llamada de app prenomina
         catorcena_actual = obtener_catorcena()
         
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-        if user_filter.distrito.distrito == 'Matriz':
+        if user_filter.tipo.id in [9,10,11]:
             costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
         else:
             costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador")
@@ -264,7 +260,7 @@ def Tabla_solicitudes_prenomina(request):
         #Trae las prenominas que le toca a cada perfil
         if user_filter.tipo.nombre ==  "Control Tecnico": #1er perfil
             prenominas_verificadas = Prenomina.objects.filter(empleado__in=costo,autorizarprenomina__tipo_perfil__nombre="RH",catorcena = catorcena_actual.id).distinct()
-            rh = prenominas = Prenomina.objects.filter(empleado__in=costo, catorcena = catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador") #Estas son todas las que deben haber en la catorcena
+            rh = prenominas = Prenomina.objects.filter(empleado__in=costo, catorcena = catorcena_actual.id).order_by("empleado__status__perfil__apellidos") #Estas son todas las que deben haber en la catorcena
             rh = rh.count()
             ct = prenominas_verificadas.count()
             if ct < rh:
@@ -334,7 +330,7 @@ def Tabla_solicitudes_prenomina(request):
         return render(request, 'revisar/prenominas_solicitudes.html', context)
     else:
         return render(request, 'revisar/403.html')
-
+    
 @login_required(login_url='user-login')
 def Prenomina_Solicitud_Revisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)

@@ -149,7 +149,7 @@
                 <div class="col-auto">
                        {% render_field costo_filter.form.empresa class="form-control" %}
                 </div>
-                {% if usuario.distrito.distrito == "Matriz" %}
+                {% if usuario.tipo.id in ids %}
                 <label for="costo_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                 <div class="col-auto">
                        {% render_field costo_filter.form.distrito class="form-control" %}
@@ -243,8 +243,10 @@
                     <td>{{costo.total_apoyosbonos_agregcomis}}</td>
                     
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_revisar' costo.id %}"><i class="fas fa-sack-dollar"></i></a></td>
-                    {% if baja == 'False' %}
+                    {% if baja == 'False' and usuario_fijo.distrito == costo.status.perfil.distrito %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_update' costo.id %}"><i class="fa-solid fa-pen-to-square"></i></a></td>
+                    {% elif usuario.tipo.admin == True and baja == 'False' %}
+                        <td><a class="btn btn-outline-secondary disabled" id="btnActualizar" type="button"><i class="fa-solid fa-pen-to-square"></i></a></td>              
                     {% endif %} 
                 </tr>
                 {% endfor %}

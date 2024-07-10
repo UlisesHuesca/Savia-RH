@@ -106,6 +106,13 @@ class PatronalAdmin(admin.ModelAdmin):
 
 class SubproyectoAdmin(admin.ModelAdmin):
     list_display = ('proyecto','subproyecto')
+
+class NivelAdmin(admin.ModelAdmin):
+    list_display = ('id','nivel','descripcion')
+
+class TipoPerfilAdmin(admin.ModelAdmin):
+    list_display = ('id','nombre')
+
     # Register your models here.
 admin.site.register(Empresa)
 admin.site.register(Puesto, PuestoAdmin)
@@ -118,7 +125,7 @@ admin.site.register(Sexo)
 admin.site.register(Civil)
 admin.site.register(Banco)
 #Tabla niveles del empleado
-admin.site.register(Nivel)
+admin.site.register(Nivel,NivelAdmin)
 admin.site.register(Dia_vacacion, Dia_vacacionAdmin)
 #Tabla ISR
 admin.site.register(DatosISR)
@@ -128,7 +135,7 @@ admin.site.register(TablaVacaciones)
 admin.site.register(TablaFestivos)
 admin.site.register(RegistroPatronal, PatronalAdmin)
 admin.site.register(UserDatos)
-admin.site.register(TipoPerfil)
+admin.site.register(TipoPerfil,TipoPerfilAdmin)
 admin.site.register(Tallas, TallaAdmin)
 admin.site.register(Ropa)
 admin.site.register(Uniforme)

@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from proyecto.models import UserDatos, Perfil, Catorcenas, Costo, TablaFestivos, Vacaciones, Economicos, Economicos_dia_tomado, Vacaciones_dias_tomados, Empresa, Solicitud_vacaciones, Solicitud_economicos, Trabajos_encomendados
-from proyecto.models import TablaVacaciones,SalarioDatos,DatosISR
+from proyecto.models import TablaVacaciones,SalarioDatos,DatosISR, TipoPerfil
 
 from django.db import models
 from django.db.models import Subquery, OuterRef, Q
@@ -204,22 +204,19 @@ def registrar_rango_incidencias(request,pk):
 def Tabla_prenomina(request):
     start_time = time.time()  # Registrar el tiempo de inicio
     user_filter = UserDatos.objects.get(user=request.user)
-    
-    print("este es el filtro del usuario: ",user_filter.distrito)
-    
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    if user_filter.tipo.nombre == "RH":
-        
+
+    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
+
         #llamar la fucion para obtener la catorcena actual
         catorcena_actual = obtener_catorcena()
         #para traer los empleados segun el filtro
-        if user_filter.distrito.distrito == 'Matriz':
-            costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
+        #if user_filter.distrito.distrito == 'Matriz':
+        #    costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
            
-        else:
-            costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
-            print(costo)
-        prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena=catorcena_actual.id).order_by("empleado__status__perfil__numero_de_trabajador")
+        #else:
+        costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
+        #print(costo)
+        prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena=catorcena_actual.id).order_by("empleado__status__perfil__apellidos")
     
         festivos = TablaFestivos.objects.filter(dia_festivo__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
         #crear las prenominas actuales si es que ya es nueva catorcena
@@ -440,7 +437,7 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
 @login_required(login_url='user-login')
 def PrenominaRevisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id == 4: #Perfil RH
+    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
         start_time = time.time()  # Registrar el tiempo de inicio
         #llamar la fucion para obtener la catorcena actual
         catorcena_actual = obtener_catorcena()

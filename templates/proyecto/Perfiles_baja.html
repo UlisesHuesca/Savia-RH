@@ -75,7 +75,7 @@
                 <div class="col-auto">
                        {% render_field perfil_filter.form.empresa class="form-control" %}
                 </div>
-                {% if usuario.distrito.distrito == "Matriz" %}
+                {% if usuario.tipo.id in ids %}
                 <label for="perfil_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                 <div class="col-auto">
                        {% render_field perfil_filter.form.distrito class="form-control" %}
