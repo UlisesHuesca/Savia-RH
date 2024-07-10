@@ -168,17 +168,35 @@ document.addEventListener("DOMContentLoaded", function() {
     var formRangoSelect = document.getElementById('id_incidencia');
     var subsecuente = document.getElementById('id-subsecuente');
 
+    var inciedencia = document.getElementById('id_incidencia')
+    var dia_inhabil = document.getElementById('id_dia_inhabil')
+    var display_dia_inhabil = document.getElementById('id-display-dia-inhabil')
+
+
     formRangoSelect.addEventListener('change', function() {
         var opcion = formRangoSelect.value;
 
         //solo se activa para cualquuier caso de incapacidad
-        if (opcion !== '10' && opcion !== '12' && opcion !== '11') {
+        if (opcion !== '10' && opcion !== '12' && opcion !== '11') { //cualquier incapacidad
             subsecuente.classList.add('d-none'); //ocultar
         } else {
             subsecuente.classList.remove('d-none'); //mostrar
         }
+        
+        //para ocultar el dia inhabil y dejar marcado como domingo por defecto
+        /*
+        if (opcion === '10' || opcion === '12' || opcion === '11') {
+            console.log("ocultar el dia inhabil");
+            dia_inhabil.value = '7'; // Ajustar el valor del select a '7' (Domingo)
+            display_dia_inhabil.classList.add('d-none')
+        }else{
+            dia_inhabil.value = '';
+            display_dia_inhabil.classList.remove('d-none')
+        }
+        */
+
+
+
     });
-
-
-
+    
 });

@@ -2928,7 +2928,7 @@ def convert_excel_status(request, status):
 
 @login_required(login_url='user-login')
 def upload_batch_empleados(request):
-
+    #recuerda que el row0 es la columna numero_trabajador y row1 es la columa empresa
     form = Empleados_BatchForm(request.POST or None, request.FILES or None)
 
     if form.is_valid():

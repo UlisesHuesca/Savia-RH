@@ -1,4 +1,5 @@
 {% extends 'partials/base.html' %}
+{% load static %}
 {% load widget_tweaks %}
 {% load tt_extras %}
 
@@ -58,9 +59,10 @@
                 <span class="h6">Comentario: {{autorizacion2.comentario}}--Fecha:{{autorizacion2.updated_at}}--Estado:{{autorizacion2.estado.tipo}}</span>
                 <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
-                <table class="table table-striped table-hover bg-white">
+                <table class="table table-striped table-hover bg-white" id="tabla_incidencias">
                     <thead class="text-black" style="background-color: #F5F5F5;">
                         <tr style="background-color:#2A628F;color:#ffffff;">
+                            <th> </th>
                             <th>Fecha</th>
                             <th>Incidencia</th>
                             <th>Comentario</th>
@@ -70,7 +72,8 @@
                     <tbody>
                         {% for incidencia in incidencias %}
                         <tr>
-                            <td>{{incidencia.fecha|date:"d/F/Y"}}</td>
+                            <td> </td>
+                            <td>{{incidencia.fecha|date:"d/m/Y"}}</td>
                             <td>{{incidencia.incidencia}}</td>
                             <td>
                                 {% if incidencia.comentario %}
@@ -126,5 +129,10 @@
     </div>
 </div>
 {% endblock %}
+
+{% block js %}
+<script src="{% static 'js/prenomina/dias_semana.js' %}"></script>
+{% endblock js %}
 </body>
+
 </html>

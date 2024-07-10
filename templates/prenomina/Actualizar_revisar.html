@@ -88,7 +88,7 @@
                                     <label for="">Subsecuente</label>
                                     {% render_field incidencia_rango_form.subsecuente class="form-select"%}
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-3" id="id-display-dia-inhabil">
                                     <label for="">Dia Inhabil</label>
                                     {% render_field incidencia_rango_form.dia_inhabil class="form-select"%}
                                 </div>
@@ -126,9 +126,10 @@
                 <span class="h6">Comentario: {{autorizacion2.comentario}}--Fecha:{{autorizacion2.updated_at}}--Estado:{{autorizacion2.estado.tipo}}</span>
                 <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
-                <table class="table table-striped table-hover bg-white">
+                <table class="table table-striped table-hover bg-white" id="tabla_incidencias">
                     <thead class="text-black" style="background-color: #F5F5F5;">
                         <tr style="background-color:#2A628F;color:#ffffff;">
+                            <th></th>
                             <th>Fecha</th>
                             <th>Seleccionar Incidencia</th>
                             {% comment %}
@@ -143,6 +144,9 @@
                         {{ prenomina_incidencias_form.management_form }}
                         {% for prenomina_form in prenomina_incidencias_form%} 
                         <tr>
+                            <td>
+                                {% comment %} dia de la semana {% endcomment %}
+                            </td>
                             <td>
                                 {% render_field prenomina_form.fecha style="border: none; background: none;" class="form-control" %}
                             </td>
@@ -212,6 +216,7 @@
 
 {% block js %}
 <script src="{% static 'js/prenomina/formulario_revisar.js' %}"></script>
+<script src="{% static 'js/prenomina/dias_semana.js' %}"></script>
 {% endblock js %}
 
 </body>

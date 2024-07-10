@@ -55,47 +55,23 @@ def calcular_cuotas_imss(request,sdi_imss):
     return calculo_imss
 
 #CALULAR ISR
-def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):           
+def calcular_isr(salario,prima_dominical_isr,prima_vacacional_isr,aguinaldo_isr,prenomina,catorcena):           
     salario_datos = SalarioDatos.objects.get()
     limite_inferior = 0
     porcentaje = 0
     cuota_fija = 0
     
-    #Salario minino queda exento
-    if salario > salario_datos.Salario_minimo:
-        #PRIMA DOMINICAL
-        if prima_dominical_isr < salario_datos.UMA:
-            #exento
-            prima_dominical_isr = 0
-            print("prima dominical exenta: ", prima_dominical_isr)
-        else:
-            #gravable
-            prima_dominical_isr = Decimal(prima_dominical_isr - salario_datos.UMA)
-            print("prima dominical gravable: ", prima_dominical_isr)  
-        #AGUINALDO
-        if aguinaldo_isr is not None:
-            if aguinaldo_isr.monto < (salario_datos.UMA * 30):
-                #exento
-                aguinaldo_isr = 0
-                print("aguinaldo exento: ",aguinaldo_isr)
-            else:
-                #gravado
-                print("aguinaldo gravado: ",aguinaldo_isr)
-                aguinaldo_isr = Decimal(aguinaldo_isr.monto - (salario_datos.UMA *30))            
-        else:
-            aguinaldo_isr = 0
-                  
-    else:
+    #PRIMA DOMINICAL
+    if prima_dominical_isr < salario_datos.UMA:
         #exento
         prima_dominical_isr = 0
-        aguinaldo_isr = 0
-        
-    #PRIMA VACACIONAL
-    fecha_inicio = datetime(catorcena.fecha_inicial.year,1,1).date()
-    num_vacaciones = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado.id,incidencia_id=15,fecha__range=(fecha_inicio, catorcena.fecha_final)).count()
-    prima_vacacional_isr = Decimal(num_vacaciones * salario) * salario_datos.prima_vacacional # 0.25
-    print("prima vacacional ISR acumulado: ", prima_vacacional_isr)
+        print("prima dominical exenta: ", prima_dominical_isr)
+    else:
+        #gravable
+        prima_dominical_isr = Decimal(prima_dominical_isr - salario_datos.UMA)
+        print("prima dominical gravable: ", prima_dominical_isr)  
     
+    #PRIMA VACACIONAL
     if prima_vacacional_isr < (salario_datos.UMA * 15):
         #exento
         prima_vacacional_isr = 0
@@ -105,32 +81,58 @@ def calcular_isr(salario,prima_dominical_isr,aguinaldo_isr,prenomina,catorcena):
         prima_vacacional_isr = Decimal(prima_vacacional_isr - (salario_datos.UMA * 15))
         print("prima vacacional gravada: ",prima_vacacional_isr)
         
-    #multiplicar el salario por 30.4
-    salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
-    #se suman la prima dominical, vacacional, los aguinaldos para despues aplicar el calculo del isr
-    print("prima dominical: ", prima_dominical_isr, "prima vacacional: ",prima_vacacional_isr,"aguinaldo: ",aguinaldo_isr)
-    salario_catorcenal = salario_catorcenal + prima_dominical_isr + prima_vacacional_isr + aguinaldo_isr
-
-     
-    #llamar la tabla de IRS
-    tabla_irs = DatosISR.objects.all() #extraer para no caer en el ciclo for
+    #AGUINALDO
+    if aguinaldo_isr is not None:
+        if aguinaldo_isr.monto < (salario_datos.UMA * 30):
+            #exento
+            aguinaldo_isr = 0
+            print("aguinaldo exento: ",aguinaldo_isr)
+        else:
+            #gravado
+            print("aguinaldo gravado: ",aguinaldo_isr)
+            aguinaldo_isr = Decimal(aguinaldo_isr.monto - (salario_datos.UMA *30))            
+    else:
+        aguinaldo_isr = 0
     
-    #obtener el valor aproximado hacia abajo para obtener las variables
-    for datos_irs in tabla_irs:
-        if salario_catorcenal >= datos_irs.liminf:
-            limite_inferior = datos_irs.liminf
-            porcentaje = datos_irs.excedente
-            cuota_fija = datos_irs.cuota
-            
-    #realizar el calculo
-    isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
+    #Verifica que sea salario minimo y no tenga perciciones de lo contrario realiza el pago de ISR porque genera en la parte gravada   
+    if salario == Decimal(salario_datos.Salario_minimo):
+        realizar_caclulo_isr = None
+        comprobar_isr = prima_dominical_isr + prima_vacacional_isr + aguinaldo_isr #comprueba el calculo de isr
+        if comprobar_isr > 0:
+            realizar_caclulo_isr = True
+    else:
+        realizar_caclulo_isr = True
+        
+    #Dependiendo del salario y las partes gravadas entra al flujo para el calculo de isr
+    if realizar_caclulo_isr == True:
+        #multiplicar el salario por 30.4
+        salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
+        #se suman la prima dominical, vacacional, los aguinaldos para despues aplicar el calculo del isr
+        print("prima dominical: ", prima_dominical_isr, "prima vacacional: ",prima_vacacional_isr,"aguinaldo: ",aguinaldo_isr)
+        salario_catorcenal = salario_catorcenal + prima_dominical_isr + prima_vacacional_isr + aguinaldo_isr
+        
+        #llamar la tabla de IRS
+        tabla_irs = DatosISR.objects.all() #extraer para no caer en el ciclo for
+        
+        #obtener el valor aproximado hacia abajo para obtener las variables
+        for datos_irs in tabla_irs:
+            if salario_catorcenal >= datos_irs.liminf:
+                limite_inferior = datos_irs.liminf
+                porcentaje = datos_irs.excedente
+                cuota_fija = datos_irs.cuota
+                
+        #realizar el calculo
+        isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
+        
+        isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
+        print("calculo ISR: ", isr_mensual)
+        return isr_catorcenal
     
-    isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
+    else:
+        #error
+        isr_catorcenal = 0
+        return isr_catorcenal
     
-    print("calculo ISR: ", isr_mensual)
-    
-    return isr_catorcenal
-
 #OBTENER EL TOTAL DE BONOS POR EMPLEADO Y CATORCENA
 def obtener_total_bonos(request,prenomina, catorcena):
     #Fecha para obtener los bonos agregando la hora y la fecha de acuerdo a la catorcena
@@ -143,6 +145,8 @@ def obtener_total_bonos(request,prenomina, catorcena):
         solicitud__fecha_autorizacion__range=(fecha_inicial, fecha_final)
     ).aggregate(total=Sum('cantidad'))['total'] or 0
 
+    total_bonos = Decimal(300.00)
+    
     return total_bonos
 
 #CALCULAR INFONAVIT
@@ -168,33 +172,95 @@ def calcular_fonacot(fonacot,catorcena_actual):
     return prestamo_fonacot
 
 #PRIMA DOMINICAL
-def calcular_prima_dominical(festivo,descanso,salario):
-    #el festivo y descanso se refieren que caen en domingo
-    dato = SalarioDatos.objects.get()
-    prima_dominical = salario * Decimal(dato.prima_vacacional)
-    prima_dominical = (prima_dominical * festivo) + (prima_dominical * descanso)
-    print("salario", salario)
-    print("prima dominical", Decimal(prima_dominical))
-    return Decimal(prima_dominical)
-
-#PRIMA VACACIONAL
-def calcular_prima_vacacional(vacaciones,salario):
-    dato = SalarioDatos.objects.get()
-    prima_vacacional = Decimal(vacaciones * salario) * dato.prima_vacacional #0.25  
-    print("Numero de vacaciones tomadas: ", vacaciones) 
-    print("Es la prima vacacional", prima_vacacional)
-    return prima_vacacional
+def calcular_prima_dominical(prenomina,salario):
+    
+    #Se obtiene las fechas de los domingos calendario
+    fecha1 = prenomina.catorcena.fecha_inicial + timedelta(days=6) #primer domingo
+    fecha2 = fecha1 + timedelta(days=7) #segundo domingo
+        
+    #se hacen dos consultas para obtener si exiten dias laborados 6, dias festivos 17 y asistencia en domingos
+    dominical1 = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id,fecha = fecha1).values_list('incidencia', flat="True")
+    dominical2 = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id,fecha = fecha2).values_list('incidencia', flat="True")
+    
+    #Se empieza el conteo de los domingos para prima
+    cont = 0
+    if not dominical1:
+        cont+=1
+    elif dominical1[0] in (6,17):
+        cont+=1
+        
+    if not dominical2:
+        cont+=1
+    elif dominical2[0] in (6,17):
+        cont+=1
+    
+    print("Numero de primas dominical: ",cont)
+    #calculo de la prima dominical
+    prima_dominical = Decimal(salario * Decimal(0.25)) * cont
+    print("Esta es la prima dominical: ", prima_dominical)
+    return prima_dominical
+    
+    
+def calcular_prima_vacacional(prenomina):
+    """
+    IMPORTANTE PARA EFECTOS DE PRUEBA SE VA A REALIZAR EN EL BOTON GUARDAR PERO DEBE IR EN ENVIAR
+    Y EN LA AUTORIZACION RAPIDA TAMBIEN - UTILIZARA LA MISMA LOGICA QUE EL AGUINALDO
+    """
+    tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
+    tipo_contrato = 1 #ELIMINAR DATO PRUEBA
+    prima_vacacional = 0
+    
+    if tipo_contrato in (1,3,5,6): # planta, especial, planta 1, planta 2
+        fecha_planta = prenomina.empleado.status.fecha_planta
+        fecha_planta_anterior = prenomina.empleado.status.fecha_planta_anterior
+                 
+        #Se obtiene la fecha de planta o planta anterior
+        if fecha_planta is None and fecha_planta_anterior is None: 
+            fecha = None
+        elif fecha_planta_anterior is not None and fecha_planta is not None:
+            fecha = fecha_planta_anterior
+        elif fecha_planta:
+            fecha = fecha_planta
+        elif fecha_planta_anterior:
+            fecha = fecha_planta_anterior    
+            
+        fecha = datetime(2023,6,30).date() #ELIMINAR DATO DE PRUEBA
+        fecha_aniversario = fecha + relativedelta(years=1)
+        #si cumple la fecha de aniversario de la prima vacacional - Verifica que la fecha este en la catorcena para realizar el pago
+        if prenomina.catorcena.fecha_inicial <= fecha_aniversario <= prenomina.catorcena.fecha_final:
+            calcular_antiguedad = relativedelta(prenomina.catorcena.fecha_final,fecha)
+            antiguedad = calcular_antiguedad.years
+                        
+            if antiguedad > 0:
+                salario = prenomina.empleado.status.costo.sueldo_diario
+                dias_vacaciones = 0
+                tabla_vacaciones = TablaVacaciones.objects.all()
+                for tabla in tabla_vacaciones:
+                    if antiguedad >= tabla.years:
+                        dias_vacaciones = tabla.days
+                        
+            prima_vacacional = Decimal(dias_vacaciones * salario) * Decimal(0.25)
+            print("Prima vacacional: ", prima_vacacional)
+            return prima_vacacional   
+    #En caso que no tenga el año de antiguedad es 0
+    return prima_vacacional     
 
 def calcular_incidencias_aguinaldo(prenomina, fecha_inicio, fecha_fin):
     faltas = 0
     permiso_sin_goce = 0
     castigos = 0
     incapacidad_enfermedad = 0
+    incapacidad_dias_pago = 0 #lleva el conteo de la paga de los 3 dias de la incapacidad
     
     incidencias = PrenominaIncidencias.objects.filter(
         prenomina__empleado_id=prenomina.empleado_id,
         fecha__range=(fecha_inicio, fecha_fin)
-    ).values('incidencia', 'complete')
+    ).select_related('incidencia_rango').values(
+        'incidencia', 
+        'complete',
+        'fecha',
+        'incidencia_rango__dia_inhabil_id'
+    )
 
     for incidencia in incidencias:
         if incidencia['incidencia'] == 3:  # falta
@@ -204,16 +270,23 @@ def calcular_incidencias_aguinaldo(prenomina, fecha_inicio, fecha_fin):
         elif incidencia['incidencia'] == 7:  # castigos
             castigos += 1
         elif incidencia['incidencia'] == 10:  # incapacidad enfermedad
-            if incidencia['complete'] == False: #
-                incapacidad_enfermedad += 1
+            if incidencia['incidencia_rango__dia_inhabil_id'] == 7:
+                if incidencia['fecha'].weekday() != 6:
+                    if incidencia['complete']:
+                        incapacidad_dias_pago +=1
+                    incapacidad_enfermedad +=1
+            elif incidencia['fecha'].weekend() != (incidencia['incidencia_rango__dia_inhabil_id'] - 1):
+                if incidencia['complete']:
+                        incapacidad_dias_pago +=1
+                incapacidad_enfermedad +=1
 
-    incidencias = faltas + permiso_sin_goce + castigos + incapacidad_enfermedad
+    incidencias = faltas + permiso_sin_goce + castigos + (incapacidad_enfermedad - incapacidad_dias_pago)
     
-    print("total: ",incidencias,"|faltas ", faltas, "| permiso ", permiso_sin_goce,"|castigos",castigos,"|enfermedad incapacidad: ",incapacidad_enfermedad)
+    print("total: ",incidencias,"|faltas ", faltas, "| permiso ", permiso_sin_goce,"|castigos",castigos,"|enfermedad incapacidad: ",(incapacidad_enfermedad - incapacidad_dias_pago))
 
     return incidencias
 
-#Calcular aguinaldo enventual - Solo registra el aguinaldo en la BD
+#Calcular aguinaldo enventual - Solo registra el aguinaldo en la BD - Solo se ejecuta en RH revisar, enviar no en el reporte
 def calcular_aguinaldo_eventual(prenomina):
     from prenomina.views import obtener_catorcena
     """
@@ -292,7 +365,7 @@ def calcular_aguinaldo_eventual(prenomina):
                 }
             )
 
-#CALCULAR AGUINALDO ANUAL O PROPORCIONAL - Solo registra el aguinaldo en la BD
+#CALCULAR AGUINALDO ANUAL O PROPORCIONAL - Solo registra el aguinaldo en la BD - Solo se ejecuta en RH revisar, enviar no en el reporte
 def calcular_aguinaldo(prenomina):
     """
     se realiza el calculo del registro cuando cumpla el tiempo y se guarda en la base de datos, para guardar 
@@ -308,11 +381,10 @@ def calcular_aguinaldo(prenomina):
     
     #verifica si es la primera catorcena de diciembre  para realizar el calculo y registro del aguinaldo - la siguiente cat se paga en la prenomina
     if catorcena_actual.id == cat_registro_aguinaldo.id:
-        
         tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
         
         if tipo_contrato in (1,3,5,6):
-        
+            
             #Verifica si el aguinaldo ya fue registrado tipo_id: 1 anual, 2 proporcional, 3 eventual | solo se registrar un aguinaldo por empleado al año
             aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id, fecha__year=ahora.year).exclude(tipo_id = 3).last()
             #Para que no no haga el flujo cuando el aguinaldo ya existe
@@ -334,7 +406,7 @@ def calcular_aguinaldo(prenomina):
                         fecha = fecha_planta
                     elif fecha_planta_anterior:
                         fecha = fecha_planta_anterior
-                                        
+                        
                     #de acuerdo a la fecha se realiza el calculo para el aguinaldo
                     if fecha is not None:                    
                         #se obtiene o no los años de antiguedad del empleado
@@ -360,7 +432,7 @@ def calcular_aguinaldo(prenomina):
                                     'monto':aguinaldo,
                                     'fecha': ahora,
                                     'complete': False,
-                                    'tipo_id':1, #eventual
+                                    'tipo_id':1, #Anual
                                 }
                             )
                                         
@@ -383,7 +455,7 @@ def calcular_aguinaldo(prenomina):
                                     'monto':aguinaldo,
                                     'fecha': ahora,
                                     'complete': False,
-                                    'tipo_id':1, #eventual
+                                    'tipo_id':2, #Proporcional
                                 }
                             )
                             
@@ -404,7 +476,7 @@ def calcular_subsidio(salario, isr):
     
     return isr, subsidio
 
-#Obtener el aguinaldo
+#Obtener el aguinaldo - Se ejecuta para elaborar el reporte
 def obtener_aguinaldo(prenomina, catorcena):
     #Se obtiene el aguinaldo desde la base de datos
     aguinaldo = Aguinaldo.objects.filter(empleado_id=prenomina.empleado.id).last()
@@ -434,25 +506,26 @@ def calcular_incidencias(prenomina, catorcena_actual):
     vacaciones = 0
     incapacidad_riesgo_laboral = 0
     incapacidad_maternidad = 0
+    cont_incapacidad_enfermedad = 0
+    cont_incapacidad_maternidad = 0
+    cont_incapacidad_riesgo = 0
     incapacidad_enfermedad = 0
-    festivo_laborado = 0
-    
+    festivo_laborado = 0    
     #ayudan a realizar los calculos de las incidencias - variables auxiliares
     incapacidad_dias_pago = 0 #incapacidad enfermedad - 3 dias pago
-    domingo_laborado = 0 #obtener la prima vacacional
-    festivo_domingo_laborado = 0 #obtener prima vacacional festivo
-
+    
     # Obtener todas las incidencias en una sola consulta
     incidencias = PrenominaIncidencias.objects.filter(
         prenomina__empleado_id=prenomina.empleado_id,
         fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final)
-    )
+    ).select_related('incidencia_rango')
 
     # Contar las incidencias por tipo
     for incidencia in incidencias:
         
-        checar = incidencia # se utiliza para verificar el complete de los dias pagados de incapacidad enfermedad
+        checar = incidencia # checar se utiliza para verificar el complete de los dias pagados de incapacidad enfermedad, dia fecha de la incidencia, inhabil
         dia = incidencia #
+        inhabil = incidencia.incidencia_rango
         
         incidencia = incidencia.incidencia.id
         if incidencia == 1:
@@ -466,24 +539,41 @@ def calcular_incidencias(prenomina, catorcena_actual):
         elif incidencia == 5:
             domingos += 1
         elif incidencia == 6: # dia de descanso laborado
-            if dia.fecha.weekday() == 6:
-                domingo_laborado += 1 #calculo prima vacacional
-            else:
-                dia_extra += 1 # cualquier dia de la semana
+            dia_extra += 1 
         elif incidencia == 7:
             castigos += 1
         elif incidencia == 8:
             permisos_sin_goce += 1
         elif incidencia == 9:
             permisos_con_goce += 1
+        #Incapacidad enfermedad general
         elif incidencia == 10:
-            incapacidad_enfermedad +=1
-            if checar.complete == True: #se hace el conteo de los dias pagados - incapacidad enfermedad
-                incapacidad_dias_pago +=1
+            cont_incapacidad_enfermedad +=1 #lleva el numero de incapacidades    
+            if inhabil.dia_inhabil == 7:
+                if dia.fecha.weekday() != 6:
+                    if checar.complete:
+                        incapacidad_dias_pago +=1 #lleva los dias de pago
+                    incapacidad_enfermedad +=1 #lleva el total incapacidad
+            elif dia.fecha.weekday() != (inhabil.dia_inhabil.id - 1 ):
+                if checar.complete:
+                        incapacidad_dias_pago +=1 #lleva los dias de pago
+                incapacidad_enfermedad +=1 #lleva el total incapacidad
+        #Incapacidad riesgo laboral
         elif incidencia == 11:
-            incapacidad_riesgo_laboral += 1
+            cont_incapacidad_riesgo += 1
+            if inhabil.dia_inhabil == 7:
+                if dia.fecha.weekday() != 6:
+                    incapacidad_riesgo_laboral += 1
+            elif dia.fecha.weekday() != (inhabil.dia_inhabil.id - 1 ):
+                    incapacidad_riesgo_laboral += 1 #lleva el total incapacidad
+        # Incapacidad maternidad
         elif incidencia == 12:
-            incapacidad_maternidad += 1
+            cont_incapacidad_maternidad += 1
+            if inhabil.dia_inhabil == 7:
+                if dia.fecha.weekday() != 6:
+                    incapacidad_maternidad += 1
+            elif dia.fecha.weekday() != (inhabil.dia_inhabil.id - 1 ):
+                    incapacidad_maternidad += 1 #lleva el total incapacidad
         elif incidencia == 13:
             festivos += 1
         elif incidencia == 14:
@@ -491,14 +581,12 @@ def calcular_incidencias(prenomina, catorcena_actual):
         elif incidencia == 15:
             vacaciones += 1
         elif incidencia == 17:
-            if dia.fecha.weekday() == 6:
-                festivo_domingo_laborado += 1 #calculo prima vacacional festivo domingo
-            else:
-                festivo_laborado += 1 #festivo laborado cualquier dia de la semana
-                
+            festivo_laborado += 1 #festivo laborado cualquier dia de la semana
+                            
     return (retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, 
-            permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, 
-            incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago, festivos, economicos, vacaciones, domingo_laborado,festivo_laborado,festivo_domingo_laborado)
+            permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral,cont_incapacidad_riesgo, 
+            incapacidad_maternidad,cont_incapacidad_maternidad,incapacidad_enfermedad,cont_incapacidad_enfermedad,incapacidad_dias_pago,
+            festivos, economicos, vacaciones,festivo_laborado)
     
 #GENERAR REPORTE PRENOMINA ACTUAL
 @login_required(login_url='user-login')
@@ -649,8 +737,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         print("salario: ",salario)
         
         #Extrar el conteo de las incidencias de la funcion      
-        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, domingo_laborado, festivo_laborado,festivo_domingo_laborado = calcular_incidencias(prenomina, catorcena_actual)
-                
+        retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral,cont_incapacidad_riesgo,incapacidad_maternidad,cont_incapacidad_maternidad,incapacidad_enfermedad,cont_incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, festivo_laborado = calcular_incidencias(prenomina, catorcena_actual)           
         #numero de catorena
         catorcena_num = catorcena_actual.catorcena 
         
@@ -677,47 +764,37 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         pago_doble = 0  
         if dia_extra > 0:
             pago_doble = Decimal(dia_extra * (salario * 2))
-        
-        #dia de descando laborado - domingo
-        prima_dominical = 0
-        pago_doble_domingo = 0  
-        if domingo_laborado > 0:
-            pago_doble_domingo = Decimal(domingo_laborado * (salario * 2))
-            dia_extra = dia_extra + domingo_laborado
-            
+                    
         #festivo laborado
         pago_doble_festivo = 0
         if festivo_laborado > 0:
             pago_doble_festivo = Decimal(festivo_laborado * (salario * 2))
-            
-        #festivo laborado - domingo
-        pago_festivo_domingo = 0
-        if festivo_domingo_laborado > 0:
-            pago_festivo_domingo = Decimal(festivo_domingo_laborado * (salario * 2 ))
-            festivo_laborado = festivo_laborado + festivo_domingo_laborado
+
         
         #incapacidades 
         if incapacidad_maternidad > 0:
+            incidencias += incapacidad_maternidad
             descuento_pasajes += incapacidad_maternidad
             
         if incapacidad_riesgo_laboral > 0:
+            incidencias += incapacidad_riesgo_laboral
             descuento_pasajes += incapacidad_riesgo_laboral
             
         if incapacidad_enfermedad > 0:
             incidencias += (incapacidad_enfermedad - incapacidad_dias_pago) #solo se consideran los primeros 3 dias que caigan en la cat y no sean subsecuentes
             descuento_pasajes += incapacidad_enfermedad #pasajes se descuentan por el total de numero de dias de la incapacidad
-                 
+                
         #calcular la prima dominical
-        prima_dominical = calcular_prima_dominical(festivo_domingo_laborado,domingo_laborado,salario)
+        prima_dominical = calcular_prima_dominical(prenomina,salario)
         
         #calcular la prima vacacional
-        prima_vacacional = calcular_prima_vacacional(vacaciones,salario)
+        prima_vacacional = calcular_prima_vacacional(prenomina)
         
         #calcular el aguinaldo
         aguinaldo = obtener_aguinaldo(prenomina,catorcena_actual)
                     
         #realiza el calculo del ISR
-        calculo_isr = calcular_isr(salario,prima_dominical,aguinaldo,prenomina,catorcena_actual)
+        calculo_isr = calcular_isr(salario,prima_dominical,prima_vacacional,aguinaldo,prenomina,catorcena_actual)
         
         #Como es un objeto, se sobreescribe aguinaldo para que tome un valor entero
         if aguinaldo is None:
@@ -729,7 +806,8 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         total_isr, subsidio = calcular_subsidio(salario, calculo_isr)
             
         #pagos dobles de los dias laborados - domingos, domingos-laborados, festivos, festivos-domingos
-        pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
+        #pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
+        pagos_dobles = pago_doble + pago_doble_festivo
         
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
@@ -772,14 +850,14 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         if dia_extra == 0:
             dia_extra = ''
             
-        if incapacidad_enfermedad == 0:
-            incapacidad_enfermedad = ''
+        if cont_incapacidad_enfermedad == 0:
+            cont_incapacidad_enfermedad = ''
             
-        if incapacidad_riesgo_laboral == 0:
-            incapacidad_riesgo_laboral = ''
+        if cont_incapacidad_riesgo == 0:
+            cont_incapacidad_riesgo = ''
             
-        if incapacidad_maternidad == 0:
-            incapacidad_maternidad = ''
+        if cont_incapacidad_maternidad == 0:
+            cont_incapacidad_maternidad = ''
             
         if faltas == 0:
             faltas = ''
@@ -819,9 +897,9 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
             permisos_con_goce,
             permisos_sin_goce,
             descansos,
-            incapacidad_enfermedad,
-            incapacidad_riesgo_laboral,
-            incapacidad_maternidad,
+            cont_incapacidad_enfermedad,
+            cont_incapacidad_riesgo,
+            cont_incapacidad_maternidad,
             faltas,
             comisiones,
             domingos,
@@ -1130,7 +1208,9 @@ def excel_estado_prenomina_formato(request,prenominas, user_filter, reporte):
         
         #Extrar el conteo de las incidencias de la funcion      
         retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral, incapacidad_maternidad, incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, domingo_laborado, festivo_laborado,festivo_domingo_laborado = calcular_incidencias(prenomina, catorcena_actual)
-                
+        
+        print("Es el numero de incapacidades: ", cont_incapacidad_enfermedad)
+        
         #numero de catorena
         catorcena_num = catorcena_actual.catorcena 
         

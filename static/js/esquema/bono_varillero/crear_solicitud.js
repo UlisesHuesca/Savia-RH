@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", (e) => {
-    /**Debes reemplazar o cambiar los valores de los bonos asignados por el ID */
+    /**Debes reemplazar o cambiar los valores de los bonos asignados por el ID que se encuentran en la subcategoria del bono */
     const bonoViajePEP = 0
     const bonoViajePrivado = 13
     const bonoCurso = 14
