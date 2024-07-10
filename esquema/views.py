@@ -70,7 +70,7 @@ def listarBonosVarilleros(request):
     #se obtiene el usuario logueado
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
     #se obtiene el perfil del usuario logueado
-    solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador)
+    solicitante = get_object_or_404(Perfil,numero_de_trabajador = usuario.numero_de_trabajador, distrito = usuario.distrito)
     
     subconsulta_ultima_fecha = AutorizarSolicitudes.objects.values('solicitud_id').annotate(
             ultima_fecha=Max('created_at')
@@ -480,7 +480,7 @@ def listarBonosVarillerosAprobados(request):
     #print("fecha final con H:i ", fecha_final)
     
     #Si es usuario RH de distrito matriz
-    if usuario.distrito.id == 1 and usuario.tipo.id ==  4:
+    if usuario.distrito.id == 1 and usuario.tipo.id in (4,9,10,11):
         #obtiene todos los bonos aprobados de todos los distritos | gerente aprobado
         autorizaciones = AutorizarSolicitudes.objects.filter(
             solicitud__complete = 1,
@@ -533,7 +533,7 @@ def generarReporteBonosVarillerosAprobados(request):
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
     
     #Si es usuario RH de distrito matriz
-    if usuario.distrito.id == 1 and usuario.tipo.id ==  4:
+    if usuario.distrito.id == 1 and usuario.tipo.id in (4,9,10,11):
         #se buscan los perfiles acredores al bono
         folios = Solicitud.objects.filter(fecha_autorizacion__isnull=False).values('folio')
         

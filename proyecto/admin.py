@@ -110,6 +110,9 @@ class SubproyectoAdmin(admin.ModelAdmin):
 class NivelAdmin(admin.ModelAdmin):
     list_display = ('id','nivel','descripcion')
 
+class TipoPerfilAdmin(admin.ModelAdmin):
+    list_display = ('id','nombre')
+
     # Register your models here.
 admin.site.register(Empresa)
 admin.site.register(Puesto, PuestoAdmin)
@@ -132,7 +135,7 @@ admin.site.register(TablaVacaciones)
 admin.site.register(TablaFestivos)
 admin.site.register(RegistroPatronal, PatronalAdmin)
 admin.site.register(UserDatos)
-admin.site.register(TipoPerfil)
+admin.site.register(TipoPerfil,TipoPerfilAdmin)
 admin.site.register(Tallas, TallaAdmin)
 admin.site.register(Ropa)
 admin.site.register(Uniforme)
