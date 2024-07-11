@@ -51,7 +51,6 @@ def calcular_cuotas_imss(request,sdi_imss):
     
     #La suma del calculo de cada resultado    
     calculo_imss = invalidez_vida + cesantia_vejez + enfermedades_maternidad
-    print("Este es el calculo IMSS: ", calculo_imss)
     return calculo_imss
 
 #CALULAR ISR
@@ -65,38 +64,32 @@ def calcular_isr(salario,prima_dominical_isr,prima_vacacional_isr,aguinaldo_isr,
     if prima_dominical_isr < salario_datos.UMA:
         #exento
         prima_dominical_isr = 0
-        print("prima dominical exenta: ", prima_dominical_isr)
     else:
         #gravable
         prima_dominical_isr = Decimal(prima_dominical_isr - salario_datos.UMA)
-        print("prima dominical gravable: ", prima_dominical_isr)  
     
     #PRIMA VACACIONAL
     if prima_vacacional_isr < (salario_datos.UMA * 15):
         #exento
         prima_vacacional_isr = 0
-        print("prima vacacional exenta: ",prima_vacacional_isr)
     else:
         #gravado
         prima_vacacional_isr = Decimal(prima_vacacional_isr - (salario_datos.UMA * 15))
-        print("prima vacacional gravada: ",prima_vacacional_isr)
         
     #AGUINALDO
     if aguinaldo_isr is not None:
         if aguinaldo_isr.monto < (salario_datos.UMA * 30):
             #exento
             aguinaldo_isr = 0
-            print("aguinaldo exento: ",aguinaldo_isr)
         else:
             #gravado
-            print("aguinaldo gravado: ",aguinaldo_isr)
             aguinaldo_isr = Decimal(aguinaldo_isr.monto - (salario_datos.UMA *30))            
     else:
         aguinaldo_isr = 0
     
-    #Verifica que sea salario minimo y no tenga perciciones de lo contrario realiza el pago de ISR porque genera en la parte gravada   
+    #Verifica que sea salario minimo y no tenga percepciones de lo contrario realiza el pago de ISR porque genera parte gravada  
     if salario == Decimal(salario_datos.Salario_minimo):
-        realizar_caclulo_isr = None
+        realizar_caclulo_isr = False
         comprobar_isr = prima_dominical_isr + prima_vacacional_isr + aguinaldo_isr #comprueba el calculo de isr
         if comprobar_isr > 0:
             realizar_caclulo_isr = True
@@ -108,7 +101,6 @@ def calcular_isr(salario,prima_dominical_isr,prima_vacacional_isr,aguinaldo_isr,
         #multiplicar el salario por 30.4
         salario_catorcenal = salario * Decimal(salario_datos.dias_mes) #30.4
         #se suman la prima dominical, vacacional, los aguinaldos para despues aplicar el calculo del isr
-        print("prima dominical: ", prima_dominical_isr, "prima vacacional: ",prima_vacacional_isr,"aguinaldo: ",aguinaldo_isr)
         salario_catorcenal = salario_catorcenal + prima_dominical_isr + prima_vacacional_isr + aguinaldo_isr
         
         #llamar la tabla de IRS
@@ -125,7 +117,6 @@ def calcular_isr(salario,prima_dominical_isr,prima_vacacional_isr,aguinaldo_isr,
         isr_mensual = ((salario_catorcenal - limite_inferior) * porcentaje) + cuota_fija
         
         isr_catorcenal = (isr_mensual / salario_datos.dias_mes) * 14
-        print("calculo ISR: ", isr_mensual)
         return isr_catorcenal
     
     else:
@@ -144,9 +135,7 @@ def obtener_total_bonos(request,prenomina, catorcena):
         solicitud__fecha_autorizacion__isnull=False,
         solicitud__fecha_autorizacion__range=(fecha_inicial, fecha_final)
     ).aggregate(total=Sum('cantidad'))['total'] or 0
-
-    total_bonos = Decimal(300.00)
-    
+        
     return total_bonos
 
 #CALCULAR INFONAVIT
@@ -186,28 +175,21 @@ def calcular_prima_dominical(prenomina,salario):
     cont = 0
     if not dominical1:
         cont+=1
-    elif dominical1[0] in (6,17):
+    elif dominical1[0] in (6,17): #incidencia descanso laborado y festivo
         cont+=1
         
-    if not dominical2:
+    if not dominical2: 
         cont+=1
-    elif dominical2[0] in (6,17):
+    elif dominical2[0] in (6,17): #incidencia descanso laborado y festivo
         cont+=1
     
-    print("Numero de primas dominical: ",cont)
     #calculo de la prima dominical
     prima_dominical = Decimal(salario * Decimal(0.25)) * cont
-    print("Esta es la prima dominical: ", prima_dominical)
     return prima_dominical
     
-    
+#PRIMA VACACIONAL
 def calcular_prima_vacacional(prenomina):
-    """
-    IMPORTANTE PARA EFECTOS DE PRUEBA SE VA A REALIZAR EN EL BOTON GUARDAR PERO DEBE IR EN ENVIAR
-    Y EN LA AUTORIZACION RAPIDA TAMBIEN - UTILIZARA LA MISMA LOGICA QUE EL AGUINALDO
-    """
     tipo_contrato = prenomina.empleado.status.tipo_de_contrato_id
-    tipo_contrato = 1 #ELIMINAR DATO PRUEBA
     prima_vacacional = 0
     
     if tipo_contrato in (1,3,5,6): # planta, especial, planta 1, planta 2
@@ -224,24 +206,29 @@ def calcular_prima_vacacional(prenomina):
         elif fecha_planta_anterior:
             fecha = fecha_planta_anterior    
             
-        fecha = datetime(2023,6,30).date() #ELIMINAR DATO DE PRUEBA
-        fecha_aniversario = fecha + relativedelta(years=1)
-        #si cumple la fecha de aniversario de la prima vacacional - Verifica que la fecha este en la catorcena para realizar el pago
-        if prenomina.catorcena.fecha_inicial <= fecha_aniversario <= prenomina.catorcena.fecha_final:
-            calcular_antiguedad = relativedelta(prenomina.catorcena.fecha_final,fecha)
-            antiguedad = calcular_antiguedad.years
+        if fecha is not None:
+            #extraer mes y dia de la fecha para comprobar si cae en la catorcena 
+            fecha_inicial = (prenomina.catorcena.fecha_inicial.month, prenomina.catorcena.fecha_inicial.day)
+            fecha_final = (prenomina.catorcena.fecha_final.month, prenomina.catorcena.fecha_final.day)
+            fecha_aniversario = (fecha.month, fecha.day)
                         
-            if antiguedad > 0:
-                salario = prenomina.empleado.status.costo.sueldo_diario
-                dias_vacaciones = 0
-                tabla_vacaciones = TablaVacaciones.objects.all()
-                for tabla in tabla_vacaciones:
-                    if antiguedad >= tabla.years:
-                        dias_vacaciones = tabla.days
-                        
-            prima_vacacional = Decimal(dias_vacaciones * salario) * Decimal(0.25)
-            print("Prima vacacional: ", prima_vacacional)
-            return prima_vacacional   
+            #Solo se verifica el año y el mes si cae dentro de la catorcena el dia y mes
+            if fecha_inicial <= fecha_aniversario <= fecha_final:
+                calcular_antiguedad = relativedelta(prenomina.catorcena.fecha_final,fecha)
+                antiguedad = calcular_antiguedad.years  
+                if antiguedad > 0:
+                    salario = prenomina.empleado.status.costo.sueldo_diario
+                    dias_vacaciones = 0
+                    tabla_vacaciones = TablaVacaciones.objects.all()
+                    for tabla in tabla_vacaciones:
+                        if antiguedad >= tabla.years:
+                            dias_vacaciones = tabla.days   
+                    prima_vacacional = Decimal(dias_vacaciones * salario) * Decimal(0.25)
+                    return prima_vacacional
+                else:
+                    return prima_vacacional   
+        else:
+            return prima_vacacional
     #En caso que no tenga el año de antiguedad es 0
     return prima_vacacional     
 
@@ -282,8 +269,6 @@ def calcular_incidencias_aguinaldo(prenomina, fecha_inicio, fecha_fin):
 
     incidencias = faltas + permiso_sin_goce + castigos + (incapacidad_enfermedad - incapacidad_dias_pago)
     
-    print("total: ",incidencias,"|faltas ", faltas, "| permiso ", permiso_sin_goce,"|castigos",castigos,"|enfermedad incapacidad: ",(incapacidad_enfermedad - incapacidad_dias_pago))
-
     return incidencias
 
 #Calcular aguinaldo enventual - Solo registra el aguinaldo en la BD - Solo se ejecuta en RH revisar, enviar no en el reporte
@@ -460,6 +445,7 @@ def calcular_aguinaldo(prenomina):
                             )
                             
 def calcular_subsidio(salario, isr):
+    #PENDIENTE DESARROLLO
     #el salario del empleado * dias de la catorcena
     salario_catorcenal = Decimal(salario * 14) 
     
@@ -627,7 +613,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         
     columns = ['Empleado','#Trabajador','Distrito','#Catorcena','Fecha','Estado general','RH','CT','Gerencia','Autorizada','Retardos','Castigos','Permiso con goce de sueldo',
                'Permiso sin goce de sueldo','Descansos','Incapacidad Enfermedad','Incapacidad Riesgo Laboral','Incapacidad Maternidad','Faltas','Comisión','Domingo','Dia de descanso laborado','Festivos','Festivos laborados','Economicos','Vacaciones','Salario Cartocenal',
-               'Previsión social', 'Total bonos','Prima Vacacional','Prima dominical','Aguinaldo','Total percepciones','Prestamo infonavit','IMSS','Fonacot','Subsidio','ISR Retenido','Total deducciones','Neto a pagar en nomina']
+               'Previsión social', 'Total bonos','Prima Vacacional','Prima dominical','Aguinaldo','Total percepciones','Prestamo infonavit','IMSS','Fonacot','ISR Retenido','Total deducciones','Neto a pagar en nomina']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
@@ -678,14 +664,12 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
     sub_calculo_isr = Decimal(0.00)
     sub_calculo_imss = Decimal(0.00)
     sub_prestamo_fonacot = Decimal(0.00)
-    subsidio_total = Decimal(0.00)
+    #subsidio_total = Decimal(0.00)
     sub_total_deducciones = Decimal(0.00)
     sub_pagar_nomina = Decimal(0.00)
-    
-    #prenominas = prenominas.order_by('catorcena_id')  
+     
     for prenomina in prenominas:
         catorcena_actual = prenomina.catorcena
-        print("Prenomina: ",prenomina)
                   
         RH = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="RH").first()
         CT = AutorizarPrenomina.objects.filter(prenomina=prenomina, tipo_perfil__nombre="Control Tecnico").first()
@@ -729,13 +713,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
                                         
         #calculo del fonacot
         prestamo_fonacot = calcular_fonacot(fonacot,catorcena_actual)
-        
-        print("EMPLEADO: ",prenomina.empleado)
-        print("infonavit", prestamo_infonavit)
-        print("fonacot", prestamo_fonacot)
-        print("IMSS", calculo_imss)
-        print("salario: ",salario)
-        
+                
         #Extrar el conteo de las incidencias de la funcion      
         retardos, descansos, faltas, comisiones, domingos, dia_extra, castigos, permisos_sin_goce, permisos_con_goce, incapacidad_riesgo_laboral,cont_incapacidad_riesgo,incapacidad_maternidad,cont_incapacidad_maternidad,incapacidad_enfermedad,cont_incapacidad_enfermedad,incapacidad_dias_pago,festivos, economicos, vacaciones, festivo_laborado = calcular_incidencias(prenomina, catorcena_actual)           
         #numero de catorena
@@ -793,7 +771,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         #calcular el aguinaldo
         aguinaldo = obtener_aguinaldo(prenomina,catorcena_actual)
                     
-        #realiza el calculo del ISR
+        #realiza el calculo del ISR 
         calculo_isr = calcular_isr(salario,prima_dominical,prima_vacacional,aguinaldo,prenomina,catorcena_actual)
         
         #Como es un objeto, se sobreescribe aguinaldo para que tome un valor entero
@@ -802,33 +780,26 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         else:
             aguinaldo = aguinaldo.monto
             
-        #calcular el subsidio
-        total_isr, subsidio = calcular_subsidio(salario, calculo_isr)
-            
-        #pagos dobles de los dias laborados - domingos, domingos-laborados, festivos, festivos-domingos
-        #pagos_dobles = pago_doble + pago_doble_domingo + pago_doble_festivo + pago_festivo_domingo
+        #DESARROLLO PENDENTE - calcular el subsidio
+        #total_isr, subsidio = calcular_subsidio(salario, calculo_isr)
+    
+        #Pagos dobles dias laborados (No caen en domingo)
         pagos_dobles = pago_doble + pago_doble_festivo
         
         #calculo de la prenomina - regla de tres   
         dias_de_pago = 12
-        print("total incidencias: ", incidencias)
+        
         dias_laborados = dias_de_pago - incidencias
-        print("estos son los dias laborados: ", dias_laborados)
+
         proporcion_septimos_dias = Decimal((dias_laborados * 2) / 12)
         proporcion_laborados = proporcion_septimos_dias + dias_laborados
         salario_catorcenal = (proporcion_laborados * salario) + pagos_dobles
-        print("ESTE ES EL SALARIO CATORCENAL ", salario_catorcenal)
-                
-        print("ESTE ES EL APOYO PASAJES ahora: ", apoyo_pasajes)
+
         apoyo_pasajes = (apoyo_pasajes / 12 ) * (12 - (descuento_pasajes))
-          
-        print("apoyos pasajes: ", apoyo_pasajes)
-        print("total: ", salario_catorcenal)
-        print("pagar nomina: ", apoyo_pasajes + salario_catorcenal)
-        
+                  
         total_percepciones = salario_catorcenal + apoyo_pasajes + total_bonos + prima_dominical + prima_vacacional + aguinaldo
         #IMSS y el ISR
-        total_deducciones = prestamo_infonavit + prestamo_fonacot + total_isr + calculo_imss
+        total_deducciones = prestamo_infonavit + prestamo_fonacot + calculo_isr + calculo_imss
         pagar_nomina = (total_percepciones - total_deducciones)
         
         #Mostrar el conteo de las incidencias del empleado    
@@ -918,7 +889,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
             prestamo_infonavit,
             calculo_imss,
             prestamo_fonacot,
-            subsidio,
+            #subsidio,
             calculo_isr,
             total_deducciones,
             pagar_nomina,
@@ -936,7 +907,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
         sub_prestamo_infonavit = sub_prestamo_infonavit + prestamo_infonavit
         sub_calculo_imss = sub_calculo_imss + calculo_imss
         sub_prestamo_fonacot = sub_prestamo_fonacot + prestamo_fonacot
-        subsidio_total = subsidio_total + subsidio
+        #subsidio_total = subsidio_total + subsidio
         sub_calculo_isr = sub_calculo_isr + calculo_isr
         sub_total_deducciones = sub_total_deducciones + total_deducciones
         sub_pagar_nomina = sub_pagar_nomina + pagar_nomina
@@ -968,7 +939,7 @@ def excel_estado_prenomina(request,prenominas,filtro,user_filter):
                     sub_prestamo_infonavit,
                     sub_calculo_imss,
                     sub_prestamo_fonacot,
-                    subsidio_total,
+                    #subsidio_total,
                     sub_calculo_isr,
                     sub_total_deducciones,
                     sub_pagar_nomina
