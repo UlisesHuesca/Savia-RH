@@ -104,6 +104,14 @@ def listarBonosVarilleros(request):
     autorizaciones_filter = AutorizarSolicitudesFilter(request.GET, queryset=autorizaciones)
     autorizaciones = autorizaciones_filter.qs
     
+    for auto in autorizaciones:
+        print(auto)
+        print(auto.estado)
+        print(auto.perfil)
+        print(auto.tipo_perfil)
+        print(auto.revisar)
+        print("==========")
+    
     p = Paginator(autorizaciones, 50)
     page = request.GET.get('page')
     salidas_list = p.get_page(page)
@@ -130,6 +138,9 @@ def comprimir_imagen(imagen):
     """
     # Abre la imagen usando Pillow
     img = Image.open(imagen)
+    
+    if img.format != 'JPEG':
+        img = img.convert('RGB')
     
     # Crea un flujo de bytes para almacenar la imagen comprimida
     img_temp_output = BytesIO()

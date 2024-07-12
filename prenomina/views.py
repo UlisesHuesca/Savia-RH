@@ -281,7 +281,7 @@ def Tabla_prenomina(request):
 @login_required(login_url='user-login')
 def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
     if request.user.is_authenticated:
-        nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito) #persno que autoriza
+        nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito) #persona que autoriza
         festivos = TablaFestivos.objects.filter(dia_festivo__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final]) #festivos en la catorcena actual
         for prenomina in prenominas:    
             incidencias = PrenominaIncidencias.objects.filter(
@@ -289,33 +289,86 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                     fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
             if not incidencias.exists(): 
                 #obtener los queries para su posterior llenado
+                incapacidades = PrenominaIncidencias.objects.filter(prenomina__empleado_id=prenomina.empleado_id,incidencia_id__in = (10,11,12),fecha__range=(catorcena_actual.fecha_inicial, catorcena_actual.fecha_final))
                 incidencias_rango = IncidenciaRango.objects.filter(empleado_id=prenomina.empleado_id,fecha_inicio__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial)
+                economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final], complete = False)
+                vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial) 
+                fechas_incapacidades = [incapacidad.fecha for incapacidad in incapacidades]
+                
+                #actuliza los dias domingo
+                domingos = []
+                fecha = catorcena_actual.fecha_inicial
+                while fecha <= catorcena_actual.fecha_final:
+                    if fecha.weekday() == 6:  # Domingo
+                        domingos.append(fecha)
+                    fecha += timedelta(days=1)
 
+                for domingo in domingos[:2]:  #dos domingos
+                    PrenominaIncidencias.objects.create(
+                        prenomina=prenomina,
+                        fecha=domingo,
+                        incidencia_id=5,  # Domingo
+                        comentario=None,
+                        soporte=None,
+                        incidencia_rango=None
+                    )
+                
+                if festivos:
+                    for festivo in festivos:
+                        # Verificar si el festivo coincide con una incapacidad de tipo 10, 11 o 12
+                        if festivo.dia_festivo in fechas_incapacidades:
+                            continue  # Saltar este festivo porque coincide con una incapacidad
+
+                        # Actualizar o crear la incidencia solo si es festivo y no coincide con una incapacidad 10, 11 o 12
+                        registro, created = PrenominaIncidencias.objects.update_or_create(
+                            prenomina_id=prenomina.id,
+                            fecha=festivo.dia_festivo,
+                            defaults={
+                                'incidencia_id': 13  # ID de la incidencia para festivo
+                                # Aquí puedes agregar otros campos que necesites actualizar o crear
+                            }
+                        )
+                        
+                #si te das cuenta siempre al brincar a una catorcena simpre sera de una incidencia es decir que si de castigo se brinca a la otra cat, solo habra de castigo y no puedes registrar dos rangos en una
                 if incidencias_rango:
-                    #si te das cuenta siempre al brincar a una catorcena simpre sera de una incidencia es decir que si de castigo se brinca a la otra cat, solo habra de castigo y no puedes registrar dos rangos en una
                     for incidencia_rango in incidencias_rango:
                         fecha_actual = incidencia_rango.fecha_fin
                         fecha_fin = incidencia_rango.fecha_fin
-                               
+                        
                     fecha_actual = max(incidencia_rango.fecha_inicio,prenomina.catorcena.fecha_inicial) #punto de inicio
                     fecha_fin = min(incidencia_rango.fecha_fin, prenomina.catorcena.fecha_final)#toma la fecha mas chica entre las dos fechas
                     
+                    #empieza la extracion del rango de incidencia para ubicarlar una por una en el modelo PrenominaIncidencias
                     while fecha_actual <= fecha_fin:
                         incidencia = incidencia_rango.incidencia_id
                         comentario = incidencia_rango.comentario
                         soporte = incidencia_rango.soporte
                         
-                        if fecha_actual.weekday() == (incidencia_rango.dia_inhabil_id - 1): 
-                            #print(fecha_actual.weekday())
-                            if (incidencia_rango.dia_inhabil_id - 1) == 6:# se resta 1 para obtener el dia domingo
-                                incidencia = 5 #domingo
-                                comentario = None
-                                soporte = None
-                            else:
-                                incidencia = 2 #descanso
-                                comentario = None
-                                soporte = None
-                                
+                        #Registra ya sea domingo o descanso mientras no sea ninguna incapacidad
+                        if incidencia not in (10,11,12):
+                            if fecha_actual.weekday() == (incidencia_rango.dia_inhabil_id - 1):
+                                if (incidencia_rango.dia_inhabil_id - 1) == 6:# se resta 1 para obtener el dia domingo
+                                    if fecha_actual in [festivo.dia_festivo for festivo in festivos]:
+                                        incidencia = 13  # festivo en domingo
+                                    else:
+                                        incidencia = 5  # domingo
+                                    comentario = None
+                                    soporte = None
+                                elif fecha_actual in [festivo.dia_festivo for festivo in festivos]:
+                                    incidencia = 13 #festivo:
+                                    comentario = None
+                                    soporte = None
+                                else:
+                                    incidencia = 2 #descanso
+                                    comentario = None
+                                    soporte = None
+                            elif fecha_actual in [festivo.dia_festivo for festivo in festivos]:
+                                    incidencia = 13 #festivo:
+                                    comentario = None
+                                    soporte = None
+                        
+                           
+                        #actuliza o crea - es para que solo se creen las necesearias
                         registro_prenomina, creado = PrenominaIncidencias.objects.update_or_create(
                         prenomina=prenomina,
                             fecha=fecha_actual,
@@ -327,6 +380,11 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                             }
                         )
                         fecha_actual += timedelta(days=1)
+                        
+                
+                
+                
+                """
                 for festivo in festivos:
                     registro, created = PrenominaIncidencias.objects.update_or_create(
                         prenomina_id=prenomina.id,
@@ -335,8 +393,8 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                             'incidencia_id': 13 #festivo
                         }
                     )
-            economicos = Economicos_dia_tomado.objects.filter(prenomina__status=prenomina.empleado.status, fecha__range=[catorcena_actual.fecha_inicial, catorcena_actual.fecha_final], complete = False)
-            vacaciones = Vacaciones_dias_tomados.objects.filter(prenomina__status=prenomina.empleado.status,fecha_inicio__lte=catorcena_actual.fecha_final,fecha_fin__gte=catorcena_actual.fecha_inicial) 
+                """
+           
             for economico in economicos:
                 registro, created = PrenominaIncidencias.objects.update_or_create(
                     prenomina_id=prenomina.id,
@@ -378,7 +436,7 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                         #se agregar un dia para realizar el recorrido de la fecha          
                         fecha_inicio += timedelta(days=1)
                         fecha +=   timedelta(days=1)
-                        
+            """    
             descansos = PrenominaIncidencias.objects.filter(
                 prenomina__empleado_id=prenomina.empleado_id, 
                 incidencia__id__in=[6, 5, 2],
@@ -418,10 +476,8 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                                 incidencia_rango=None
                             )
                             break
-
-
-                
-
+            """                      
+            
             revisado, created = AutorizarPrenomina.objects.get_or_create(prenomina=prenomina, tipo_perfil=user_filter.tipo) #Checa si existe autorización de su perfil y si no lo crea 
             revisado.estado = Estado.objects.get(tipo="aprobado")
             nombre = Perfil.objects.get(numero_de_trabajador=user_filter.numero_de_trabajador, distrito=user_filter.distrito)
