@@ -136,7 +136,7 @@
                 <div class="col-auto">
                        {% render_field costo_filter.form.fecha type="date" class="form-control" %}
                 </div>
-                {% if usuario.distrito.distrito == "Matriz" %}
+                {% if usuario.tipo in ids %}
                 <label for="costo_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                 <div class="col-auto">
                        {% render_field costo_filter.form.distrito class="form-control" %}
@@ -225,9 +225,8 @@
                     <td class="td_check d-none">{{costo.gasolina}}</td>
                     <td>{{costo.total_costo_empresa}}</td>
                     <td>{{costo.total_apoyosbonos_agregcomis}}</td>
-                    {% if baja == 'False' %}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'costo_revisar_anterior' costo.id %}"><i class="fas fa-sack-dollar"></i></a></td>
-                    {% endif %} 
+                    
                   
                     
                 </tr>

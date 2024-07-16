@@ -57,6 +57,7 @@
                                <i class="fa-solid fa-file-pdf fa-2xl"></i>
                             </button>
                         </li> -->
+                        {% if usuario.tipo.admin == True %}
                         <li class="nav-item mx-2">
                             <a type="button" class="btn btn-outline-info" href="{% url 'Formulario_costo' %}">
                                 <i class="fa-solid fa-user-plus"></i>
@@ -67,6 +68,7 @@
                                 <i class="fa-solid fa-file-arrow-up"> CARGA MASIVA</i>
                             </a>
                         </li>
+                        {% endif %}
                        
                        
                         
@@ -206,11 +208,10 @@
                     <th class="th_check d-none" scope="col">Gasolina</th>
                     <th scope="col">Total costo mensual para la empresa</th>
                     <th scope="col">Total Bonos catorcena actual</th>
-                    
                     <th scope="col">Detalle</th>
-                    {% if baja == 'False' %}
+                    {% if usuario.tipo.admin == True and baja == 'False' %}
                     <th scope="col">Editar</th>
-                    {% endif %} 
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -241,13 +242,14 @@
                     <td class="td_check d-none">{{costo.gasolina}}</td>
                     <td>{{costo.total_costo_empresa}}</td>
                     <td>{{costo.total_apoyosbonos_agregcomis}}</td>
-                    
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_revisar' costo.id %}"><i class="fas fa-sack-dollar"></i></a></td>
-                    {% if baja == 'False' and usuario_fijo.distrito == costo.status.perfil.distrito %}
+                   
+                    {% if usuario.tipo.admin == True and baja == 'False' and usuario_fijo.distrito == costo.status.perfil.distrito%}
                     <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Costo_update' costo.id %}"><i class="fa-solid fa-pen-to-square"></i></a></td>
-                    {% elif usuario.tipo.admin == True and baja == 'False' %}
+                    {% elif usuario.tipo.admin == True and baja == 'False'%}
                         <td><a class="btn btn-outline-secondary disabled" id="btnActualizar" type="button"><i class="fa-solid fa-pen-to-square"></i></a></td>              
                     {% endif %} 
+                    
                 </tr>
                 {% endfor %}
             </tbody>

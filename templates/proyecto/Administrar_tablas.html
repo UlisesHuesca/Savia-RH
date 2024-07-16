@@ -44,6 +44,7 @@
             <h3>Información general sistema RH </h3>
             <div class="row mt-2 bg-white">
                 <hr>
+            {% if usuario.tipo.admin == True and usuario.tipo.id != 4 %}
                 <h6>Generar reporte del sistema </h6>
                 <ul class="nav nav-pills">
                     <li class="nav-item mx-2">
@@ -65,10 +66,11 @@
                             </select>
                         </div>
                     </li>
-                    
                 </ul>
             </div>
+            {% endif %}
         </div>
+
         <div class="card card-body">
             <div class="row bg-white">
                 <div class="col-12 col-md-2">

@@ -52,6 +52,7 @@
                                 <i class="fa-solid fa-file-excel fa-2xl"></i>
                             </button>
                         </li>
+                        {% if usuario.tipo.admin == True %}
                         <li class="nav-item mx-2">
                             <a type="button" class="btn btn-outline-info" href="{% url 'Formulario_datosbancarios' %}">
                                 <i class="fa-solid fa-user-plus"></i>
@@ -72,6 +73,7 @@
                                 <i class="fa-solid fa-file-arrow-up"> CARGA Bonos</i>
                             </a>
                         </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
@@ -129,9 +131,9 @@
                     <th scope="col">No. de tarjeta</th>
                     <th scope="col">Clabe interbancaria</th>
                     <th scope="col">Banco</th>
-                    {% if  baja == 'False' %}
+                    {% if usuario.tipo.admin == True and baja == 'False' %}
                     <th scope="col">Editar</th>
-                    {% endif %} 
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -143,7 +145,7 @@
                     <td>{{bancario.numero_de_tarjeta}}</td>
                     <td>{{bancario.clabe_interbancaria}}</td>
                     <td>{{bancario.banco}}</td>
-                    {% if baja == 'False' and usuario_fijo.distrito == bancario.status.perfil.distrito %}
+                    {% if usuario.tipo.admin == True and baja == 'False' and usuario_fijo.distrito == bancario.status.perfil.distrito %}
                         <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Bancarios_update' bancario.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
                     {% elif usuario.tipo.admin == True and baja == 'False'%}
                         <td><a class="btn btn-outline-secondary disabled" id="btnActualizar" type="button"><i class="fa-solid fa-pen-to-square"></i></a></td>              
