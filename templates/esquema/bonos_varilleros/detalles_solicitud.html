@@ -35,7 +35,7 @@
                                 <td></td>
                             </tr>
                             <tr>
-                                <td><span class="fw-bold"><i class="fas fa-user"></i> Supervisor: </span> {{autorizaciones.solicitud.solicitante}}</td>
+                                <td><span class="fw-bold"><i class="fas fa-user"></i> {{rol}}: </span> {{autorizaciones.solicitud.solicitante}}</td>
                                 <td><span class="fw-bold"><i class="fas fa-location-dot"></i> Distrito: </span> {{autorizaciones.solicitud.solicitante.distrito}}</td>
                                 <td><span class="fw-bold"><i class="fas fa-sack-dollar"></i> Bono: </span> {{autorizaciones.solicitud.bono}}</td>                                
                             </tr>
@@ -154,8 +154,8 @@
                                 {% endif %}
                             </p>
                         </div>
-                        {% comment %} Estado Verificar o Cambios {% endcomment %}
-                        {% if autorizaciones.estado.id == 4 %}
+                        {% comment %} Estado Verificar o Cambios | estado verificar y se activa que sea el mismo perfil que realizo la solcitud {% endcomment %}
+                        {% if autorizaciones.estado.id == 4 and autorizacion.solicitud.solicitante.numero_de_trabajador == usuario.numero_de_trabajador%}
                         <div class="col-4">
                             <label for="" class="fw-bold"></label>
                             <div class="input-group">                                        

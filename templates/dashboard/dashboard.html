@@ -66,22 +66,41 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4">
+                            {% if status_fijo.id != None %}        
                             <a class="text-decoration-none text-dark" href="{% url 'Vacaciones_revisar' status_fijo.id %}">
                                 <div class="card my-card shadow text-center p-3">
                                     <h4>Días de vacaciones pendientes <i class="fa-solid fa-calendar-days"></i></h4>
                                     <h3>{{vacaciones.total_pendiente}}</h3>
                                 </div>
                             </a>
+                            {% else%}
+                            <a class="text-decoration-none text-dark" href="#">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4>No tiene vacaciones <i class="fa-solid fa-calendar-days"></i></h4>
+                                   
+                                </div>
+                            </a>
+                            {% endif %}
                         </div>
                         <div class="col-md-4">
+                            {% if status_fijo.id != None %} 
                             <a class="text-decoration-none text-dark" href="{% url 'Economicos_revisar' status_fijo.id %}">
                                 <div class="card my-card shadow text-center p-3">
                                     <h4>Días económicos pendientes <i class="fa-solid fa-calendar-days"></i></h4>
                                     <h3>{{economicos.dias_pendientes}}</h3>
                                 </div>
                             </a>
+                            {% else%}
+                            <a class="text-decoration-none text-dark" href="#">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4> No tiene días economicos <i class="fa-solid fa-calendar-days"></i></h4>
+                                </div>
+                            </a>
+                            {% endif %}
+
                         </div>
                         <div class="col-md-4">
+                            {% if status_fijo.id != None %} 
                             <a class="text-decoration-none text-dark" href="{% url 'Uniformes_completados_revisar' status_fijo.id %}">
                                 <div class="card my-card shadow text-center p-3">
                                     <h4>Uniformes recibidos <i class="fa-solid fa-shirt"></i></h4>
@@ -92,6 +111,14 @@
                                     {% endif %}
                                 </div>
                             </a>
+                            {% else%}
+                            <a class="text-decoration-none text-dark" href="#">
+                                <div class="card my-card shadow text-center p-3">
+                                    <h4>No tiene uniformes<i class="fa-solid fa-shirt"></i></h4>
+                                </div>
+                            </a>
+                            {% endif %}
+                            
                         </div>
                     </div>
                 </div>

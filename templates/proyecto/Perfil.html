@@ -95,7 +95,7 @@
                 <div class="col-auto">
                        {% render_field perfil_filter.form.empresa class="form-control" %}
                 </div>
-                {% if usuario.tipo.id in ids %}
+                {% if usuario.tipo.id == 9 or usuario.tipo.id == 10 or usuario.tipo.id == 11 %}
                 <label for="perfil_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                 <div class="col-auto">
                        {% render_field perfil_filter.form.distrito class="form-control" %}
@@ -126,8 +126,8 @@
                     {% if usuario_fijo.distrito.distrito == "Matriz" and usuario.tipo.admin == True %}
                     <th scope="col">Baja</th>
                     {% endif %}
-                    {% if usuario.tipo.admin == True %}
-                    <th scope="col">Editar</th>
+                    {% if usuario.tipo.id in ids %}
+                        <th scope="col">Editar</th>
                     {% endif %}
 
                 </tr>
@@ -147,10 +147,9 @@
                     {% if usuario_fijo.distrito.distrito == "Matriz" and usuario.tipo.admin == True %}
                     <td><a class="btn btn-outline-info btn-block mx-auto" type="button" data-bs-toggle="modal" data-bs-target="#dialog" hx-target="#document" hx-get="{% url 'Baja_empleado' perfil.id %}"><i class="fa-solid fa-user-minus">Baja</i></a></a></td>
                     {% endif %}
-                    {% if usuario.tipo.admin == True and usuario_fijo.distrito == perfil.distrito %}
-                    <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Perfil_update' perfil.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
-                    {% else %}
-                        <td><a class="btn btn-outline-secondary disabled" id="btnActualizar" type="button"><i class="fa-solid fa-pen-to-square"></i></a></td>
+                    {% if usuario.tipo.id in ids %}
+                        <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Perfil_update' perfil.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
+                    
                     {% endif %}
                 </tr>
                 {% endfor %}

@@ -137,18 +137,20 @@ def Tabla_dias_vacaciones(request):
 
 @login_required(login_url='user-login')
 def Perfil_vista(request):
-    ids = [9,10,11]
+    ids = [4,9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH o observador
+    #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    try:
         if user_filter.tipo.id in [9,10,11]:
             perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador")
+        elif user_filter.tipo.id in [4,12,8]:
+            perfiles= Perfil.objects.filter(distrito_id=user_filter.distrito.id,complete=True,baja=False).order_by("numero_de_trabajador")
         else:
-            perfiles= Perfil.objects.filter(distrito=user_filter.distrito,complete=True,baja=False).order_by("numero_de_trabajador")
+            return render(request, 'revisar/403.html')
+            
         perfil_filter = PerfilFilter(request.GET, queryset=perfiles)
         perfiles = perfil_filter.qs
-
-
+        
         if request.method =='POST' and 'Excel' in request.POST:
             return convert_excel_perfil(request,perfiles)
 
@@ -162,9 +164,9 @@ def Perfil_vista(request):
             'salidas_list':salidas_list,
             'ids':ids,
             }
-
         return render(request, 'proyecto/Perfil.html',context)
-    else:
+    
+    except Perfil.DoesNotExist:
         return render(request, 'revisar/403.html')
     
 @login_required(login_url='user-login')
@@ -226,7 +228,9 @@ def FormularioPerfil(request):
                 form = PerfilDistritoForm(request.POST, request.FILES, instance=empleado)
                 no_trabajador = request.POST.get('numero_de_trabajador')
                 
-            trabajador_existe = Perfil.objects.filter(numero_de_trabajador = no_trabajador).exists()
+            distrito_form = request.POST.get('distrito')
+            
+            trabajador_existe = Perfil.objects.filter(numero_de_trabajador = no_trabajador, distrito_id = distrito_form).exists()
             form.save(commit=False)
 
             if empleado.foto and empleado.foto.size > 2097152:
@@ -301,27 +305,39 @@ def PerfilUpdate(request, pk):
 
 @login_required(login_url='user-login')
 def Perfil_revisar(request, pk):
-    user_filter = UserDatos.objects.get(user=request.user)
-    empleado = Perfil.objects.get(id=pk)
-    if user_filter.tipo.id in [4,9,10,11] or (user_filter.numero_de_trabajador == empleado.numero_de_trabajador and user_filter.distrito == empleado.distrito) or user_filter.tipo.id == 3:
+    user_filter = UserDatos.objects.get(user=request.user)   
+    #if user_filter.tipo.id in [4,9,10,11] or (user_filter.numero_de_trabajador == empleado.numero_de_trabajador and user_filter.distrito == empleado.distrito) or user_filter.tipo.id == 3:
+    try:
+        
+        if user_filter.tipo.id in [9,10,11]:
+            empleado = Perfil.objects.get(id=pk)     
+        elif user_filter.tipo.id in [4,12,8]:
+            empleado = Perfil.objects.get(id=pk, distrito_id = user_filter.distrito.id)  
+        elif user_filter.tipo.id in [2,5,6,7]:
+            empleado = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito_id = user_filter.distrito.id) 
+        else:
+            return render(request, 'revisar/403.html')
+        
         context = {
             'empleado': empleado,
         }
+        
         return render(request, 'proyecto/Perfil_revisar.html', context)
-    else:
-        return render(request, 'revisar/403.html')
     
+    except Perfil.DoesNotExist:
+        return render(request, 'revisar/403.html')
+
 @login_required(login_url='user-login')
 def Status_vista(request):
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH o observador
-
-        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    if user_filter.tipo.id in [4,9,10,11,12,8]: #Perfil RH o observador
+        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         if user_filter.tipo.id in [9,10,11]:
             status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
         else:
             status = Status.objects.filter(perfil__distrito = user_filter.distrito, complete=True).order_by("perfil__numero_de_trabajador")
+        
         status_filter = StatusFilter(request.GET, queryset=status)
 
         status = status_filter.qs
@@ -491,8 +507,15 @@ def StatusUpdate(request, pk):
 @login_required(login_url='user-login')
 def Status_revisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
-    estado = Status.objects.get(id=pk)
-    if user_filter.tipo.id in [4,9,10,11] or (user_filter.numero_de_trabajador == estado.perfil.numero_de_trabajador and user_filter.distrito == estado.perfil.distrito) or user_filter.tipo.id == 3:
+    print(user_filter.numero_de_trabajador)
+    try:
+        if user_filter.tipo.id in [9,10,11]:
+            estado = Status.objects.get(id=pk)
+        elif user_filter.tipo.id in [4,12,8]:
+            estado = Status.objects.get(id=pk,perfil__distrito_id = user_filter.distrito.id)
+        else:
+            estado = Status.objects.get(perfil__distrito_id = user_filter.distrito.id,perfil__numero_de_trabajador = user_filter.numero_de_trabajador)
+            
         if estado.ultimo_contrato_vence == datetime.date(6000, 1, 1): #Esta es la manera correcta de la fecha
             estado.ultimo_contrato_vence = 'ESPECIAL'
         elif estado.ultimo_contrato_vence == datetime.date(6001, 1, 1): #Esta es la manera correcta de la fecha
@@ -501,11 +524,12 @@ def Status_revisar(request, pk):
             estado.ultimo_contrato_vence = 'HONORARIOS'
         elif estado.ultimo_contrato_vence == datetime.date(6003, 1, 1): #Esta es la manera correcta de la fecha
             estado.ultimo_contrato_vence = 'NR'
+        
         context = {'estado':estado,}
-
         return render(request, 'proyecto/Status_revisar.html',context)
-    else:
-        return render(request, 'revisar/403.html')
+        
+    except Status.DoesNotExist:
+         return render(request, 'revisar/403.html')
     
 @login_required(login_url='user-login')
 def Administrar_tablas(request):
@@ -1701,8 +1725,8 @@ def Tabla_Vacaciones(request): #Ya esta
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
 
-    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
-        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja=False)
+    if user_filter.tipo.id in [4,9,10,11,12,8]: #Perfil RH
+        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja=False)
 
         #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
         fecha_actual = date.today()
@@ -4441,6 +4465,7 @@ def FormatoVacaciones(request):
 def SolicitudVacaciones(request):
     currentFieldCount = 10
     usuario = UserDatos.objects.get(user__id=request.user.id)
+    print("Este es el numero de trabajador: ",usuario.numero_de_trabajador)
     status = Status.objects.get(perfil__numero_de_trabajador=usuario.numero_de_trabajador, perfil__distrito=usuario.distrito)
 
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
@@ -6275,7 +6300,7 @@ def Cv_datos(request, pk):
 
     status = Status.objects.get(id=pk)
     datos = Empleado_cv.objects.filter(status=status).order_by("fecha_fin")
-
+    
     if request.method =='POST' and 'PDF' in request.POST:
         return generar_curp_pdf(datos,status)
 

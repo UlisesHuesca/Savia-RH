@@ -56,7 +56,7 @@
                                 <label for="" class="fw-bold">Folio</label>
                                 {% render_field autorizaciones_filter.form.folio class="form-control text-capitalize"%}
                             </div>
-                            {% if usuario.tipo.id == 1 and usuario.distrito.id == 1  %}
+                            {% if usuario.tipo.id in ids %}
                             <div class="col-auto">
                                 <label for="" class="fw-bold">Distrito</label>
                                 {% render_field autorizaciones_filter.form.distrito class="form-control text-capitalize"%}
@@ -129,17 +129,24 @@
                     {% for autorizacion in autorizaciones %}
                     <tr> 
                         
+                        
+                        {% comment %} Folio {% endcomment %}
                         <td>{{autorizacion.solicitud.folio}}</td>
+                        {% comment %} Fecha Emisión {% endcomment %}
                         <td class="">{{autorizacion.solicitud.fecha|date:'d/m/Y H:i'}}</td>
+                        {% comment %} Fecha revisión {% endcomment %}
                         <td class="">
                             {% if autorizacion.estado.id != 3 %}
                                 {{autorizacion.created_at|date:'d/m/Y H:i'}}
                             {% endif %}
                         </td>
+                        {% comment %} Distrito {% endcomment %}
                         {% if usuario.tipo.id == 4 and usuario.distrito.id == 1  %}
                             <td>{{autorizacion.perfil.distrito}}</td>
                         {% endif %}
+                        {% comment %} Bono {% endcomment %}
                         <td class="text-capitalize">{{autorizacion.solicitud.bono}}</td>
+                        {% comment %} Autorizacion {% endcomment %}
                         {% if autorizacion.estado.id == 1 %}
                             <td><span class="badge bg-success text-capitalize">{{autorizacion.estado}}</span></td>
                         {% elif autorizacion.estado.id == 2 %}
@@ -149,21 +156,24 @@
                         {% elif autorizacion.estado.id == 4 %}
                             <td><span class="badge text-capitalize" style="background: #2A628F;">{{autorizacion.estado}}</span></td>
                         {% endif %}
-                        
+                        {% comment %} Perfil Rol {% endcomment %}
                         <td>{{autorizacion.tipo_perfil.nombre}}
+                        {% comment %} Total $ {% endcomment %}
                         <td><span class="badge" style="background: #2A628F;">${{autorizacion.solicitud.total}}</span></td>
-            
+                        {% comment %} ver detalle de la solicitud {% endcomment %}
                         <th>
                             <a href="{% url 'verDetalleSolicitud' autorizacion.solicitud.id %}" title="Ver detalles de la solicitud" class="btn btn-sm btn-success"><i class="fas fa-list"></i></a>
                         </th>
-                        {% if autorizacion.estado.id == 4 %}
+                      
+                        {% comment %} edita la solicitud {% endcomment %}
+                        {% if autorizacion.estado.id == 4 and autorizacion.solicitud.solicitante.numero_de_trabajador == usuario.numero_de_trabajador %}
                         <th>
                             <a href="{% url 'verificarSolicitudBonosVarilleros' autorizacion.solicitud.id %}" title="Aplicar cambios a la solicitud" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
                         </th>
                         {% else %}
                             <th></th>
                         {% endif %}
-                        {% if autorizacion.estado.id == 3 and usuario.tipo.id == autorizacion.tipo_perfil.id %}                      
+                        {% if autorizacion.estado.id == 3 and usuario.tipo.id == autorizacion.tipo_perfil.id%}                      
                         <th>
                             <a href="{% url 'verDetalleSolicitud' autorizacion.solicitud.id %}" title="La soliciutd está pendiente" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
                         </th>

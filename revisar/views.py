@@ -114,11 +114,12 @@ def asignarBonoCosto(solicitud):
         costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
         costo.save()
 
+        """
         print("bonos: ",costo.total_apoyosbonos_agregcomis)
         print("comision: ",costo.comision_complemeto_salario_bonos)
         print("costo total empresa: ",costo.total_costo_empresa)
         print("costo total empleado: ",costo.ingreso_mensual_neto_empleado)
-
+        """
 
         """
         costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
@@ -134,112 +135,102 @@ def autorizarSolicitud(request,solicitud):
     from datetime import datetime
     if request.method == "POST":
         autorizarSolicitudesUpdateForm = AutorizarSolicitudesUpdateForm(request.POST)
-
+        
         if autorizarSolicitudesUpdateForm.is_valid():
             usuario = request.user
             rol = UserDatos.objects.get(user_id = usuario.id)
-
+                    
             autorizar = AutorizarSolicitudes.objects.get(solicitud_id = solicitud, tipo_perfil_id = rol.tipo_id)
+            
+            comentarioDato = autorizarSolicitudesUpdateForm.cleaned_data['comentario']
+            if 'aprobar' in request.POST:#aprobado
 
-            print("BONOS: ",autorizar)
+                if rol.tipo_id == 6:#superintendente -> control tecnico
 
-            #verifica si la autorizacion del bono esta en la catorcena actual
-            if autorizar is not None:
-                #estadoDato = autorizarSolicitudesUpdateForm.cleaned_data['estado']
-                estadoDato = 0
-                comentarioDato = autorizarSolicitudesUpdateForm.cleaned_data['comentario']
-                if 'aprobar' in request.POST:#aprobado
+                        #se guardan los datos de la autorizacion en el superintendente
+                        autorizar.estado_id = 1 #aprobado
+                        autorizar.comentario = comentarioDato
+                        autorizar.save(update_fields=['estado_id', 'comentario'])
 
-                    if rol.tipo_id == 6:#superintendente -> control tecnico
+                        #se busca el perfil del control tecnico corresponsiente al distrito - recuerda me devuelve una tupla y la posicion 0 = no.trabajador, 6 = distrito
+                        rol = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=7).values_list('numero_de_trabajador','distrito').first()                      
+                        perfil_control_tecnico = Perfil.objects.filter(numero_de_trabajador = rol[0], distrito_id = rol[1]).values('id').first()
+                                                    
+                        #buscar o crea la autorizacion para el control tecnico
+                        control_tecnico, created = AutorizarSolicitudes.objects.get_or_create(
+                            solicitud_id=solicitud,
+                            tipo_perfil_id=7,
+                            #comentario = comentarioDato,
+                            perfil_id = perfil_control_tecnico['id'],
+                            defaults={'estado_id': 3}  # Pendiente
+                        )
 
-                            #se guardan los datos de la autorizacion en el superintendente
-                            autorizar.estado_id = 1 #aprobado
-                            autorizar.comentario = comentarioDato
-                            autorizar.save(update_fields=['estado_id', 'comentario'])
+                        #entra en el flujo de verifica o cambios
+                        if autorizar.revisar and not created:
+                            control_tecnico.estado_id = 3
+                            control_tecnico.comentario = comentarioDato
+                            control_tecnico.save()
 
-                            #se busca el perfil del control tecnico corresponsiente al distrito
-                            rol = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=7).values('numero_de_trabajador').first()
-                            perfil_control_tecnico = Perfil.objects.filter(numero_de_trabajador = rol['numero_de_trabajador']).values('id').first()
+                        messages.success(request, "La solicitud se aprobó por el Superintendente, pasa a revisión a Control Técnico")
+                        return redirect('listarBonosVarilleros')
 
-                            #buscar o crea la autorizacion para el control tecnico
-                            control_tecnico, created = AutorizarSolicitudes.objects.get_or_create(
-                                solicitud_id=solicitud,
-                                tipo_perfil_id=7,
-                                #comentario = comentarioDato,
-                                perfil_id = perfil_control_tecnico['id'],
-                                defaults={'estado_id': 3}  # Pendiente
-                            )
-
-                            #entra en el flujo de verifica o cambios
-                            if autorizar.revisar and not created:
-                                control_tecnico.estado_id = 3
-                                control_tecnico.comentario = comentarioDato
-                                control_tecnico.save()
-
-                            messages.success(request, "La solicitud se aprobó por el Superintendente, pasa a revisión a Control Técnico")
-                            return redirect('listarBonosVarilleros')
-
-                    elif rol.tipo_id == 7: #control tecnico -> gerente
-                            #se guardan los datos de la autorizacion del control tecnico
-                            autorizar.estado_id = 1#aprobado
-                            autorizar.comentario = None
-                            autorizar.save(update_fields=['estado_id', 'comentario'])
+                elif rol.tipo_id == 7: #control tecnico -> gerente
+                        #se guardan los datos de la autorizacion del control tecnico
+                        autorizar.estado_id = 1#aprobado
+                        autorizar.comentario = None
+                        autorizar.save(update_fields=['estado_id', 'comentario'])
 
 
-                            #se busca el perfil del gerente corresponsiente al distrito
-                            rol = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=8).values('numero_de_trabajador').first()
-                            perfil_gerente = Perfil.objects.filter(numero_de_trabajador = rol['numero_de_trabajador']).values('id').first()
+                        #se busca el perfil del gerente correspondiente al distrito
+                        rol = UserDatos.objects.filter(distrito_id=usuario.userdatos.distrito, tipo_id=8).values_list('numero_de_trabajador','distrito').first()
+                        perfil_gerente = Perfil.objects.filter(numero_de_trabajador = rol[0], distrito_id = rol[1]).values('id').first()
 
-                            #buscar o crea la autorizacion para el gerente
-                            gerente, created = AutorizarSolicitudes.objects.get_or_create(
-                                solicitud_id=solicitud,
-                                tipo_perfil_id=8,
-                                #comentario = comentarioDato,
-                                perfil_id = perfil_gerente['id'],
-                                defaults={'estado_id': 3}  # Pendiente
-                            )
+                        #buscar o crea la autorizacion para el gerente
+                        gerente, created = AutorizarSolicitudes.objects.get_or_create(
+                            solicitud_id=solicitud,
+                            tipo_perfil_id=8,
+                            #comentario = comentarioDato,
+                            perfil_id = perfil_gerente['id'],
+                            defaults={'estado_id': 3}  # Pendiente
+                        )
 
-                            #entra en el flujo de verifica o cambios
-                            if autorizar.revisar and not created:
-                                gerente.estado_id = 3
-                                gerente.save()
+                        #entra en el flujo de verifica o cambios
+                        if autorizar.revisar and not created:
+                            gerente.estado_id = 3
+                            gerente.save()
 
-                            messages.success(request, "La solicitud se aprobó por Control Técnico, pasa a revisión al Gerente")
-                            return redirect('listarBonosVarilleros')
-                    elif rol.tipo_id == 8:# gerente
-                            #autorizar - asignar el estado de la solicitud
-                            autorizar.estado_id = 1
-                            autorizar.comentario = comentarioDato
-                            autorizar.save()
+                        messages.success(request, "La solicitud se aprobó por Control Técnico, pasa a revisión al Gerente")
+                        return redirect('listarBonosVarilleros')
+                elif rol.tipo_id == 8:# gerente
+                        #autorizar - asignar el estado de la solicitud
+                        autorizar.estado_id = 1
+                        autorizar.comentario = comentarioDato
+                        autorizar.save()
 
-                            #IMPLEMENTAR COSTO
-                            asignarBonoCosto(solicitud)
+                        #IMPLEMENTAR COSTO
+                        asignarBonoCosto(solicitud)
 
-                            messages.success(request, "La solicitud se aprobó por el Gerente")
-                            return redirect('listarBonosVarilleros')
+                        messages.success(request, "La solicitud se aprobó por el Gerente")
+                        return redirect('listarBonosVarilleros')
 
 
-                elif 'rechazar' in request.POST :#rechazado
-                    #autorizar - asignar el estado de la solicitud
-                    autorizar.estado_id = 2#rechazado
-                    autorizar.comentario = comentarioDato
-                    autorizar.save()
+            elif 'rechazar' in request.POST :#rechazado
+                #autorizar - asignar el estado de la solicitud
+                autorizar.estado_id = 2#rechazado
+                autorizar.comentario = comentarioDato
+                autorizar.save()
 
-                    messages.error(request, "La solicitud fue rechazada")
-                    return redirect('listarBonosVarilleros')
+                messages.error(request, "La solicitud fue rechazada")
+                return redirect('listarBonosVarilleros')
 
-                elif 'cambios': #revisar
-                    autorizar.estado_id = 4
-                    autorizar.comentario = comentarioDato
-                    autorizar.revisar = True
-                    autorizar.save()
+            elif 'cambios': #revisar
+                autorizar.estado_id = 4
+                autorizar.comentario = comentarioDato
+                autorizar.revisar = True
+                autorizar.save()
 
-                    messages.success(request, "El supervisor debe realizar cambios en la solicitud emitida")
-                    return redirect('listarBonosVarilleros')
-                    #return redirect('verDetalleSolicitud', solicitud_id=solicitud)
-            else:
-                messages.error(request, "El bono no esta dentro de la fecha de la catorcena actual")
-                return redirect('verDetalleSolicitud',solicitud)
+                messages.success(request, "El supervisor debe realizar cambios en la solicitud emitida")
+                return redirect('listarBonosVarilleros')
 
 #PRENOMINA
 @login_required(login_url='user-login')

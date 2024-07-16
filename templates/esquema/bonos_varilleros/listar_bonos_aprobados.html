@@ -80,10 +80,13 @@
                                     <label for="" class="fw-bold">Nombre</label>
                                     {% render_field  bonosolicitado_filter.form.nombres_apellidos class="form-control text-capitalize"%}
                                 </div>
-                                <div class="col-auto">
-                                    <label for="" class="fw-bold">Distrito</label>
-                                {% render_field  bonosolicitado_filter.form.distrito class="form-control text-capitalize"%}
-                                </div>
+                                {% comment %}Filtro se activa dependiendo del perfil{% endcomment %}
+                                {% if usuario.tipo.id in ids %}
+                                    <div class="col-auto">
+                                        <label for="" class="fw-bold">Distrito</label>
+                                    {% render_field  bonosolicitado_filter.form.distrito class="form-control text-capitalize"%}
+                                    </div>
+                                {% endif %}
                                 <div class="col-auto">
                                     <label for="" class="fw-bold">Bono</label>
                                     {% render_field  bonosolicitado_filter.form.bono class="form-control text-capitalize"%}

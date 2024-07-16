@@ -93,10 +93,13 @@
                         {% csrf_token %}
                         <div class="row g-3 align-items-center">
                             <div class="row g-3 align-items-center">
+                                {% comment %}Ocultar distripo dependiendo del perfil {% endcomment %}
+                                {% if usuario.tipo.id in ids %}
                                 <div class="col-auto">
                                     <label for="" class="fw-bold">Distrito</label>
                                     {% render_field  bonosolicitado_filter.form.distrito class="form-control text-capitalize"%}
                                 </div>
+                                {% endif %}
                                 <div class="col-auto">
                                     <label for="" class="fw-bold">Catorcena - Fecha inicial</label>
                                     {% render_field  bonosolicitado_filter.form.fecha_inicial_catorcena type="date" class="form-control"%}

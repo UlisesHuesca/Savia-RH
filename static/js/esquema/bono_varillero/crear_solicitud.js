@@ -216,12 +216,24 @@ document.addEventListener("DOMContentLoaded", (e) => {
                 //se elimina la tabla cuando re remueven los bonos y no hay
                 if (datos.total == 0)
                     document.getElementById('tabla').remove()
-                
 
+            } else if (respuesta.status === 403) {
+                Swal.fire({
+                    title: "Acceso Denegado",
+                    text: "No tienes permiso para realizar esta acción.",
+                    icon: "error",
+                });
+
+            } else if (respuesta.status === 404) {
+                Swal.fire({
+                    title: "Error",
+                    text: "No existe este bono en nuestros registros.",
+                    icon: "warning",
+                });
             }else{
                 Swal.fire({
                     title: "Error",
-                    text: "No existe este bono en nuestros registros",
+                    text: "Intentelo más tarde",
                     icon: "warning",
                 })
             }
@@ -373,7 +385,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
             }else{
                 Swal.fire({
                     title: "Error",
-                    text: "Falta subir los archivos de requerimientos",
+                    text: "Falta subir el soporte",
                     icon: "warning",
                 })
             }

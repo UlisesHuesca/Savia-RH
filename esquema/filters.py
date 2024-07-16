@@ -11,7 +11,7 @@ from django_filters import CharFilter
 from datetime import datetime, timedelta
 
 class BonoSolicitadoFilter(django_filters.FilterSet):
-    distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.filter(id__in=[2,4,6,5]), field_name='distrito__distrito')
+    distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.filter(id__in=[1,2,4,6,5]), field_name='distrito__distrito')
     folio = django_filters.NumberFilter(field_name="solicitud_id")
     nombres_apellidos = CharFilter(method='nombres_apellidos_filter', label="Search")
     bono = django_filters.ModelChoiceFilter(queryset=Subcategoria.objects.all(), field_name='solicitud__bono')
@@ -51,7 +51,7 @@ class AutorizarSolicitudesFilter(django_filters.FilterSet):
     estado = django_filters.ModelChoiceFilter(queryset=Estado.objects.all().order_by('tipo'), field_name='estado__tipo')
     bono = django_filters.ModelChoiceFilter(queryset=Subcategoria.objects.all().order_by('nombre'),field_name="solicitud__bono")
     rol = django_filters.ModelChoiceFilter(queryset=TipoPerfil.objects.filter(id__in=[6,7,8]), field_name='tipo_perfil__nombre')
-    distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.filter(id__in=[4,2,6,5]), field_name="perfil__distrito")
+    distrito = django_filters.ModelChoiceFilter(queryset=Distrito.objects.filter(id__in=[1,4,2,6,5]).order_by('distrito'), field_name="perfil__distrito")
     folio = django_filters.NumberFilter(field_name="solicitud_id")
     #fecha emision
     fecha_inicio = django_filters.DateFilter(field_name='solicitud__fecha', lookup_expr='gte', label='Fecha de inicio')
