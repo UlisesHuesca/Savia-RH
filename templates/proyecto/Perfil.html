@@ -123,10 +123,10 @@
                     <th scope="col">Proyecto</th>
                     <th scope="col">Subproyecto</th>
                     <th scope="col">Detalle</th>
-                    {% if usuario_fijo.distrito.distrito == "Matriz" and usuario.tipo.admin == True %}
-                    <th scope="col">Baja</th>
-                    {% endif %}
                     {% if usuario.tipo.id in ids %}
+                        <th scope="col">Baja</th>
+                    {% endif %}
+                    {% if usuario.tipo.admin == True %}
                         <th scope="col">Editar</th>
                     {% endif %}
 
@@ -144,12 +144,16 @@
                     <td>{{perfil.proyecto}}</td>
                     <td>{{perfil.subproyecto}}</td>
                     <td><a class="btn btn-outline-info" id="btnRevisar" type="button" href="{% url 'Perfil_revisar' perfil.id %}"><i class="fa-solid fa-address-card"></i></a></td>
-                    {% if usuario_fijo.distrito.distrito == "Matriz" and usuario.tipo.admin == True %}
+                    {% if usuario.tipo.id in ids %}
                     <td><a class="btn btn-outline-info btn-block mx-auto" type="button" data-bs-toggle="modal" data-bs-target="#dialog" hx-target="#document" hx-get="{% url 'Baja_empleado' perfil.id %}"><i class="fa-solid fa-user-minus">Baja</i></a></a></td>
                     {% endif %}
-                    {% if usuario.tipo.id in ids %}
+
+                    {% if usuario.tipo.admin == True and usuario.distrito == perfil.distrito%}
                         <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Perfil_update' perfil.id %}"><i class="fa-solid fa-pen-to-square"></i></a>
-                    
+                    {% elif usuario.tipo.admin == False %}
+                        <div></div>
+                    {% else %}
+                            <td><a class="btn btn-outline-secondary disabled" id="btnActualizar" type="button"><i class="fa-solid fa-pen-to-square"></i></a></td>
                     {% endif %}
                 </tr>
                 {% endfor %}

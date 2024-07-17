@@ -35,7 +35,7 @@ def contadores_processor(request):
             
                    
         #prenominas - autorizaciones       
-        if usuario.tipo.id in [8,9,10,11]:#supervisor prenomina, administrativo rh, gerente administrativo, gerente
+        if usuario.tipo.id in [8,9,10,11]:#GE, SU ADMIN, SU RH, SU Nomina
             ahora = datetime.date.today()
             catorcena_actual = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
             if usuario.tipo.id in [9,10,11]:

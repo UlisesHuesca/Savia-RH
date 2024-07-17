@@ -43,18 +43,6 @@
         <div class="col-12">
             <div class="card card-body">
                 <h5>Información de las Catorcenas</h5>
- <!--                <div class = "row mt-2 bg-white">
-                    <hr>
-                    <ul class="nav nav-pills">
-                        <li class="nav-item mx-2">
-                            <a type="button" class="btn btn-outline-info" href="{% url 'Formulario_catorcenas' %}">
-                                <i class="fa-solid fa-plus"> Agregar</i>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div> -->
         </form>
     </div>
 
@@ -94,7 +82,6 @@
                     <td>{{catorcena.catorcena}}</td>
                     <td>{{catorcena.fecha_inicial}}</td>
                     <td>{{catorcena.fecha_final}}</td>
-                <!--    <td><a class="btn btn-outline-info" id="btnActualizar" type="button" href="{% url 'Catorcenas_update' catorcena.id %}"><i class="fa-solid fa-pen-to-square"></i></a> -->
                 </tr>
                 {% endfor %}
             </tbody>

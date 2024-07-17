@@ -32,22 +32,6 @@
 
 <hr>
 <hr>
-{% if status_fijo.id == costo.status.id %}
-    <div>
-{% elif usuario.tipo.admin == True and usuario.distrito == costo.status.perfil.distrito %}
-    <div>
-{% elif usuario.tipo.admin == True and usuario.distrito.distrito == 'Matriz' %}
-    <div>
-{% else %}
-    &nbsp;
-    <div style="text-align: center;">
-    <i class="fa-solid fa-circle-exclamation fa-4x"></i>
-    <h2 style="margin-top: 0.5em;">404</h2>
-    <h2 style="margin-top: 0.25em;">Page not found</h2>
-    <p>Si tiene los permisos para acceder a esta información <br> comuníquese con los Administradores del sistema.</p>
-    <a href="{% url 'index' %}" class="btn btn-outline-info"><i class="fa-solid fa-backward"></i>  Inicio</a>
-    <div class="d-none">
-{% endif %}
 <div class="container card card-body">
     <div class="columns is-mobile">
         <div class="column is-half is-offset-one-quarter">

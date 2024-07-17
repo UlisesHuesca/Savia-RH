@@ -137,7 +137,7 @@ def Tabla_dias_vacaciones(request):
 
 @login_required(login_url='user-login')
 def Perfil_vista(request):
-    ids = [4,9,10,11]
+    ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
     #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     try:
@@ -534,7 +534,7 @@ def Status_revisar(request, pk):
 @login_required(login_url='user-login')
 def Administrar_tablas(request):
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id in [9,10,11]: #Perfil RH
+    if user_filter.tipo.id in [4,8,9,10,11,12]: #Perfil RH
         puestos = Puesto.objects.all()
         salario = SalarioDatos.objects.get()
         distritos = Distrito.objects.filter(complete = True)
@@ -720,11 +720,8 @@ def FormularioDatosBancarios(request):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-        if user_filter.tipo.id in [9,10,11]:
-            empleados= Status.objects.filter(complete = True, complete_bancarios=False, perfil__baja=False)
-        else:
-            perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
-            empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete = True, complete_bancarios=False)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
+        empleados= Status.objects.filter(perfil__id__in=perfil.all(),complete = True, complete_bancarios=False)
 
         bancario,created=DatosBancarios.objects.get_or_create(complete=False)
         form = DatosBancariosForm()
@@ -784,11 +781,8 @@ def FormularioCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-        if user_filter.tipo.id in [9,10,11]:
-            empleados= Status.objects.filter(~Q(fecha_ingreso=None), complete = True, complete_costo = False, perfil__baja=False)
-        else:
-            perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
-            empleados= Status.objects.filter(~Q(fecha_ingreso=None), perfil__id__in=perfil.all(),complete = True, complete_costo = False)
+        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False)
+        empleados= Status.objects.filter(~Q(fecha_ingreso=None), perfil__id__in=perfil.all(),complete = True, complete_costo = False)
         tablas = DatosISR.objects.all()
         tabla_subsidio = TablaSubsidio.objects.all()
         tabla_vacaciones= TablaVacaciones.objects.all()
@@ -1302,8 +1296,8 @@ def CostoUpdate(request, pk):
 @login_required(login_url='user-login')
 def Costo_revisar(request, pk):
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
-        costo = Costo.objects.get(id=pk)
+    costo = Costo.objects.get(id=pk)
+    if user_filter.tipo.id in [4,8,9,10,11,12] and user_filter.distrito == costo.status.perfil.distrito: #Perfil RH
         ahora = datetime.date.today()
         catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
         bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
@@ -1459,7 +1453,7 @@ def Empleado_Costo(request, pk):
 def TablaCosto(request):
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
+    if user_filter.tipo.id in [4,8,9,10,11,12]: #Perfil RH
             
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         if user_filter.tipo.id in [9,10,11]:
@@ -1703,7 +1697,7 @@ def VacacionesRevisar(request, pk):
         usuario = usuario.status
     elif Status.objects.filter(id=pk):
         usuario = Status.objects.get(id=pk)
-    if user_filter.tipo.id in [4,9,10,11] or (user_filter.numero_de_trabajador == usuario.perfil.numero_de_trabajador and user_filter.distrito == usuario.perfil.distrito) or user_filter.tipo.id == 3:
+    if user_filter.tipo.id in [9,10,11] or (user_filter.numero_de_trabajador == usuario.perfil.numero_de_trabajador and user_filter.distrito.id == usuario.perfil.distrito.id ) or (user_filter.tipo.id in [4] and user_filter.distrito == usuario.perfil.distrito):
         datos = Vacaciones.objects.filter(status=usuario).order_by(Cast('periodo', output_field=IntegerField()).desc()) #Identifico las vacaciones del usuario de la mas antigua a la mas actual
         actual = Vacaciones.objects.filter(status=usuario).order_by(Cast('periodo', output_field=IntegerField())).last()
         resultado = 0
@@ -1983,7 +1977,7 @@ def EconomicosUpdate(request, pk):
 def Tabla_Economicos(request): #Ya esta
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id in [4,9,10,11] or user_filter.tipo.id == 3: #Perfil RH o observador
+    if user_filter.tipo.id in [4,9,8,10,11,12]:#Perfil RH o observador
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
 
         #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
@@ -2049,8 +2043,7 @@ def EconomicosRevisar(request, pk):
     economicos = Economicos.objects.filter(status__id=pk)
     #registros = economicos.history.filter(complete=True)
     empleado = economicos.last()
-    if user_filter.tipo.id in [4,9,10,11] or (user_filter.numero_de_trabajador == empleado.status.perfil.numero_de_trabajador and user_filter.distrito == empleado.status.perfil.distrito) or user_filter.tipo.id == 3:
-
+    if user_filter.tipo.id in [9,10,11] or (user_filter.numero_de_trabajador == empleado.status.perfil.numero_de_trabajador and user_filter.distrito.id == empleado.status.perfil.distrito.id ) or (user_filter.tipo.id in [4] and user_filter.distrito == empleado.status.perfil.distrito):
         if request.method =='POST' and 'Pdf' in request.POST:
             return reporte_pdf_economico_detalles(economicos,empleado)
 
@@ -2067,7 +2060,7 @@ def EconomicosRevisar(request, pk):
 def Tabla_Datosbancarios(request):
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id in [4,9,10,11] or user_filter.tipo.id == 3: #Perfil RH o observador
+    if user_filter.tipo.id in [4,8,9,10,11,12] or user_filter.tipo.id == 3: #Perfil RH o observador
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
         if user_filter.tipo.id in [9,10,11]:
             bancarios= DatosBancarios.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
@@ -2219,7 +2212,7 @@ def convert_excel_costo(request,costos):
     return response
 
 @login_required(login_url='user-login')
-def convert_excel_costo_anterior(costos):
+def convert_excel_costo_anterior(request,costos):
     #Fecha del reporte mensual
     from django.utils import formats
     from django.utils.translation import activate
@@ -6714,80 +6707,85 @@ def costo_mensual(request):
 #Generar reportes costos anteriores
 @login_required(login_url='user-login')
 def costo_anterior(request):
+    ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
-    revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-    if user_filter.distrito.distrito == 'Matriz':
-        costos= CostoAnterior.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
+    if user_filter.tipo.id in [4,8,9,10,11,12]:
+            
+        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        if user_filter.tipo.id in [9,10,11]:
+            costos= CostoAnterior.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
+        else:
+            perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
+            costos = CostoAnterior.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
+
+        costo_filter = CostoAnteriorFilter(request.GET, queryset=costos)
+        costos = costo_filter.qs
+
+        comision=Decimal(0.09)
+
+        if request.method =='POST' and 'Excel' in request.POST:
+            return convert_excel_costo_anterior(request,costos)
+        
+        #Set up pagination
+        p = Paginator(costos, 50)
+        page = request.GET.get('page')
+        salidas_list = p.get_page(page)
+
+        ahora = datetime.date.today()
+        catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+        for costo in salidas_list:
+            costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
+            costo.empresa=costo.status.perfil.empresa
+            costo.distrito=costo.status.perfil.distrito
+            costo.proyecto=costo.status.perfil.proyecto
+            costo.nombres=costo.status.perfil.nombres
+            costo.apellidos=costo.status.perfil.apellidos
+            costo.tipo_de_contrato=costo.status.tipo_de_contrato
+            costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
+            costo.fonacot=locale.currency(costo.fonacot, grouping=True)
+            costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
+            costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
+            costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
+            costo.sdi=locale.currency(costo.sdi, grouping=True)
+            costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
+            costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
+            costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
+            costo.estancia=locale.currency(costo.estancia, grouping=True)
+            costo.renta=locale.currency(costo.renta, grouping=True)
+            costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
+            costo.amv=locale.currency(costo.amv, grouping=True)
+            costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+            costo.campamento=locale.currency(costo.campamento, grouping=True)
+            costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
+            costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
+            costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
+            costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
+            costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
+            costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
+            costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
+            costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
+            costo.sar=locale.currency(costo.sar, grouping=True)
+            costo.cesantia=locale.currency(costo.cesantia, grouping=True)
+            costo.infonavit=locale.currency(costo.infonavit, grouping=True)
+            costo.isr=locale.currency(costo.isr, grouping=True)
+            costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
+            costo.excedente=locale.currency(costo.excedente, grouping=True)
+            costo.tasa=locale.currency(costo.tasa, grouping=True)
+            costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
+            costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
+            costo.impuesto=locale.currency(costo.impuesto, grouping=True)
+            costo.subsidio=locale.currency(costo.subsidio, grouping=True)
+            costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
+            costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
+            costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
+            costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
+            costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+
+        context = {'ids':ids,'costos':costos,'costo_filter':costo_filter,'salidas_list':salidas_list, 'baja': request.GET.get('baja', False)}
+        return render(request, 'proyecto/costo_anterior.html',context)
     else:
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True)
-        costos = CostoAnterior.objects.filter(status__perfil__id__in=perfil.all(), complete=True).order_by("status__perfil__numero_de_trabajador")
-
-    costo_filter = CostoAnteriorFilter(request.GET, queryset=costos)
-    costos = costo_filter.qs
-
-    comision=Decimal(0.09)
-
-    if request.method =='POST' and 'Excel' in request.POST:
-        return convert_excel_costo_anterior(costos)
+        return render(request, 'revisar/403.html')
     
-    #Set up pagination
-    p = Paginator(costos, 50)
-    page = request.GET.get('page')
-    salidas_list = p.get_page(page)
-
-    ahora = datetime.date.today()
-    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    for costo in salidas_list:
-        costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
-        costo.empresa=costo.status.perfil.empresa
-        costo.distrito=costo.status.perfil.distrito
-        costo.proyecto=costo.status.perfil.proyecto
-        costo.nombres=costo.status.perfil.nombres
-        costo.apellidos=costo.status.perfil.apellidos
-        costo.tipo_de_contrato=costo.status.tipo_de_contrato
-        costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
-        costo.fonacot=locale.currency(costo.fonacot, grouping=True)
-        costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
-        costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
-        costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
-        costo.sdi=locale.currency(costo.sdi, grouping=True)
-        costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
-        costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
-        costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
-        costo.estancia=locale.currency(costo.estancia, grouping=True)
-        costo.renta=locale.currency(costo.renta, grouping=True)
-        costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
-        costo.amv=locale.currency(costo.amv, grouping=True)
-        costo.gasolina=locale.currency(costo.gasolina, grouping=True)
-        costo.campamento=locale.currency(costo.campamento, grouping=True)
-        costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
-        costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
-        costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
-        costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
-        costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
-        costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
-        costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
-        costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
-        costo.sar=locale.currency(costo.sar, grouping=True)
-        costo.cesantia=locale.currency(costo.cesantia, grouping=True)
-        costo.infonavit=locale.currency(costo.infonavit, grouping=True)
-        costo.isr=locale.currency(costo.isr, grouping=True)
-        costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
-        costo.excedente=locale.currency(costo.excedente, grouping=True)
-        costo.tasa=locale.currency(costo.tasa, grouping=True)
-        costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
-        costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
-        costo.impuesto=locale.currency(costo.impuesto, grouping=True)
-        costo.subsidio=locale.currency(costo.subsidio, grouping=True)
-        costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
-        costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
-        costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
-        costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
-        costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
-
-    context = {'costos':costos,'costo_filter':costo_filter,'salidas_list':salidas_list, 'baja': request.GET.get('baja', False)}
-    return render(request, 'proyecto/costo_anterior.html',context)
-
 @login_required(login_url='user-login')
 def costo_revisar_anterior(request, pk):
 
@@ -6872,7 +6870,7 @@ def costo_revisar_anterior(request, pk):
 def TablaPrenominas(request):
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
-    if user_filter.tipo.id in [9,10,11]: #Perfil RH o observador
+    if user_filter.tipo.id in [4,8,9,10,11,12]: #Perfil RH o observador
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         if user_filter.tipo.id in [9,10,11]:
             prenominas= Prenomina.objects.all().order_by("empleado__status__perfil__numero_de_trabajador")
