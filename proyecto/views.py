@@ -71,6 +71,8 @@ import textwrap
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 import os
+from django.db import transaction
+
 
 @login_required(login_url='user-login')
 def Index(request):
@@ -827,206 +829,211 @@ def FormularioCosto(request):
                                             if costo.apoyo_vist_familiar < 0:
                                                 messages.error(request, '(Visita familiar) La cantidad capturada debe ser mayor o igual 0')
                                             else:
-                                                if costo.estancia < 0:
-                                                    messages.error(request, '(Estancia) La cantidad capturada debe ser mayor o igual 0')
+                                                if costo.apoyo_salud < 0:
+                                                    messages.error(request, '(Apoyo salud) La cantidad capturada debe ser mayor o igual 0')
                                                 else:
-                                                    if costo.renta < 0:
-                                                        messages.error(request, '(Renta) La cantidad capturada debe ser mayor o igual 0')
+                                                    if costo.estancia < 0:
+                                                        messages.error(request, '(Estancia) La cantidad capturada debe ser mayor o igual 0')
                                                     else:
-                                                        if costo.apoyo_estudios < 0:
-                                                            messages.error(request, '(Estudios) La cantidad capturada debe ser mayor o igual 0')
+                                                        if costo.renta < 0:
+                                                            messages.error(request, '(Renta) La cantidad capturada debe ser mayor o igual 0')
                                                         else:
-                                                            if costo.amv < 0:
-                                                                messages.error(request, '(AMV) La cantidad capturada debe ser mayor o igual 0')
+                                                            if costo.apoyo_estudios < 0:
+                                                                messages.error(request, '(Estudios) La cantidad capturada debe ser mayor o igual 0')
                                                             else:
-                                                                if costo.gasolina < 0:
-                                                                    messages.error(request, '(Gasolina) La cantidad capturada debe ser mayor o igual 0')
+                                                                if costo.amv < 0:
+                                                                    messages.error(request, '(AMV) La cantidad capturada debe ser mayor o igual 0')
                                                                 else:
-                                                                    if costo.campamento < 0:
-                                                                        messages.error(request, '(Campamento) La cantidad capturada debe ser mayor o igual 0')
+                                                                    if costo.gasolina < 0:
+                                                                        messages.error(request, '(Gasolina) La cantidad capturada debe ser mayor o igual 0')
                                                                     else:
-                                                                        if costo.sdi_imss < 0:
-                                                                            messages.error(request, '(SDI IMSS) La cantidad capturada debe ser mayor a 0')
+                                                                        if costo.campamento < 0:
+                                                                            messages.error(request, '(Campamento) La cantidad capturada debe ser mayor o igual 0')
                                                                         else:
-                                                                            if costo.laborados_imss > 31:
-                                                                                messages.error(request, '(Días laborados IMSS) La cantidad capturada debe ser menor a 31')
+                                                                            if costo.sdi_imss < 0:
+                                                                                messages.error(request, '(SDI IMSS) La cantidad capturada debe ser mayor a 0')
                                                                             else:
-                                                                                actual = datetime.date.today()
-                                                                                print("fecha actual: ",actual)
+                                                                                if costo.laborados_imss > 31:
+                                                                                    messages.error(request, '(Días laborados IMSS) La cantidad capturada debe ser menor a 31')
+                                                                                else:
+                                                                                    actual = datetime.date.today()
+                                                                                    print("fecha actual: ",actual)
 
-                                                                                antiguedad_factor_integracion = relativedelta(actual, costo.status.fecha_ingreso)# calcular antiguedad
-                                                                                años_ingreso = antiguedad_factor_integracion.years #obtiene los años
-                                                                                
-
-                                                                                #años_ingreso = actual.year - costo.status.fecha_ingreso.year - ((actual.month, actual.day) < (costo.status.fecha_ingreso.month, costo.status.fecha_ingreso.day))
-
-                                                                                if años_ingreso == 0:
-                                                                                    años_ingreso = 1
-
-                                                                                for factor in factores:
-                                                                                    if años_ingreso >= factor.years:
-                                                                                        factor_integracion = factor.factor
-                                                                                #print("factor integracion", factor_integracion)
-
-                                                                                #SDI Calculo
-                                                                                costo.sdi = factor_integracion*costo.sueldo_diario
-                                                            
-                                                                                sdi = costo.sdi
-                                                                                #print("sdi: ",sdi)
-                                                                                prima_riesgo = costo.status.registro_patronal.prima
-                                                                                #print("prima RT: ",prima_riesgo)
-                                                                                excedente = dato.UMA*3
-                                                                                #print("excedente: ",excedente)
-                                                                                cuotafija = (dato.UMA*Decimal(variables_patronal.cuota_fija/100))*costo.laborados_imss
-                                                                                #print("cuota fija: ", cuotafija)
-
-                                                                                excedente_patronal = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_patron/100)*costo.laborados_imss
-                                                                                #print("excedente patronal",excedente_patronal)
-                                                                                excedente_obrero = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_obrero/100)*costo.laborados_imss
-                                                                                #print('excedente_obrero',excedente_obrero)
-                                                                                
-                                                                                if excedente_patronal < 0:
-                                                                                    excedente_patronal = 0
-                                                                                if excedente_obrero < 0:
-                                                                                    excedente_obrero = 0
+                                                                                    antiguedad_factor_integracion = relativedelta(actual, costo.status.fecha_ingreso)# calcular antiguedad
+                                                                                    años_ingreso = antiguedad_factor_integracion.years #obtiene los años
                                                                                     
-                                                                                #print("excedente patronal",excedente_patronal)
-                                                                                #print('excedente_obrero',excedente_obrero)
 
-                                                                                prestaciones_patronal = (costo.sdi_imss*Decimal(variables_patronal.pd_patron/100))*costo.laborados_imss
-                                                                                #print("prestaciones patronal: ", prestaciones_patronal)
-                                                                                
-                                                                                prestaciones_obrero = (costo.sdi_imss*Decimal(variables_patronal.pd_obrero/100))*costo.laborados_imss
-                                                                                #print("prestaciones obrero", prestaciones_obrero)
-                                                                                
-                                                                                gastosmp_patronal = (costo.sdi_imss*Decimal(variables_patronal.gmp_patron/100))*costo.laborados_imss
-                                                                                #print("gastosmp patronal",gastosmp_patronal)
-                                                                                
-                                                                                gastosmp_obrero = (costo.sdi_imss*Decimal(variables_patronal.gmp_obrero/100))*costo.laborados_imss
-                                                                                #print("gastosmp obrero",gastosmp_obrero )
-                                                                                
-                                                                                riesgo_trabajo = (costo.sdi_imss*(prima_riesgo/100))*costo.laborados_imss
-                                                                                #print("riesgo trabajo", riesgo_trabajo)
-                                                                                
-                                                                                invalidezvida_patronal = (costo.sdi_imss*Decimal(variables_patronal.iv_patron/100))*costo.laborados_imss
-                                                                                #print("invalidez patronal", invalidezvida_patronal )
-                                                                                
-                                                                                invalidezvida_obrero = (costo.sdi_imss*Decimal(variables_patronal.iv_obrero/100))*costo.laborados_imss
-                                                                                #print("invalidaz obrero", invalidezvida_obrero)
-                                                                                
-                                                                                guarderias_prestsociales = (costo.sdi_imss*Decimal(variables_patronal.gps_patron/100))*costo.laborados_imss
-                                                                                #print("guarderias prest sociales", guarderias_prestsociales)
+                                                                                    #años_ingreso = actual.year - costo.status.fecha_ingreso.year - ((actual.month, actual.day) < (costo.status.fecha_ingreso.month, costo.status.fecha_ingreso.day))
 
-                                                                                costo.imms_obrero_patronal = (cuotafija+excedente_patronal+excedente_obrero+prestaciones_patronal
-                                                                                                +prestaciones_obrero+gastosmp_patronal+gastosmp_obrero+riesgo_trabajo+invalidezvida_patronal
-                                                                                                +invalidezvida_obrero+guarderias_prestsociales)
-                                                                                
-                                                                                #print("imss patronal: ", costo.imms_obrero_patronal)
+                                                                                    if años_ingreso == 0:
+                                                                                        años_ingreso = 1
 
-                                                                                #Costo calculo
-                                                                                costo.total_deduccion = costo.amortizacion_infonavit + costo.fonacot
-                                                                                costo.neto_pagar = costo.neto_catorcenal_sin_deducciones - costo.total_deduccion
-                                                                                costo.sueldo_mensual_neto = (costo.neto_catorcenal_sin_deducciones/dato.dias_quincena)*dato.dias_mes
-                                                                                costo.complemento_salario_mensual = (costo.complemento_salario_catorcenal/dato.dias_quincena)*dato.dias_mes
-                                                                                costo.sueldo_mensual = costo.sueldo_diario*dato.dias_mes
-                                                                                costo.sueldo_mensual_sdi = costo.sdi*dato.dias_mes #sdi
-                                                                                costo.total_percepciones_mensual = costo.apoyo_de_pasajes + costo.sueldo_mensual
-                                                                                for tabla in tablas:
-                                                                                    if costo.total_percepciones_mensual >= tabla.liminf:
-                                                                                        costo.lim_inferior = tabla.liminf
-                                                                                        costo.tasa=tabla.excedente
-                                                                                        costo.cuota_fija=tabla.cuota
-                                                                                    #if costo.lim_inferior >= tabla.p_ingresos:
-                                                                                    #    costo.subsidio=tabla.subsidio
-                                                                                for valor in tabla_subsidio:
-                                                                                    if costo.total_percepciones_mensual >= valor.liminf:
-                                                                                        costo.subsidio=valor.cuota
-                                                                                costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
-                                                                                costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
-                                                                                #Parte de cesantia
-                                                                                busqueda_cesantia= sdi/dato.UMA ###
-                                                                                for tcesantia in tcesantias:   ####
-                                                                                    if  busqueda_cesantia >= tcesantia.sbc:
-                                                                                        cesantia_valor = tcesantia.cuota_patronal
-                                                                                cesantia_ley= costo.sueldo_mensual_sdi*(cesantia_valor/100)                        ###
-                                                                                costo.cesantia= (costo.sueldo_mensual_sdi*Decimal(variables_carga_social.cesantia/100))+cesantia_ley  ####
-                                                                                #Parte de vacaciones #Tambien filtrar para que no se pueda hacer un costo si no se tiene fecha de antiguedad vacaciones
-                                                                                #Se calculan los días para la vacación actual
-                                                                                #PRIMA VACACIONAL
-                                                                                ahora = datetime.date.today()
+                                                                                    for factor in factores:
+                                                                                        if años_ingreso >= factor.years:
+                                                                                            factor_integracion = factor.factor
+                                                                                    #print("factor integracion", factor_integracion)
 
-                                                                                calcular_prima = True
-                                                                                if costo.status.tipo_de_contrato_id == 4: #HONORARIOS
-                                                                                    calcular_prima = False
-                                                                                elif costo.status.tipo_de_contrato_id == 2: #EVENTUAL
-                                                                                    days = ahora - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
-                                                                                elif costo.status.tipo_de_contrato_id == 7: #NR
-                                                                                    calcular_prima = False
-                                                                                elif costo.status.fecha_planta is None and costo.status.fecha_planta_anterior is None:
-                                                                                    calcular_prima = False
-                                                                                elif costo.status.fecha_planta is not None and costo.status.fecha_planta_anterior is not None:
-                                                                                    days = costo.status.fecha_planta_anterior
-                                                                                elif costo.status.fecha_planta:
-                                                                                    days = costo.status.fecha_planta
-                                                                                elif costo.status.fecha_planta_anterior:
-                                                                                    days = costo.status.fecha_planta_anterior
+                                                                                    #SDI Calculo
+                                                                                    costo.sdi = factor_integracion*costo.sueldo_diario
+                                                                
+                                                                                    sdi = costo.sdi
+                                                                                    #print("sdi: ",sdi)
+                                                                                    prima_riesgo = costo.status.registro_patronal.prima
+                                                                                    #print("prima RT: ",prima_riesgo)
+                                                                                    excedente = dato.UMA*3
+                                                                                    #print("excedente: ",excedente)
+                                                                                    cuotafija = (dato.UMA*Decimal(variables_patronal.cuota_fija/100))*costo.laborados_imss
+                                                                                    #print("cuota fija: ", cuotafija)
 
-                                                                                if calcular_prima == True:#calcula la prima
-                                                                                    calcular_antiguedad = relativedelta(ahora, days)
-                                                                                    antiguedad = calcular_antiguedad.years
+                                                                                    excedente_patronal = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_patron/100)*costo.laborados_imss
+                                                                                    #print("excedente patronal",excedente_patronal)
+                                                                                    excedente_obrero = (costo.sdi_imss-excedente)*Decimal(variables_patronal.cf_obrero/100)*costo.laborados_imss
+                                                                                    #print('excedente_obrero',excedente_obrero)
+                                                                                    
+                                                                                    if excedente_patronal < 0:
+                                                                                        excedente_patronal = 0
+                                                                                    if excedente_obrero < 0:
+                                                                                        excedente_obrero = 0
+                                                                                        
+                                                                                    #print("excedente patronal",excedente_patronal)
+                                                                                    #print('excedente_obrero',excedente_obrero)
 
-                                                                                    if antiguedad > 0:
-                                                                                        for tabla in tabla_vacaciones:
-                                                                                            if antiguedad >= tabla.years:
-                                                                                                dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
+                                                                                    prestaciones_patronal = (costo.sdi_imss*Decimal(variables_patronal.pd_patron/100))*costo.laborados_imss
+                                                                                    #print("prestaciones patronal: ", prestaciones_patronal)
+                                                                                    
+                                                                                    prestaciones_obrero = (costo.sdi_imss*Decimal(variables_patronal.pd_obrero/100))*costo.laborados_imss
+                                                                                    #print("prestaciones obrero", prestaciones_obrero)
+                                                                                    
+                                                                                    gastosmp_patronal = (costo.sdi_imss*Decimal(variables_patronal.gmp_patron/100))*costo.laborados_imss
+                                                                                    #print("gastosmp patronal",gastosmp_patronal)
+                                                                                    
+                                                                                    gastosmp_obrero = (costo.sdi_imss*Decimal(variables_patronal.gmp_obrero/100))*costo.laborados_imss
+                                                                                    #print("gastosmp obrero",gastosmp_obrero )
+                                                                                    
+                                                                                    riesgo_trabajo = (costo.sdi_imss*(prima_riesgo/100))*costo.laborados_imss
+                                                                                    #print("riesgo trabajo", riesgo_trabajo)
+                                                                                    
+                                                                                    invalidezvida_patronal = (costo.sdi_imss*Decimal(variables_patronal.iv_patron/100))*costo.laborados_imss
+                                                                                    #print("invalidez patronal", invalidezvida_patronal )
+                                                                                    
+                                                                                    invalidezvida_obrero = (costo.sdi_imss*Decimal(variables_patronal.iv_obrero/100))*costo.laborados_imss
+                                                                                    #print("invalidaz obrero", invalidezvida_obrero)
+                                                                                    
+                                                                                    guarderias_prestsociales = (costo.sdi_imss*Decimal(variables_patronal.gps_patron/100))*costo.laborados_imss
+                                                                                    #print("guarderias prest sociales", guarderias_prestsociales)
 
-                                                                                        vac_reforma_actual = Decimal(dias_vacaciones)*Decimal(costo.sueldo_diario)
-                                                                                        #print("Reforma vacaciones: ",vac_reforma_actual)
+                                                                                    costo.imms_obrero_patronal = (cuotafija+excedente_patronal+excedente_obrero+prestaciones_patronal
+                                                                                                    +prestaciones_obrero+gastosmp_patronal+gastosmp_obrero+riesgo_trabajo+invalidezvida_patronal
+                                                                                                    +invalidezvida_obrero+guarderias_prestsociales)
+                                                                                    
+                                                                                    #print("imss patronal: ", costo.imms_obrero_patronal)
 
-                                                                                        prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
-                                                                                        #print("prima vacacional", prima_vacacional)
-                                                                                        aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
-                                                                                        #print("aguinaldo", aguinaldo)
-                                                                                        costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
-                                                                                        #print("costo total prima vacacional: ", (vac_reforma_actual+prima_vacacional+aguinaldo)/12)
+                                                                                    #Costo calculo
+                                                                                    costo.total_deduccion = costo.amortizacion_infonavit + costo.fonacot
+                                                                                    costo.neto_pagar = costo.neto_catorcenal_sin_deducciones - costo.total_deduccion
+                                                                                    costo.sueldo_mensual_neto = (costo.neto_catorcenal_sin_deducciones/dato.dias_quincena)*dato.dias_mes
+                                                                                    costo.complemento_salario_mensual = (costo.complemento_salario_catorcenal/dato.dias_quincena)*dato.dias_mes
+                                                                                    costo.sueldo_mensual = costo.sueldo_diario*dato.dias_mes
+                                                                                    costo.sueldo_mensual_sdi = costo.sdi*dato.dias_mes #sdi
+                                                                                    costo.total_percepciones_mensual = costo.apoyo_de_pasajes + costo.sueldo_mensual
+                                                                                    for tabla in tablas:
+                                                                                        if costo.total_percepciones_mensual >= tabla.liminf:
+                                                                                            costo.lim_inferior = tabla.liminf
+                                                                                            costo.tasa=tabla.excedente
+                                                                                            costo.cuota_fija=tabla.cuota
+                                                                                        #if costo.lim_inferior >= tabla.p_ingresos:
+                                                                                        #    costo.subsidio=tabla.subsidio
+                                                                                    for valor in tabla_subsidio:
+                                                                                        if costo.total_percepciones_mensual >= valor.liminf:
+                                                                                            costo.subsidio=valor.cuota
+                                                                                    costo.impuesto_estatal= costo.total_percepciones_mensual*Decimal(variables_carga_social.impuesto_estatal/100)
+                                                                                    costo.sar= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.sar/100) #sdi
+                                                                                    #Parte de cesantia
+                                                                                    busqueda_cesantia= sdi/dato.UMA ###
+                                                                                    for tcesantia in tcesantias:   ####
+                                                                                        if  busqueda_cesantia >= tcesantia.sbc:
+                                                                                            cesantia_valor = tcesantia.cuota_patronal
+                                                                                    cesantia_ley= costo.sueldo_mensual_sdi*(cesantia_valor/100)                        ###
+                                                                                    costo.cesantia= (costo.sueldo_mensual_sdi*Decimal(variables_carga_social.cesantia/100))+cesantia_ley  ####
+                                                                                    #Parte de vacaciones #Tambien filtrar para que no se pueda hacer un costo si no se tiene fecha de antiguedad vacaciones
+                                                                                    #Se calculan los días para la vacación actual
+                                                                                    #PRIMA VACACIONAL
+                                                                                    ahora = datetime.date.today()
 
-                                                                                    else:#No calcula la prima - No tiene el año de antiguedad o más
+                                                                                    calcular_prima = True
+                                                                                    if costo.status.tipo_de_contrato_id == 4: #HONORARIOS
+                                                                                        calcular_prima = False
+                                                                                    elif costo.status.tipo_de_contrato_id == 2: #EVENTUAL
+                                                                                        days = ahora - timedelta(days=365) # El calculo es 12 dias de vacaciones, siempre para contrato eventual
+                                                                                    elif costo.status.tipo_de_contrato_id == 7: #NR
+                                                                                        calcular_prima = False
+                                                                                    elif costo.status.fecha_planta is None and costo.status.fecha_planta_anterior is None:
+                                                                                        calcular_prima = False
+                                                                                    elif costo.status.fecha_planta is not None and costo.status.fecha_planta_anterior is not None:
+                                                                                        days = costo.status.fecha_planta_anterior
+                                                                                    elif costo.status.fecha_planta:
+                                                                                        days = costo.status.fecha_planta
+                                                                                    elif costo.status.fecha_planta_anterior:
+                                                                                        days = costo.status.fecha_planta_anterior
+
+                                                                                    if calcular_prima == True:#calcula la prima
+                                                                                        calcular_antiguedad = relativedelta(ahora, days)
+                                                                                        antiguedad = calcular_antiguedad.years
+
+                                                                                        if antiguedad > 0:
+                                                                                            for tabla in tabla_vacaciones:
+                                                                                                if antiguedad >= tabla.years:
+                                                                                                    dias_vacaciones = tabla.days #Se asignan los días para el calculo de la prima vacacional
+
+                                                                                            vac_reforma_actual = Decimal(dias_vacaciones)*Decimal(costo.sueldo_diario)
+                                                                                            #print("Reforma vacaciones: ",vac_reforma_actual)
+
+                                                                                            prima_vacacional = vac_reforma_actual*Decimal(dato.prima_vacacional)
+                                                                                            #print("prima vacacional", prima_vacacional)
+                                                                                            aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
+                                                                                            #print("aguinaldo", aguinaldo)
+                                                                                            costo.total_prima_vacacional = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
+                                                                                            #print("costo total prima vacacional: ", (vac_reforma_actual+prima_vacacional+aguinaldo)/12)
+
+                                                                                        else:#No calcula la prima - No tiene el año de antiguedad o más
+                                                                                            costo.total_prima_vacacional = 0
+
+                                                                                    else:#No calcula la prima
                                                                                         costo.total_prima_vacacional = 0
+                                                                                    #costo.cesantia= costo.sueldo_mensual_sdi*cesantia
+                                                                                    costo.infonavit= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.infonavit/100)
+                                                                                    costo.excedente= costo.total_percepciones_mensual - costo.lim_inferior
+                                                                                    costo.impuesto_marginal= costo.excedente * costo.tasa
+                                                                                    costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
+                                                                                    costo.isr= costo.impuesto
+                                                                                    costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
+                                                                                    costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
+                                                                                    costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
+                                                                                    costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+                                                                                    costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
+                                                                                    """
+                                                                                    costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
+                                                                                    costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
+                                                                                    costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
+                                                                                    costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
+                                                                                    print("costo total empresa: ",costo.total_costo_empresa)
+                                                                                    costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
+                                                                                    costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
+                                                                                    """
+                                                                                    #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
 
-                                                                                else:#No calcula la prima
-                                                                                    costo.total_prima_vacacional = 0
-                                                                                #costo.cesantia= costo.sueldo_mensual_sdi*cesantia
-                                                                                costo.infonavit= costo.sueldo_mensual_sdi*Decimal(variables_carga_social.infonavit/100)
-                                                                                costo.excedente= costo.total_percepciones_mensual - costo.lim_inferior
-                                                                                costo.impuesto_marginal= costo.excedente * costo.tasa
-                                                                                costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
-                                                                                costo.isr= costo.impuesto
-                                                                                costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
-                                                                                costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
-                                                                                costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
-                                                                                costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
-                                                                                costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
-                                                                                """
-                                                                                costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
-                                                                                costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
-                                                                                costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
-                                                                                costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
-                                                                                print("costo total empresa: ",costo.total_costo_empresa)
-                                                                                costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
-                                                                                costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-                                                                                """
-                                                                                #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
-
-                                                                                if form.is_valid():
-                                                                                    user_filter = UserDatos.objects.get(user=request.user)
-                                                                                    nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
-                                                                                    costo.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
-                                                                                    messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
-                                                                                    costo = form.save(commit=False)
-                                                                                    costo.complete = True
-                                                                                    costo.status.complete_costo = True
-                                                                                    costo.save()
-                                                                                    return redirect('Tabla_costo')
+                                                                                    if form.is_valid():
+                                                                                        user_filter = UserDatos.objects.get(user=request.user)
+                                                                                        nombre = Perfil.objects.get(numero_de_trabajador = user_filter.numero_de_trabajador, distrito = user_filter.distrito)
+                                                                                        costo.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
+                                                                                        messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
+                                                                                        costo = form.save(commit=False)
+                                                                                        costo.complete = True
+                                                                                        costo.save()
+                                                                                        status = Status.objects.get(id=costo.status.id)
+                                                                                        status.complete_costo = True
+                                                                                        status.save()
+                                                                                        return redirect('Tabla_costo')
 
         context = {
             'form':form,
@@ -2958,150 +2965,240 @@ def convert_excel_status(request, status):
 
     return(response)
 
+def obtener_distrito_y_division(distrito_name):
+    if distrito_name == "MOTOS":
+        return Distrito.objects.get(distrito="Planta Veracruz"), "MOTOS"
+    elif distrito_name == "PETROLERA":
+        return Distrito.objects.get(distrito="Planta Veracruz"), "PETROLERA"
+    elif Distrito.objects.filter(distrito=distrito_name).exists():
+        return Distrito.objects.get(distrito=distrito_name), ""
+    return None, ""
+
 @login_required(login_url='user-login')
 def upload_batch_empleados(request):
-    #recuerda que el row0 es la columna numero_trabajador y row1 es la columa empresa
     form = Empleados_BatchForm(request.POST or None, request.FILES or None)
 
     if form.is_valid():
         form.save()
         form = Empleados_BatchForm()
-        empleados_list = Empleados_Batch.objects.get(activated = False)
+        empleados_list = Empleados_Batch.objects.get(activated=False)
         f = open(empleados_list.file_name.path, 'r', encoding='latin1')
         reader = csv.reader(f)
-        next(reader) #Advance past the reader
+        next(reader)  # Advance past the header
 
-        for row in reader:
-            fecha=datetime.datetime.strptime(row[5], "%d/%m/%Y").date()
-            #if Perfil.objects.get(numero_de_trabajador != row[0]):
-            if Perfil.objects.filter(numero_de_trabajador = row[0], distrito__distrito = row[2]):
-                messages.error(request,f'El perfil del empleado #{row[0]} ya existe dentro de la base de datos')
-            else:
-                if Empresa.objects.filter(empresa = row[1]):
-                    empresa = Empresa.objects.get(empresa = row[1])
-                    if row[2] == "MOTOS":
-                        distrito = Distrito.objects.get(distrito = "Planta Veracruz")
-                        division = "MOTOS"
-                    elif row[2] == "PETROLERA":
-                        distrito = Distrito.objects.get(distrito = "Planta Veracruz")
-                        division = "PETROLERA"
-                    elif Distrito.objects.filter(distrito = row[2]):
-                        distrito = Distrito.objects.get(distrito = row[2])
-                        division = ""
-                    else:
-                        messages.error(request,f'El distrito no existe dentro de la base de datos, empleado #{row[0]}')
-                    if Proyecto.objects.filter(proyecto = row[7]):
-                        proyecto = Proyecto.objects.get(proyecto = row[7])
-                        if SubProyecto.objects.get(subproyecto = row[8], proyecto__proyecto = row[7]):
-                            subproyecto = SubProyecto.objects.get(subproyecto = row[8], proyecto__proyecto = row[7])
-                            empleado = Perfil(numero_de_trabajador=row[0], empresa=empresa, distrito=distrito, nombres=row[3],
-                                apellidos=row[4],fecha_nacimiento=fecha,correo_electronico=row[6],proyecto=proyecto,subproyecto=subproyecto,
-                                complete=True, complete_status=False,)
-                            empleado.division = division
-                            empleado.save()
-                        else:
-                            messages.error(request,f'El subproyecto no existe dentro de la base de datos, empleado #{row[0]}')
-                    else:
-                        messages.error(request,f'El proyecto no existe dentro de la base de datos, empleado #{row[0]}')
-                else:
-                    messages.error(request,f'La empresa no existe dentro de la base de datos, empleado #{row[0]}')
-        empleados_list.activated = True
-        empleados_list.save()
+        empleados_a_guardar = []
+
+        try:
+            with transaction.atomic():
+                for row in reader:
+                    try:
+                        fecha = datetime.datetime.strptime(row[5], "%d/%m/%Y").date()
+                        if Perfil.objects.filter(numero_de_trabajador=row[0], distrito__distrito=row[2]).exists():
+                            messages.error(request, f'El perfil del empleado #{row[0]} ya existe dentro de la base de datos')
+                            continue
+
+                        if not Empresa.objects.filter(empresa=row[1]).exists():
+                            messages.error(request, f'La empresa no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        empresa = Empresa.objects.get(empresa=row[1])
+                        distrito, division = obtener_distrito_y_division(row[2])
+
+                        if distrito is None:
+                            messages.error(request, f'El distrito no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        if not Proyecto.objects.filter(proyecto=row[7]).exists():
+                            messages.error(request, f'El proyecto no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        proyecto = Proyecto.objects.get(proyecto=row[7])
+
+                        if not SubProyecto.objects.filter(subproyecto=row[8], proyecto__proyecto=row[7]).exists():
+                            messages.error(request, f'El subproyecto no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        subproyecto = SubProyecto.objects.get(subproyecto=row[8], proyecto__proyecto=row[7])
+                        empleado = Perfil(
+                            numero_de_trabajador=row[0],
+                            empresa=empresa,
+                            distrito=distrito,
+                            nombres=row[3],
+                            apellidos=row[4],
+                            fecha_nacimiento=fecha,
+                            correo_electronico=row[6],
+                            proyecto=proyecto,
+                            subproyecto=subproyecto,
+                            complete=True,
+                            complete_status=False,
+                        )
+                        empleado.division = division
+                        empleados_a_guardar.append(empleado)
+                    
+                    except Exception as e:
+                        columna_error = next((i for i, v in enumerate(row) if not v.strip()), None)
+                        print(f"Error en la columna {columna_error}, empleado #{row[0]}: {str(e)}")
+                        messages.error(request, f"Error al procesar el empleado #{row[0]}: {str(e)} en la columna {columna_error}")
+
+                # Guardar todos los empleados al mismo tiempo
+                Perfil.objects.bulk_create(empleados_a_guardar)
+                
+            empleados_list.activated = True
+            empleados_list.save()
+            print(f"Empleados cargados")
+        except Exception as e:
+            print(f"Error en transacción: {str(e)}")
+            messages.error(request, "Error al procesar la carga, ningún dato fue guardado.")
 
     context = {
         'form': form,
-        }
+    }
 
-    return render(request,'proyecto/upload_batch_empleados.html', context)
+    return render(request, 'proyecto/upload_batch_empleados.html', context)
+
+
+from django.db import transaction
 
 @login_required(login_url='user-login')
 def upload_batch_status(request):
-
     form = Status_BatchForm(request.POST or None, request.FILES or None)
 
     if form.is_valid():
         form.save()
         form = Status_BatchForm()
-        status_list = Status_Batch.objects.get(activated = False)
+        status_list = Status_Batch.objects.get(activated=False)
         f = open(status_list.file_name.path, 'r', encoding='latin1')
         reader = csv.reader(f)
-        next(reader) #Advance past the reader
+        next(reader)  # Advance past the header
 
-        for row in reader:
-            ultimo_contrato = datetime.datetime.strptime(row[11], "%d/%m/%Y").date()
-            if row[18] == '':
-                ingreso = None
-            else:
-                ingreso = datetime.datetime.strptime(row[18], "%d/%m/%Y").date()
-            if row[17] == '':
-                planta = None
-            else:
-                planta = datetime.datetime.strptime(row[17], "%d/%m/%Y").date()
-            if row[16] == '':
-                planta_anterior = None
-            else:
-                planta_anterior = datetime.datetime.strptime(row[16], "%d/%m/%Y").date()
-            if row[1] == "MOTOS":
-                distrito = Distrito.objects.get(distrito = "Planta Veracruz")
-            elif row[1] == "PETROLERA":
-                distrito = Distrito.objects.get(distrito = "Planta Veracruz")
-            elif Distrito.objects.filter(distrito = row[1]):
-                distrito = Distrito.objects.get(distrito = row[1])
-            else:
-                messages.error(request,f'El distrito no existe dentro de la base de datos, empleado #{row[0]}')
-            if Perfil.objects.filter(numero_de_trabajador = row[0], distrito__distrito = distrito):
-                perfil = Perfil.objects.get(numero_de_trabajador = row[0], distrito__distrito = distrito)
-                if Status.objects.filter(perfil__numero_de_trabajador = row[0], perfil__distrito__distrito = distrito):
-                    messages.error(request,f'El status del empleado #{row[0]} ya existe dentro de la base de datos')
-                else:
-                    if RegistroPatronal.objects.filter(patronal = row[2]):
-                        registro_patronal = RegistroPatronal.objects.get(patronal = row[2])
-                        if Nivel.objects.filter(nivel = row[9]):
-                            nivel = Nivel.objects.get(nivel = row[9])
-                            if Contrato.objects.filter(contrato = row[10]):
-                                tipo_de_contrato = Contrato.objects.get(contrato = row[10])
-                                if Sangre.objects.filter(sangre = row[12]):
-                                    sangre = Sangre.objects.get(sangre = row[12])
-                                    if Sexo.objects.filter(sexo = row[13]):
-                                        genero = Sexo.objects.get(sexo = row[13])
-                                        if Civil.objects.filter(estado_civil = row[15]):
-                                            civil = Civil.objects.get(estado_civil = row[15])
-                                            if Puesto.objects.filter(puesto = row[19]):
-                                                puesto = Puesto.objects.get(puesto = row[19])
-                                                perfil.complete_status = True
-                                                perfil.save()
-                                                status = Status(perfil=perfil,registro_patronal= registro_patronal,nss=row[3],curp=row[4],rfc=row[5],telefono=row[6],profesion=row[7],
-                                                        no_cedula=row[8],nivel=nivel,tipo_de_contrato=tipo_de_contrato,ultimo_contrato_vence=ultimo_contrato,tipo_sangre=sangre,sexo=genero,domicilio=row[14],
-                                                        estado_civil=civil,fecha_planta_anterior=planta_anterior,fecha_planta=planta,fecha_ingreso=ingreso,puesto=puesto,complete=True,)
+        status_a_guardar = []
 
-                                                status.save()
-                                            else:
-                                                messages.error(request,f'El puesto no existe dentro de la base de datos, empleado #{row[0]}')
-                                        else:
-                                            messages.error(request,f'El estado civil no existe dentro de la base de datos, empleado #{row[0]}')
-                                    else:
-                                        messages.error(request,f'El genero no existe dentro de la base de datos, empleado #{row[0]}')
-                                else:
-                                    messages.error(request,f'El tipo de sangre no existe dentro de la base de datos, empleado #{row[0]}')
-                            else:
-                                messages.error(request,f'El tipo de contrato no existe dentro de la base de datos, empleado #{row[0]}')
+        try:
+            with transaction.atomic():
+                try:
+                    for row in reader:
+                        ultimo_contrato = datetime.datetime.strptime(row[11], "%d/%m/%Y").date()
+                        ingreso = datetime.datetime.strptime(row[18], "%d/%m/%Y").date() if row[18] else None
+                        planta = datetime.datetime.strptime(row[17], "%d/%m/%Y").date() if row[17] else None
+                        planta_anterior = datetime.datetime.strptime(row[16], "%d/%m/%Y").date() if row[16] else None
+                        fecha_cedula = datetime.datetime.strptime(row[23], "%d/%m/%Y").date() if row[23] else None
+                        fecha_alta_imss = datetime.datetime.strptime(row[24], "%d/%m/%Y").date() if row[24] else None
+                        distrito = None
+                        if row[1] in ["MOTOS", "PETROLERA"]:
+                            distrito = Distrito.objects.get(distrito="Planta Veracruz")
+                        elif Distrito.objects.filter(distrito=row[1]).exists():
+                            distrito = Distrito.objects.get(distrito=row[1])
                         else:
-                            messages.error(request,f'El nivel no existe dentro de la base de datos, empleado #{row[0]}')
+                            messages.error(request, f'El distrito no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
 
-                    else:
-                        messages.error(request,f'El registro patronal no existe dentro de la base de datos, empleado #{row[0]}')
-            else:
-                messages.error(request,f'El perfil del empleado #{row[0]} no existe dentro de la base de datos')
-        status_list.activated = True
-        status_list.save()
+                        if not Perfil.objects.filter(numero_de_trabajador=row[0], distrito__distrito=distrito).exists():
+                            messages.error(request, f'El perfil del empleado #{row[0]} no existe dentro de la base de datos')
+                            continue
 
+                        perfil = Perfil.objects.get(numero_de_trabajador=row[0], distrito__distrito=distrito)
 
+                        if Status.objects.filter(perfil__numero_de_trabajador=row[0], perfil__distrito__distrito=distrito).exists():
+                            messages.error(request, f'El status del empleado #{row[0]} ya existe dentro de la base de datos')
+                            continue
+
+                        if not RegistroPatronal.objects.filter(patronal=row[2]).exists():
+                            messages.error(request, f'El registro patronal no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        registro_patronal = RegistroPatronal.objects.get(patronal=row[2])
+
+                        if not Nivel.objects.filter(id=row[9]).exists():
+                            messages.error(request, f'El nivel no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+                        if row[9] == 4.0:
+                            nivel = Nivel.objects.get(id=23)
+                        else:
+                            nivel = Nivel.objects.get(nivel=row[9])
+
+                        if not Contrato.objects.filter(contrato=row[10]).exists():
+                            messages.error(request, f'El tipo de contrato no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        tipo_de_contrato = Contrato.objects.get(contrato=row[10])
+
+                        if not Sangre.objects.filter(sangre=row[12]).exists():
+                            messages.error(request, f'El tipo de sangre no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        sangre = Sangre.objects.get(sangre=row[12])
+
+                        if not Sexo.objects.filter(sexo=row[13]).exists():
+                            messages.error(request, f'El genero no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        genero = Sexo.objects.get(sexo=row[13])
+
+                        if not Civil.objects.filter(estado_civil=row[15]).exists():
+                            messages.error(request, f'El estado civil no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        civil = Civil.objects.get(estado_civil=row[15])
+
+                        if not Puesto.objects.filter(puesto=row[19]).exists():
+                            messages.error(request, f'El puesto no existe dentro de la base de datos, empleado #{row[0]}')
+                            continue
+
+                        puesto = Puesto.objects.get(puesto=row[19])
+
+                        perfil.complete_status = True
+                        perfil.save()
+
+                        status = Status(
+                            perfil=perfil,
+                            registro_patronal=registro_patronal,
+                            nss=row[3],
+                            curp=row[4],
+                            rfc=row[5],
+                            telefono=row[6],
+                            profesion=row[7],
+                            no_cedula=row[8],
+                            nivel=nivel,
+                            tipo_de_contrato=tipo_de_contrato,
+                            ultimo_contrato_vence=ultimo_contrato,
+                            tipo_sangre=sangre,
+                            sexo=genero,
+                            domicilio=row[14],
+                            estado_civil=civil,
+                            fecha_planta_anterior=planta_anterior,
+                            fecha_planta=planta,
+                            fecha_ingreso=ingreso,
+                            puesto=puesto,
+                            lugar_nacimiento =row[20],
+                            numero_ine =row[21],
+                            escuela = row[22],
+                            fecha_cedula = fecha_cedula,
+                            fecha_alta_imss = fecha_alta_imss,
+                            complete=True,
+                        )
+                        status_a_guardar.append(status)
+
+                except Exception as e:
+                    columna_error = next((i for i, v in enumerate(row) if not v.strip()), None)
+                    print(f"Error en la columna {columna_error}, empleado #{row[0]}: {str(e)}")
+                    messages.error(request, f"Error al procesar el empleado #{row[0]}: {str(e)} en la columna {columna_error}")
+
+                # Guardar todos los estados al mismo tiempo
+                Status.objects.bulk_create(status_a_guardar)
+                
+
+            status_list.activated = True
+            status_list.save()
+
+        except Exception as e:
+            print(f"Error en transacción: {str(e)}")
+            messages.error(request, "Error al procesar la carga, ningún dato fue guardado.")
 
     context = {
         'form': form,
-        }
+    }
 
-    return render(request,'proyecto/upload_batch_status.html', context)
+    return render(request, 'proyecto/upload_batch_status.html', context)
 
 @login_required(login_url='user-login')
 def upload_batch_costos(request):
@@ -3144,7 +3241,7 @@ def upload_batch_costos(request):
                         status.complete_costo = True
                         costo = Costo(status=status,neto_catorcenal_sin_deducciones=row[2],complemento_salario_catorcenal=row[3],sueldo_diario=row[4],
                                 amortizacion_infonavit=row[5],fonacot=row[6],apoyo_de_pasajes=row[7],apoyo_vist_familiar=row[8],estancia=row[9],renta=row[10],
-                                campamento=row[11],apoyo_estudios=row[12],gasolina=row[13],amv=row[14],laborados=row[15],laborados_imss=row[16],sdi_imss=row[17],complete=True,)
+                                campamento=row[11],apoyo_estudios=row[12],gasolina=row[13],amv=row[14],laborados=row[15],laborados_imss=row[16],sdi_imss=row[17],apoyo_salud=row[18],complete=True,)
 
                         costo.neto_catorcenal_sin_deducciones = Decimal(row[2])
                         costo.complemento_salario_catorcenal = Decimal(row[3])
@@ -3162,6 +3259,7 @@ def upload_batch_costos(request):
                         costo.laborados= Decimal(row[15])
                         costo.laborados_imss = Decimal(row[16])
                         costo.sdi_imss = Decimal(row[17])
+                        costo.apoyo_salud = Decimal(row[18])
                         ahora = datetime.date.today()
                         antiguedad_factor_integracion = relativedelta(ahora, costo.status.fecha_ingreso)# calcular antiguedad
                         años_ingreso = antiguedad_factor_integracion.years #obtiene los años
@@ -6163,18 +6261,18 @@ def upload_batch_vacaciones_anteriores(request):
                     vacacion3.save()
                     vacacion3._meta.get_field('created_at').auto_now = True
 
-                #if row[6] != 0:
-                #    vacacion4 = Vacaciones(status=status, periodo='2024', dias_de_vacaciones=None, dia_inhabil=dia,
-                #                           fecha_inicio=None, fecha_fin=None, dias_disfrutados=None,
-                #                           total_pendiente=row[6], comentario=str('Vacaciones años previos'),
-                #                           complete=True)
+                if row[6] != 0:
+                    vacacion4 = Vacaciones(status=status, periodo='2024', dias_de_vacaciones=None, dia_inhabil=dia,
+                                           fecha_inicio=None, fecha_fin=None, dias_disfrutados=None,
+                                           total_pendiente=row[6], comentario=str('Vacaciones años previos'),
+                                           complete=True)
 
-                    #vacacion4._meta.get_field('created_at').auto_now = False
-                    #vacacion4.created_at = fecha5
-                    #vacacion4.save()
-                    #vacacion4._meta.get_field('created_at').auto_now = True
+                    vacacion4._meta.get_field('created_at').auto_now = False
+                    vacacion4.created_at = fecha5
+                    vacacion4.save()
+                    vacacion4._meta.get_field('created_at').auto_now = True
 
-                if row[7] != 0:
+                if int(row[7]) >= 0:
                     economico = Economicos(status=status, periodo='2024', dias_disfrutados=(3 - int(row[7])),
                                            dias_pendientes=row[7], fecha=None,
                                            comentario="Economicos pendientes cargados", complete=True)
@@ -6710,7 +6808,7 @@ def costo_anterior(request):
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id in [4,8,9,10,11,12]:
-            
+        
         revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         if user_filter.tipo.id in [9,10,11]:
             costos= CostoAnterior.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
@@ -6788,83 +6886,73 @@ def costo_anterior(request):
     
 @login_required(login_url='user-login')
 def costo_revisar_anterior(request, pk):
-
+    user_filter = UserDatos.objects.get(user=request.user)
     costo = CostoAnterior.objects.get(id=pk)
-    ahora = datetime.date.today()
-    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    #bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
-    #sum_bonos = bonos_dato.aggregate(Sum('monto'))
-    #bonototal = sum_bonos['monto__sum']
-    #if bonototal == None:
-    #    bonototal = 0
-    comision=Decimal(0.09)
+    if user_filter.tipo.id in [4,8,9,10,11,12]:
+        if user_filter.tipo.id in [4,8,12] and user_filter.distrito == costo.status.perfil.distrito:
+            ahora = datetime.date.today()
+            catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+            comision=Decimal(0.09)
+            costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
+            costo.empresa=costo.status.perfil.empresa
+            costo.distrito=costo.status.perfil.distrito
+            costo.proyecto=costo.status.perfil.proyecto
+            costo.nombres=costo.status.perfil.nombres
+            costo.apellidos=costo.status.perfil.apellidos
+            costo.tipo_de_contrato=costo.status.tipo_de_contrato
 
-    #vac_reforma_actual = Decimal((12/365)*365)*Decimal(costo.sueldo_diario)
-    #prima_vacacional = vac_reforma_actual*Decimal(0.25)
-    #aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
-    #total_vacaciones = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
-    #costo.total_apoyosbonos_agregcomis = costo.campamento + bonototal #Modificar falta suma
-    #costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento + bonototal)*comision #Falta suma dentro de la multiplicacion
-    #costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp
-    #costo.total_costo_empresa = costo.total_costo_empresa + total_vacaciones
-    #costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
+            costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
+            costo.fonacot=locale.currency(costo.fonacot, grouping=True)
+            costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
+            costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
+            costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
+            costo.sdi=locale.currency(costo.sdi, grouping=True)
+            costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
+            costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
+            costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
+            costo.estancia=locale.currency(costo.estancia, grouping=True)
+            costo.renta=locale.currency(costo.renta, grouping=True)
+            costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
+            costo.amv=locale.currency(costo.amv, grouping=True)
+            costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+            costo.campamento=locale.currency(costo.campamento, grouping=True)
+            costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
+            costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
+            costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
+            costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
+            costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
+            costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
+            costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
+            costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
+            costo.sar=locale.currency(costo.sar, grouping=True)
+            costo.cesantia=locale.currency(costo.cesantia, grouping=True)
+            costo.infonavit=locale.currency(costo.infonavit, grouping=True)
+            costo.isr=locale.currency(costo.isr, grouping=True)
+            costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
+            costo.excedente=locale.currency(costo.excedente, grouping=True)
+            costo.tasa=locale.currency(costo.tasa, grouping=True)
+            costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
+            costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
+            costo.impuesto=locale.currency(costo.impuesto, grouping=True)
+            costo.subsidio=locale.currency(costo.subsidio, grouping=True)
+            costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
+            costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
+            costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
+            costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
+            costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+            #se agrego el bono
+            costo.bono_total=locale.currency(costo.bono_total, grouping=True)
+            print("bono: ",costo.bono_total)
+            if request.method =='POST' and 'Pdf' in request.POST:
+                return reporte_pdf_costo_detalles(request,costo)
 
-    costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
-    costo.empresa=costo.status.perfil.empresa
-    costo.distrito=costo.status.perfil.distrito
-    costo.proyecto=costo.status.perfil.proyecto
-    costo.nombres=costo.status.perfil.nombres
-    costo.apellidos=costo.status.perfil.apellidos
-    costo.tipo_de_contrato=costo.status.tipo_de_contrato
+            context = {'costo':costo,}
 
-    costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
-    costo.fonacot=locale.currency(costo.fonacot, grouping=True)
-    costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
-    costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
-    costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
-    costo.sdi=locale.currency(costo.sdi, grouping=True)
-    costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
-    costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
-    costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
-    costo.estancia=locale.currency(costo.estancia, grouping=True)
-    costo.renta=locale.currency(costo.renta, grouping=True)
-    costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
-    costo.amv=locale.currency(costo.amv, grouping=True)
-    costo.gasolina=locale.currency(costo.gasolina, grouping=True)
-    costo.campamento=locale.currency(costo.campamento, grouping=True)
-    costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
-    costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
-    costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
-    costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
-    costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
-    costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
-    costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
-    costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
-    costo.sar=locale.currency(costo.sar, grouping=True)
-    costo.cesantia=locale.currency(costo.cesantia, grouping=True)
-    costo.infonavit=locale.currency(costo.infonavit, grouping=True)
-    costo.isr=locale.currency(costo.isr, grouping=True)
-    costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
-    costo.excedente=locale.currency(costo.excedente, grouping=True)
-    costo.tasa=locale.currency(costo.tasa, grouping=True)
-    costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
-    costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
-    costo.impuesto=locale.currency(costo.impuesto, grouping=True)
-    costo.subsidio=locale.currency(costo.subsidio, grouping=True)
-    costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
-    costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
-    costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
-    costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
-    costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
-    #se agrego el bono
-    costo.bono_total=locale.currency(costo.bono_total, grouping=True)
-    print("bono: ",costo.bono_total)
-    if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(request,costo)
-
-    context = {'costo':costo,}
-
-    return render(request, 'proyecto/costo_revisar_anterior.html',context)
+            return render(request, 'proyecto/costo_revisar_anterior.html',context)
+        else:
+            return render(request, 'revisar/403.html')
+    else:
+        return render(request, 'revisar/403.html')
 
 @login_required(login_url='user-login')
 def TablaPrenominas(request):

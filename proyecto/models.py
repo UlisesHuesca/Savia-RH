@@ -361,6 +361,7 @@ class Costo(models.Model):
     apoyo_de_pasajes = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     imms_obrero_patronal = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     apoyo_vist_familiar = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
+    apoyo_salud = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     estancia = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     renta = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
     apoyo_estudios = models.DecimalField(max_digits=14, decimal_places=2,null=True, default=0)
