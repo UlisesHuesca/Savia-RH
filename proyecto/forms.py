@@ -58,7 +58,7 @@ class CostoForm(forms.ModelForm):
         model = Costo
         fields = ['status','amortizacion_infonavit','fonacot','neto_catorcenal_sin_deducciones',
                 'complemento_salario_catorcenal','sueldo_diario','apoyo_de_pasajes','laborados',
-                'apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','campamento','sdi_imss','laborados_imss']
+                'apoyo_vist_familiar','apoyo_salud','estancia','renta','apoyo_estudios','amv','gasolina','campamento','sdi_imss','laborados_imss']
 
 
 class CostoUpdateForm(forms.ModelForm):
@@ -66,7 +66,7 @@ class CostoUpdateForm(forms.ModelForm):
         model = Costo
         fields = ['amortizacion_infonavit','fonacot','neto_catorcenal_sin_deducciones',
                 'complemento_salario_catorcenal','sueldo_diario','apoyo_de_pasajes','laborados',
-                'apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','campamento','sdi_imss','laborados_imss']
+                'apoyo_vist_familiar','estancia','apoyo_salud','renta','apoyo_estudios','amv','gasolina','campamento','sdi_imss','laborados_imss']
 
 class DatosBancariosForm(forms.ModelForm):
     class Meta:

@@ -122,7 +122,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'plantillas',
         'USER': 'root',
-        'PASSWORD': '12345678',
+        'PASSWORD': 'Root',
         'HOST': 'localhost',
         'PORT': '',
     }
