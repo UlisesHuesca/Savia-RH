@@ -2970,7 +2970,7 @@ def upload_batch_empleados(request):
         f = open(empleados_list.file_name.path, 'r', encoding='latin1')
         reader = csv.reader(f)
         next(reader) #Advance past the reader
-
+        
         for row in reader:
             fecha=datetime.datetime.strptime(row[5], "%d/%m/%Y").date()
             #if Perfil.objects.get(numero_de_trabajador != row[0]):
@@ -2990,6 +2990,8 @@ def upload_batch_empleados(request):
                         division = ""
                     else:
                         messages.error(request,f'El distrito no existe dentro de la base de datos, empleado #{row[0]}')
+                        
+                        
                     if Proyecto.objects.filter(proyecto = row[7]):
                         proyecto = Proyecto.objects.get(proyecto = row[7])
                         if SubProyecto.objects.get(subproyecto = row[8], proyecto__proyecto = row[7]):
