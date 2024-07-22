@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html">
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title></title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+        .button {
+            background-color: #008CBA;
+            /* Green */
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #007095;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        .contenedor {
+            overflow: hidden;
+        }
+        img {
+            float: left;
+            margin-right: 10px;
+        }
+        small {
+            color: #777
+        }
+        .footer-text {
+            text-align: justify;
+            background-color: gray;
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            margin: 10px 0 10px 0
+        }
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+          }
+          
+          td, th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+          }
+          
+          tr:nth-child(even) {
+            background-color: #dddddd;
+          }
+    </style>
+</head>
+
+<body>
+    <div class="contenedor" style="background: #122D45; padding:5px; color:white">
+        <img src="{{protocol}}://{{domain}}{% static 'images/SAVIA_Logo1.png' %}" alt="SAVIA" width="80" height="85">
+        <h3> Savia RH</h3>
+    </div>
+    <!-- START BODY -->
+
+
+    <div style="margin: 25px 0 25px 0;">
+        
+        <h3><strong>Hola, {{perfil}}</strong></h3>
+        <p>
+            Reviso la solicitud del bono con el folio 40
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Perfil</th>
+                    <th>Folio</th>
+                    <th>Bono</th>
+                    <th>Autorizacion</th>
+                    <th>Registro</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>RH</td>
+                    <td>{{folio}}</td>
+                    <td>Puntualidad</td>
+                    <td>Aprobado</td>
+                    <td>12-05-19 7:55</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p>Esta solicitud pasa a controles técnicos</p>
+
+    <!-- END BODY -->
+    <small>Este mensaje fue generado automaticamente por SAVIA RH </small> 
+    <p class="footer-text">La información e imágenes aquí contenidas tienen el carácter de confidencial y son para uso
+        exclusivo de la(s) persona(s) a quien(es)
+        está dirigido el presente mensaje de correo electrónico. Si usted no es destinatario de este mensaje de correo
+        electrónico, o bien,
+        no es persona autorizada por el destinatario para recibir sus mensajes de correo electrónico, NO deberá copiar,
+        fotocopiar, reproducir,
+        almacenar, escanear, revelar, divulgar o utilizar la información e imágenes aquí contenidas, ya que de lo
+        contrario podría hacerse
+        acreedor a alguna sanción privativa de libertad y/o pecuniaria y, además, deberá notificar su recepción
+        inmediatamente al remitente y
+        destruirlo. La recepción del mensaje contenido en el presente no debe ser considerada como constitutiva de
+        relación legal o contractual
+        alguna entre el remitente y destinatario del mismo, pues dicho mensaje tiene meros efectos informativos.</p>
+
+    </body>
+</html>

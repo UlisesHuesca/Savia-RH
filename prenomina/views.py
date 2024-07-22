@@ -384,7 +384,7 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                 
                 
                 
-                """
+                """ se deja para verificar
                 for festivo in festivos:
                     registro, created = PrenominaIncidencias.objects.update_or_create(
                         prenomina_id=prenomina.id,
@@ -436,7 +436,7 @@ def Autorizar_general(request,prenominas, user_filter, catorcena_actual):
                         #se agregar un dia para realizar el recorrido de la fecha          
                         fecha_inicio += timedelta(days=1)
                         fecha +=   timedelta(days=1)
-            """    
+            """ Se dejan los descansos es para verificar si un modelo existe con el rango solo se toma el valor del dia inhabil y lo pone   
             descansos = PrenominaIncidencias.objects.filter(
                 prenomina__empleado_id=prenomina.empleado_id, 
                 incidencia__id__in=[6, 5, 2],

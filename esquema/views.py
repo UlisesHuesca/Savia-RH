@@ -51,6 +51,9 @@ from datetime import date
 from PIL import Image
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
+#envio de correos
+from django.core.mail import send_mail
+from django.conf import settings
 
 #Pagina inicial de los esquemas de los bonos
 @login_required(login_url='user-login')
@@ -301,6 +304,11 @@ def crearSolicitudBonosVarilleros(request):
                     Solicitud.objects.filter(pk=solicitud.id).values("total").update(total=total)
                         
                     messages.success(request, "El bono se ha agregado a la solicitud correctamente")
+                    
+                    #Implementación del correo 
+                    
+                    
+                    
                             
                     #se llama el formulario vacio para que pueda agregar mas bonos
                     bonoSolicitadoForm = BonoSolicitadoForm()
@@ -577,8 +585,10 @@ def generarReporteBonosVarillerosAprobados(request):
     usuario = get_object_or_404(UserDatos,user_id = request.user.id)
     ids = [9,10,11]
     
+    print(usuario.tipo.id)
+    
     #Flujo de las autorizaciones y permisos
-    if usuario.tipo.id in (9,10,11): #
+    if usuario.tipo.id in (9,10,11,12): #
         #se buscan los perfiles acredores al bono
         folios = Solicitud.objects.filter(fecha_autorizacion__isnull=False).values('folio')
     elif usuario.tipo.id in (4,12,8): #RH, SA, GE
@@ -586,8 +596,8 @@ def generarReporteBonosVarillerosAprobados(request):
     else:
         return render(request, 'revisar/403.html')
         
-    if not folios:
-        return render(request, 'revisar/403.html')
+    #if not folios:
+    #    return render(request, 'revisar/403.html')
     
     #se prepara un 
     solicitudes = []

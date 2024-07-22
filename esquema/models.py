@@ -7,7 +7,7 @@ from proyecto.models import Distrito,Perfil
 
 #Se crea el puesto para los bonos
 class Puesto(models.Model):
-    puesto = models.CharField(max_length=100,null=False)
+    puesto = models.CharField(max_length=200,null=False)
     
     def __str__(self):
         return self.puesto
@@ -23,8 +23,8 @@ class Categoria(models.Model):
 class Subcategoria(models.Model):
     esquema_categoria = models.ForeignKey(Categoria,on_delete=models.CASCADE,null=False)
     nombre = models.CharField(max_length=100,null=False)
-    soporte = models.CharField(max_length=250,null=True)
-        
+    soporte = models.CharField(max_length=250,null=True, blank = True)
+    
     def __str__(self):
         return self.nombre
     
@@ -34,7 +34,7 @@ class Bono(models.Model):
     puesto = models.ForeignKey(Puesto,on_delete=models.CASCADE,null=False)
     distrito = models.ForeignKey(Distrito,on_delete=models.CASCADE,null=False)
     #cuando el importe es null se considera NA
-    importe = models.DecimalField(max_digits=10,decimal_places=2,null=True)
+    importe = models.DecimalField(max_digits=10,decimal_places=2,null=True, blank=True)
 
     def __str__(self):
         if self.esquema_subcategoria is None:

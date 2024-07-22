@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", (e) => {
     /**Debes reemplazar o cambiar los valores de los bonos asignados por el ID que se encuentran en la subcategoria del bono */
-    const bonoViajePEP = 0
-    const bonoViajePrivado = 13
-    const bonoCurso = 14
+    const bonoViajePEP = 0//0
+    const bonoViajePrivado = 19//13
+    const bonoCurso = 23//14
     const url = 'http://127.0.0.1:8000/esquema/bonos_varillero/'
 
      /**Buscar el soporte para el bono seleccionado */

@@ -150,11 +150,13 @@
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{% url 'Tabla_datosbancarios' %}">Datos bancarios</a>
                             <a class="dropdown-item" href="{% url 'Tabla_costo' %}">Costos</a>
-                            <a class="dropdown-item" href="{% url 'Prenomina' %}">Prenomina RH</a>
+                            {% if usuario.tipo.prenomina %}
+                                <a class="dropdown-item" href="{% url 'Prenomina' %}">Prenomina RH</a>
+                            {% endif %}
                             <a class="dropdown-item" href="{% url 'listarBonosVarilleros' %}">Bonos</a>
                             {% comment %}
                             <a class="dropdown-item" href="{% url 'Tabla_bonos' %}">Bonos</a>
-                             {% endcomment %}
+                            {% endcomment %}
                             <a class="dropdown-item" href="{% url 'Tabla_vacaciones_empleados' %}">Vacaciones</a>
                             <a class="dropdown-item" href="{% url 'Tabla_uniformes' %}">Uniformes</a>
                             <a class="dropdown-item" href="{% url 'Tabla_economicos' %}">Días económicos</a>

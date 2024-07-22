@@ -77,6 +77,13 @@ from calculos.utils import excel_estado_prenomina
 
 from prenomina.filters import PrenominaFilter
 from prenomina.views import obtener_catorcena
+#envio de correos
+from django.core.mail import EmailMessage, BadHeaderError
+from django.http import HttpResponse
+from smtplib import SMTPException
+from django.conf import settings
+from django.template.loader import render_to_string
+
 
 #BONOS
 def asignarBonoCosto(solicitud):
@@ -231,7 +238,7 @@ def autorizarSolicitud(request,solicitud):
 
                 messages.success(request, "El supervisor debe realizar cambios en la solicitud emitida")
                 return redirect('listarBonosVarilleros')
-
+            
 #PRENOMINA
 @login_required(login_url='user-login')
 def Tabla_solicitudes_prenomina(request):

@@ -136,7 +136,7 @@
                 <div class="col-auto">
                        {% render_field costo_filter.form.fecha type="date" class="form-control" %}
                 </div>
-                {% if usuario.tipo in ids %}
+                {% if usuario.tipo.id in ids %}
                 <label for="costo_filter.form.distrito" class="col-sm-auto col-form-label text-right"><strong>Distrito:</strong></label>
                 <div class="col-auto">
                        {% render_field costo_filter.form.distrito class="form-control" %}

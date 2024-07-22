@@ -4458,9 +4458,8 @@ def FormatoVacaciones(request):
 def SolicitudVacaciones(request):
     currentFieldCount = 10
     usuario = UserDatos.objects.get(user__id=request.user.id)
-    print("Este es el numero de trabajador: ",usuario.numero_de_trabajador)
     status = Status.objects.get(perfil__numero_de_trabajador=usuario.numero_de_trabajador, perfil__distrito=usuario.distrito)
-
+    
     #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
     fecha_actual = date.today()
     año_actual = str(fecha_actual.year)
@@ -6788,83 +6787,73 @@ def costo_anterior(request):
     
 @login_required(login_url='user-login')
 def costo_revisar_anterior(request, pk):
-
+    user_filter = UserDatos.objects.get(user=request.user)
     costo = CostoAnterior.objects.get(id=pk)
-    ahora = datetime.date.today()
-    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-    #bonos_dato = Bonos.objects.filter(costo=costo, fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final])
-    #sum_bonos = bonos_dato.aggregate(Sum('monto'))
-    #bonototal = sum_bonos['monto__sum']
-    #if bonototal == None:
-    #    bonototal = 0
-    comision=Decimal(0.09)
+    if user_filter.tipo.id in [4,8,9,10,11,12]:
+        if user_filter.tipo.id in [4,8,12] and user_filter.distrito == costo.status.perfil.distrito:
+            ahora = datetime.date.today()
+            catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+            comision=Decimal(0.09)
+            costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
+            costo.empresa=costo.status.perfil.empresa
+            costo.distrito=costo.status.perfil.distrito
+            costo.proyecto=costo.status.perfil.proyecto
+            costo.nombres=costo.status.perfil.nombres
+            costo.apellidos=costo.status.perfil.apellidos
+            costo.tipo_de_contrato=costo.status.tipo_de_contrato
 
-    #vac_reforma_actual = Decimal((12/365)*365)*Decimal(costo.sueldo_diario)
-    #prima_vacacional = vac_reforma_actual*Decimal(0.25)
-    #aguinaldo = Decimal((15/365)*365)*Decimal(costo.sueldo_diario)
-    #total_vacaciones = (vac_reforma_actual+prima_vacacional+aguinaldo)/12
-    #costo.total_apoyosbonos_agregcomis = costo.campamento + bonototal #Modificar falta suma
-    #costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento + bonototal)*comision #Falta suma dentro de la multiplicacion
-    #costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp
-    #costo.total_costo_empresa = costo.total_costo_empresa + total_vacaciones
-    #costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + Decimal(costo.apoyo_de_pasajes) + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
+            costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
+            costo.fonacot=locale.currency(costo.fonacot, grouping=True)
+            costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
+            costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
+            costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
+            costo.sdi=locale.currency(costo.sdi, grouping=True)
+            costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
+            costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
+            costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
+            costo.estancia=locale.currency(costo.estancia, grouping=True)
+            costo.renta=locale.currency(costo.renta, grouping=True)
+            costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
+            costo.amv=locale.currency(costo.amv, grouping=True)
+            costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+            costo.campamento=locale.currency(costo.campamento, grouping=True)
+            costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
+            costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
+            costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
+            costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
+            costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
+            costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
+            costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
+            costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
+            costo.sar=locale.currency(costo.sar, grouping=True)
+            costo.cesantia=locale.currency(costo.cesantia, grouping=True)
+            costo.infonavit=locale.currency(costo.infonavit, grouping=True)
+            costo.isr=locale.currency(costo.isr, grouping=True)
+            costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
+            costo.excedente=locale.currency(costo.excedente, grouping=True)
+            costo.tasa=locale.currency(costo.tasa, grouping=True)
+            costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
+            costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
+            costo.impuesto=locale.currency(costo.impuesto, grouping=True)
+            costo.subsidio=locale.currency(costo.subsidio, grouping=True)
+            costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
+            costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
+            costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
+            costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
+            costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+            #se agrego el bono
+            costo.bono_total=locale.currency(costo.bono_total, grouping=True)
+            print("bono: ",costo.bono_total)
+            if request.method =='POST' and 'Pdf' in request.POST:
+                return reporte_pdf_costo_detalles(request,costo)
 
-    costo.numero_de_trabajador=costo.status.perfil.numero_de_trabajador
-    costo.empresa=costo.status.perfil.empresa
-    costo.distrito=costo.status.perfil.distrito
-    costo.proyecto=costo.status.perfil.proyecto
-    costo.nombres=costo.status.perfil.nombres
-    costo.apellidos=costo.status.perfil.apellidos
-    costo.tipo_de_contrato=costo.status.tipo_de_contrato
+            context = {'costo':costo,}
 
-    costo.amortizacion_infonavit=locale.currency(costo.amortizacion_infonavit, grouping=True)
-    costo.fonacot=locale.currency(costo.fonacot, grouping=True)
-    costo.neto_catorcenal_sin_deducciones=locale.currency(costo.neto_catorcenal_sin_deducciones, grouping=True)
-    costo.complemento_salario_catorcenal=locale.currency(costo.complemento_salario_catorcenal, grouping=True)
-    costo.sueldo_diario=locale.currency(costo.sueldo_diario, grouping=True)
-    costo.sdi=locale.currency(costo.sdi, grouping=True)
-    costo.apoyo_de_pasajes=locale.currency(costo.apoyo_de_pasajes, grouping=True)
-    costo.imms_obrero_patronal=locale.currency(costo.imms_obrero_patronal, grouping=True)
-    costo.apoyo_vist_familiar=locale.currency(costo.apoyo_vist_familiar, grouping=True)
-    costo.estancia=locale.currency(costo.estancia, grouping=True)
-    costo.renta=locale.currency(costo.renta, grouping=True)
-    costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
-    costo.amv=locale.currency(costo.amv, grouping=True)
-    costo.gasolina=locale.currency(costo.gasolina, grouping=True)
-    costo.campamento=locale.currency(costo.campamento, grouping=True)
-    costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
-    costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
-    costo.sueldo_mensual_neto=locale.currency(costo.sueldo_mensual_neto, grouping=True)
-    costo.complemento_salario_mensual=locale.currency(costo.complemento_salario_mensual, grouping=True)
-    costo.sueldo_mensual=locale.currency(costo.sueldo_mensual, grouping=True)
-    costo.sueldo_mensual_sdi=locale.currency(costo.sueldo_mensual_sdi, grouping=True)
-    costo.total_percepciones_mensual=locale.currency(costo.total_percepciones_mensual, grouping=True)
-    costo.impuesto_estatal=locale.currency(costo.impuesto_estatal, grouping=True)
-    costo.sar=locale.currency(costo.sar, grouping=True)
-    costo.cesantia=locale.currency(costo.cesantia, grouping=True)
-    costo.infonavit=locale.currency(costo.infonavit, grouping=True)
-    costo.isr=locale.currency(costo.isr, grouping=True)
-    costo.lim_inferior=locale.currency(costo.lim_inferior, grouping=True)
-    costo.excedente=locale.currency(costo.excedente, grouping=True)
-    costo.tasa=locale.currency(costo.tasa, grouping=True)
-    costo.impuesto_marginal=locale.currency(costo.impuesto_marginal, grouping=True)
-    costo.cuota_fija=locale.currency(costo.cuota_fija, grouping=True)
-    costo.impuesto=locale.currency(costo.impuesto, grouping=True)
-    costo.subsidio=locale.currency(costo.subsidio, grouping=True)
-    costo.total_apoyosbonos_empleadocomp=locale.currency(costo.total_apoyosbonos_empleadocomp, grouping=True)
-    costo.total_apoyosbonos_agregcomis=locale.currency(costo.total_apoyosbonos_agregcomis, grouping=True)
-    costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
-    costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
-    costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
-    #se agrego el bono
-    costo.bono_total=locale.currency(costo.bono_total, grouping=True)
-    print("bono: ",costo.bono_total)
-    if request.method =='POST' and 'Pdf' in request.POST:
-        return reporte_pdf_costo_detalles(request,costo)
-
-    context = {'costo':costo,}
-
-    return render(request, 'proyecto/costo_revisar_anterior.html',context)
+            return render(request, 'proyecto/costo_revisar_anterior.html',context)
+        else:
+            return render(request, 'revisar/403.html')
+    else:
+        return render(request, 'revisar/403.html')
 
 @login_required(login_url='user-login')
 def TablaPrenominas(request):
