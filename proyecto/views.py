@@ -1006,20 +1006,12 @@ def FormularioCosto(request):
                                                                                     costo.impuesto_marginal= costo.excedente * costo.tasa
                                                                                     costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
                                                                                     costo.isr= costo.impuesto
+                                                                                    costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.apoyo_salud + costo.amv + costo.campamento + costo.gasolina
                                                                                     costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
                                                                                     costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
                                                                                     costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
                                                                                     costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
                                                                                     costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
-                                                                                    """
-                                                                                    costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
-                                                                                    costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
-                                                                                    costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
-                                                                                    costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
-                                                                                    print("costo total empresa: ",costo.total_costo_empresa)
-                                                                                    costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
-                                                                                    costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-                                                                                    """
                                                                                     #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
 
                                                                                     if form.is_valid():
@@ -1267,20 +1259,12 @@ def CostoUpdate(request, pk):
                                                                                 costo.impuesto_marginal= costo.excedente * costo.tasa
                                                                                 costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
                                                                                 costo.isr= costo.impuesto
+                                                                                costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.apoyo_salud + costo.amv + costo.campamento + costo.gasolina
                                                                                 costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
                                                                                 costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
                                                                                 costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
                                                                                 costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
                                                                                 costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis
-                                                                                """
-                                                                                costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
-                                                                                costo.total_apoyosbonos_agregcomis = costo.campamento #Modificar falta suma
-                                                                                costo.comision_complemeto_salario_bonos= (costo.complemento_salario_mensual + costo.campamento)*Decimal(dato.comision_bonos/100) #Falta suma dentro de la multiplicacion
-                                                                                costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp #18221.5
-                                                                                print("costo total empresa: ",costo.total_costo_empresa)
-                                                                                costo.total_costo_empresa = costo.total_costo_empresa + costo.total_prima_vacacional
-                                                                                costo.ingreso_mensual_neto_empleado= costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.total_apoyosbonos_empleadocomp # + costo.total_apoyosbonos_agregcomis
-                                                                                """
                                                                                 #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
 
                                                                                 if form.is_valid():
@@ -1365,6 +1349,7 @@ def Costo_revisar(request, pk):
         costo.comision_complemeto_salario_bonos=locale.currency(costo.comision_complemeto_salario_bonos, grouping=True)
         costo.total_costo_empresa=locale.currency(costo.total_costo_empresa, grouping=True)
         costo.ingreso_mensual_neto_empleado=locale.currency(costo.ingreso_mensual_neto_empleado, grouping=True)
+        costo.apoyo_salud=locale.currency(costo.apoyo_salud, grouping=True)
         #se agrego el bono
         costo.bono_total=locale.currency(costo.bono_total, grouping=True)
         bonototal = locale.currency(bonototal, grouping=True)
@@ -1522,6 +1507,7 @@ def TablaCosto(request):
             costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
             costo.amv=locale.currency(costo.amv, grouping=True)
             costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+            costo.apoyo_salud=locale.currency(costo.apoyo_salud, grouping=True)
             costo.campamento=locale.currency(costo.campamento, grouping=True)
             costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
             costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
@@ -2171,7 +2157,7 @@ def convert_excel_costo(request,costos):
                'Complemento Salario Catorcenal', 'Apoyo de Pasajes', 'Total percepciones mensual',
                'Impuesto Estatal', 'IMSS obrero patronal', 'SAR 2%', 'Cesantía', 'Infonavit', 'ISR',
                'Apoyo Visita Familiar', 'Apoyo Estancia', 'Apoyo Renta', 'Apoyo de Estudios',
-               'Apoyo de Mantto Vehicular', 'Gasolina', 'Total apoyos', 'Total costo mensual para la empresa',
+               'Apoyo de Mantto Vehicular', 'Gasolina','Apoyo de salud', 'Total apoyos', 'Total costo mensual para la empresa',
                'Ingreso mensual neto del empleado', 'Bonos']
 
     for col_num in range(len(columns)):
@@ -2199,7 +2185,7 @@ def convert_excel_costo(request,costos):
     rows = costos.annotate(bonototal=Sum('bonos__monto', filter=Q(bonos__fecha_bono__range=[catorcena.fecha_inicial, catorcena.fecha_final]))).values_list(
         'status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto__proyecto','status__perfil__subproyecto__subproyecto','status__perfil__numero_de_trabajador',
         Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','status__nivel__nivel','neto_catorcenal_sin_deducciones','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
-        'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa',
+        'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','apoyo_salud','total_apoyosbonos_agregcomis','total_costo_empresa',
         'ingreso_mensual_neto_empleado','bono_total')
 
     for id_costo, row in enumerate(rows):
@@ -2224,91 +2210,95 @@ def convert_excel_costo_anterior(request,costos):
     from django.utils import formats
     from django.utils.translation import activate
     activate('es')
-    
-    c = costos.first()
-    fecha_reporte = formats.date_format(c.created_at, "F Y")
-    
-    response = HttpResponse(content_type="application/ms-excel")
-    response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today()) + '.xlsx'
-    wb = Workbook()
-    ws = wb.create_sheet(title='Reporte')
-    # Comenzar en la fila 1
-    row_num = 1
+    if costos is None:
+        c = costos.first()
+        fecha_reporte = formats.date_format(c.created_at, "F Y")
+        
+        response = HttpResponse(content_type="application/ms-excel")
+        response['Content-Disposition'] = 'attachment; filename = Reporte_costos_' + str(datetime.date.today()) + '.xlsx'
+        wb = Workbook()
+        ws = wb.create_sheet(title='Reporte')
+        # Comenzar en la fila 1
+        row_num = 1
 
-    # Create heading style and add it to workbook | Crear el estilo del encabezado y agregarlo al Workbook
-    head_style = NamedStyle(name="head_style")
-    head_style.font = Font(name='Arial', color='00FFFFFF', bold=True, size=11)
-    head_style.fill = PatternFill("solid", fgColor='00003366')
-    wb.add_named_style(head_style)
-    # Create body style and add it to workbook
-    body_style = NamedStyle(name="body_style")
-    body_style.font = Font(name='Calibri', size=10)
-    wb.add_named_style(body_style)
-    # Create messages style and add it to workbook
-    messages_style = NamedStyle(name="mensajes_style")
-    messages_style.font = Font(name="Arial Narrow", size=11)
-    wb.add_named_style(messages_style)
-    # Create date style and add it to workbook
-    date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
-    date_style.font = Font(name='Calibri', size=10)
-    wb.add_named_style(date_style)
-    money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
-    money_style.font = Font(name='Calibri', size=10)
-    wb.add_named_style(money_style)
-    money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
-    money_resumen_style.font = Font(name='Calibri', size=14, bold=True)
-    wb.add_named_style(money_resumen_style)
+        # Create heading style and add it to workbook | Crear el estilo del encabezado y agregarlo al Workbook
+        head_style = NamedStyle(name="head_style")
+        head_style.font = Font(name='Arial', color='00FFFFFF', bold=True, size=11)
+        head_style.fill = PatternFill("solid", fgColor='00003366')
+        wb.add_named_style(head_style)
+        # Create body style and add it to workbook
+        body_style = NamedStyle(name="body_style")
+        body_style.font = Font(name='Calibri', size=10)
+        wb.add_named_style(body_style)
+        # Create messages style and add it to workbook
+        messages_style = NamedStyle(name="mensajes_style")
+        messages_style.font = Font(name="Arial Narrow", size=11)
+        wb.add_named_style(messages_style)
+        # Create date style and add it to workbook
+        date_style = NamedStyle(name='date_style', number_format='DD/MM/YYYY')
+        date_style.font = Font(name='Calibri', size=10)
+        wb.add_named_style(date_style)
+        money_style = NamedStyle(name='money_style', number_format='$ #,##0.00')
+        money_style.font = Font(name='Calibri', size=10)
+        wb.add_named_style(money_style)
+        money_resumen_style = NamedStyle(name='money_resumen_style', number_format='$ #,##0.00')
+        money_resumen_style.font = Font(name='Calibri', size=14, bold=True)
+        wb.add_named_style(money_resumen_style)
 
-    columns = ['Empresa', 'Distrito', 'Proyecto', 'Subproyecto', '#Empleado', 'Nombre', 'Puesto','Nivel','Neto Catorcenal',
-               'Complemento Salario Catorcenal', 'Apoyo de Pasajes', 'Total percepciones mensual',
-               'Impuesto Estatal', 'IMSS obrero patronal', 'SAR 2%', 'Cesantía', 'Infonavit', 'ISR',
-               'Apoyo Visita Familiar', 'Apoyo Estancia', 'Apoyo Renta', 'Apoyo de Estudios',
-               'Apoyo de Mantto Vehicular', 'Gasolina', 'Total apoyos', 'Total costo mensual para la empresa',
-               'Ingreso mensual neto del empleado', 'Bonos']
+        columns = ['Empresa', 'Distrito', 'Proyecto', 'Subproyecto', '#Empleado', 'Nombre', 'Puesto','Nivel','Neto Catorcenal',
+                'Complemento Salario Catorcenal', 'Apoyo de Pasajes', 'Total percepciones mensual',
+                'Impuesto Estatal', 'IMSS obrero patronal', 'SAR 2%', 'Cesantía', 'Infonavit', 'ISR',
+                'Apoyo Visita Familiar', 'Apoyo Estancia', 'Apoyo Renta', 'Apoyo de Estudios',
+                'Apoyo de Mantto Vehicular', 'Gasolina', 'Apoyo Salud', 'Total apoyos', 'Total costo mensual para la empresa',
+                'Ingreso mensual neto del empleado', 'Bonos']
 
-    for col_num in range(len(columns)):
-        (ws.cell(row=row_num, column=col_num + 1, value=columns[col_num])).style = head_style
-        if col_num < 4:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
-        if col_num == 5 or col_num == 6:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 35
-        else:
-            ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
-
-    columna_max = len(columns) + 2
-
-    (ws.cell(column=columna_max, row=1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
-    (ws.cell(column=columna_max, row=2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
-    (ws.cell(column = columna_max, row = 3, value=f'Costos: {fecha_reporte}')).style = messages_style
-    #(ws.cell(column=columna_max + 1, row=3, value='alguna sumatoria')).style = money_resumen_style
-    ws.column_dimensions[get_column_letter(columna_max)].width = 20
-    ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
-
-    # Se busca el bono actual
-    ahora = datetime.date.today()
-    catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
-
-    rows = costos.values_list(
-        'status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto__proyecto','status__perfil__subproyecto__subproyecto','status__perfil__numero_de_trabajador',
-        Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','status__nivel__nivel','neto_catorcenal_sin_deducciones','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
-        'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','total_apoyosbonos_agregcomis','total_costo_empresa',
-        'ingreso_mensual_neto_empleado','bono_total')
-
-    for id_costo, row in enumerate(rows):
-        row_num += 1
-        for col_num in range(len(row)):
-            if col_num <= 5:
-                (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = body_style
-            if col_num > 7 and col_num < 27:
-                (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = money_style
+        for col_num in range(len(columns)):
+            (ws.cell(row=row_num, column=col_num + 1, value=columns[col_num])).style = head_style
+            if col_num < 4:
+                ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
+            if col_num == 5 or col_num == 6:
+                ws.column_dimensions[get_column_letter(col_num + 1)].width = 35
             else:
-                (ws.cell(row=row_num, column=col_num + 1, value=str(row[col_num]))).style = body_style
+                ws.column_dimensions[get_column_letter(col_num + 1)].width = 15
 
-    sheet = wb['Sheet']
-    wb.remove(sheet)
-    wb.save(response)
+        columna_max = len(columns) + 2
 
-    return response
+        (ws.cell(column=columna_max, row=1, value='{Reporte Creado Automáticamente por Savia RH. UH}')).style = messages_style
+        (ws.cell(column=columna_max, row=2, value='{Software desarrollado por Vordcab S.A. de C.V.}')).style = messages_style
+        (ws.cell(column = columna_max, row = 3, value=f'Costos: {fecha_reporte}')).style = messages_style
+        #(ws.cell(column=columna_max + 1, row=3, value='alguna sumatoria')).style = money_resumen_style
+        ws.column_dimensions[get_column_letter(columna_max)].width = 20
+        ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
+
+        # Se busca el bono actual
+        ahora = datetime.date.today()
+        catorcena = Catorcenas.objects.filter(fecha_inicial__lte=ahora, fecha_final__gte=ahora).first()
+
+        rows = costos.values_list(
+            'status__perfil__empresa__empresa','status__perfil__distrito__distrito','status__perfil__proyecto__proyecto','status__perfil__subproyecto__subproyecto','status__perfil__numero_de_trabajador',
+            Concat('status__perfil__nombres', Value(' '), 'status__perfil__apellidos'),'status__puesto__puesto','status__nivel__nivel','neto_catorcenal_sin_deducciones','complemento_salario_catorcenal','apoyo_de_pasajes','total_percepciones_mensual',
+            'impuesto_estatal','imms_obrero_patronal','sar','cesantia','infonavit','isr','apoyo_vist_familiar','estancia','renta','apoyo_estudios','amv','gasolina','apoyo_salud','total_apoyosbonos_agregcomis','total_costo_empresa',
+            'ingreso_mensual_neto_empleado','bono_total')
+
+        for id_costo, row in enumerate(rows):
+            row_num += 1
+            for col_num in range(len(row)):
+                if col_num <= 5:
+                    (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = body_style
+                if col_num > 7 and col_num < 27:
+                    (ws.cell(row=row_num, column=col_num + 1, value=row[col_num])).style = money_style
+                else:
+                    (ws.cell(row=row_num, column=col_num + 1, value=str(row[col_num]))).style = body_style
+
+        sheet = wb['Sheet']
+        wb.remove(sheet)
+        wb.save(response)
+
+        return response
+    else:
+        messages.error(request, 'No hay datos para generar el reporte')
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
 
 @login_required(login_url='user-login')
 def convert_excel_bancarios(request, bancarios):
@@ -3359,7 +3349,7 @@ def upload_batch_costos(request):
                         costo.impuesto_marginal= costo.excedente * costo.tasa
                         costo.impuesto= costo.impuesto_marginal + costo.cuota_fija
                         costo.isr= costo.impuesto
-                        costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.amv + costo.campamento + costo.gasolina
+                        costo.total_apoyosbonos_empleadocomp= costo.apoyo_vist_familiar + costo.estancia + costo.renta + costo.apoyo_estudios + costo.apoyo_salud + costo.amv + costo.campamento + costo.gasolina
                         costo.total_apoyosbonos_agregcomis = costo.campamento + costo.bono_total #bien
                         costo.comision_complemeto_salario_bonos= ((costo.campamento + costo.bono_total)/Decimal(dato.comision_bonos/10)) - costo.total_apoyosbonos_agregcomis #bien
                         costo.total_costo_empresa = costo.sueldo_mensual_neto + costo.complemento_salario_mensual + costo.apoyo_de_pasajes + costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr + costo.total_apoyosbonos_empleadocomp + costo.total_apoyosbonos_agregcomis + costo.comision_complemeto_salario_bonos #18221.5
@@ -3681,7 +3671,8 @@ def reporte_pdf_costo_detalles(request,costo):
     c.drawString(260,710,'Empleado #:')
     c.drawString(260,690,'Nombre:',)
     c.drawString(260,670,'Empresa:')
-    c.drawString(260,650,'Distrito')
+    c.drawString(260,650,'Distrito:')
+    c.drawString(260,630,'Fecha ingreso:')
     c.line(20,590,585,590) #Linea posterior horizontal
     #Primera columna
     c.drawString(40,575,'Puesto:')
@@ -3703,6 +3694,7 @@ def reporte_pdf_costo_detalles(request,costo):
     c.drawString(40,175,'Total deducción:')
     c.drawString(40,150,'Neto a pagar:')
     c.drawString(40,125,'Sueldo mensual neto:')
+    c.drawString(40,100,'Apoyo de salud')
     #Segunda columna
     c.drawString(300,575,'Sueldo mensual:')
     c.drawString(300,550,'Sueldo mensual SDI:')
@@ -3733,6 +3725,8 @@ def reporte_pdf_costo_detalles(request,costo):
     c.drawString(325,670, empresa)
     distrito = str(costo.status.perfil.distrito)
     c.drawString(325,650, distrito)
+    ingreso = str(costo.status.fecha_ingreso)
+    c.drawString(340,630, ingreso)
     #Primera columna
     puesto = str(costo.status.puesto)
     c.drawString(90,575,puesto)
@@ -3754,6 +3748,7 @@ def reporte_pdf_costo_detalles(request,costo):
     c.drawString(140,175,costo.total_deduccion)
     c.drawString(120,150,costo.neto_pagar)
     c.drawString(170,125,costo.sueldo_mensual_neto)
+    c.drawString(130,100,costo.apoyo_salud)
     #Segunda columna
     c.drawString(405,575,costo.sueldo_mensual)
     c.drawString(425,550,costo.sueldo_mensual_sdi)
@@ -6853,6 +6848,7 @@ def costo_anterior(request):
             costo.apoyo_estudios=locale.currency(costo.apoyo_estudios, grouping=True)
             costo.amv=locale.currency(costo.amv, grouping=True)
             costo.gasolina=locale.currency(costo.gasolina, grouping=True)
+            costo.apoyo_salud=locale.currency(costo.apoyo_salud, grouping=True)
             costo.campamento=locale.currency(costo.campamento, grouping=True)
             costo.total_deduccion=locale.currency(costo.total_deduccion, grouping=True)
             costo.neto_pagar=locale.currency(costo.neto_pagar, grouping=True)
