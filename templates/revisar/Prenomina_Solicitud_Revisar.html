@@ -86,17 +86,23 @@
                                     <small><a title="click para ver el soporte" class="btn btn-success btn-sm" href="{{ incidencia.soporte.url }}" target="_blank"><i class="fas fa-download"></i></a> Ver Soporte</small>
                                 </td>
                             {% elif incidencia.incidencia.id == 15 %}
+                            <td></td>
+                            {% comment %}    
                             <td>
                                 <button type="submit" name="vacaciones_pdf" class="btn btn-outline-danger" value="{{ incidencia.fecha }}">
                                     <i class="fa-solid fa-file-pdf fa-2xl"></i>
                                 </button>
                             </td>
+                            {% endcomment %}
                             {% elif incidencia.incidencia.id == 14 %}
+                            <td></td>
+                            {% comment %}
                             <td>
                                 <button type="submit" name="economico_pdf" class="btn btn-outline-danger" value="{{ incidencia.fecha }}">
                                     <i class="fa-solid fa-file-pdf fa-2xl"></i>
                                 </button>
                             </td>
+                             {% endcomment %}
                             {% else %}
                                 <td></td>
                             {% endif %}

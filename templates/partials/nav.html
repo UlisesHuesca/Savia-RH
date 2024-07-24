@@ -74,7 +74,9 @@
                              {% endcomment %}
                             {% endif %}
                             {% if status_fijo.complete_uniformes == True %}
+                            {% comment %}  
                             <a class="dropdown-item" href="{% url 'Uniformes_completados_revisar' status_fijo.id %}">Uniformes</a
+                            {% endcomment %}
                             {% endif %}
                             <div class="dropdown-divider"></div>
                         {% endif %}
@@ -158,7 +160,9 @@
                             <a class="dropdown-item" href="{% url 'Tabla_bonos' %}">Bonos</a>
                             {% endcomment %}
                             <a class="dropdown-item" href="{% url 'Tabla_vacaciones_empleados' %}">Vacaciones</a>
+                            {% comment %}    
                             <a class="dropdown-item" href="{% url 'Tabla_uniformes' %}">Uniformes</a>
+                            {% endcomment %}
                             <a class="dropdown-item" href="{% url 'Tabla_economicos' %}">Días económicos</a>
                             <div class="dropdown-divider"></div>
                         {% if usuario.tipo.info_general == True %}

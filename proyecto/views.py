@@ -3026,144 +3026,100 @@ from django.db import transaction
 
 @login_required(login_url='user-login')
 def upload_batch_status(request):
+
     form = Status_BatchForm(request.POST or None, request.FILES or None)
 
     if form.is_valid():
         form.save()
         form = Status_BatchForm()
-        status_list = Status_Batch.objects.get(activated=False)
+        status_list = Status_Batch.objects.get(activated = False)
         f = open(status_list.file_name.path, 'r', encoding='latin1')
         reader = csv.reader(f)
-        next(reader)  # Advance past the header
+        next(reader) #Advance past the reader
 
-        status_a_guardar = []
+        for row in reader:
+            fecha_cedula = datetime.datetime.strptime(row[23], "%d/%m/%Y").date() if row[23] else None
+            fecha_alta_imss = datetime.datetime.strptime(row[24], "%d/%m/%Y").date() if row[24] else None
+            ultimo_contrato = datetime.datetime.strptime(row[11], "%d/%m/%Y").date()
+            if row[18] == '':
+                ingreso = None
+            else:
+                ingreso = datetime.datetime.strptime(row[18], "%d/%m/%Y").date()
+            if row[17] == '':
+                planta = None
+            else:
+                planta = datetime.datetime.strptime(row[17], "%d/%m/%Y").date()
+            if row[16] == '':
+                planta_anterior = None
+            else:
+                planta_anterior = datetime.datetime.strptime(row[16], "%d/%m/%Y").date()
+            if row[1] == "MOTOS":
+                distrito = Distrito.objects.get(distrito = "Planta Veracruz")
+            elif row[1] == "PETROLERA":
+                distrito = Distrito.objects.get(distrito = "Planta Veracruz")
+            elif Distrito.objects.filter(distrito = row[1]):
+                distrito = Distrito.objects.get(distrito = row[1])
+            else:
+                messages.error(request,f'El distrito no existe dentro de la base de datos, empleado #{row[0]}')
+            if Perfil.objects.filter(numero_de_trabajador = row[0], distrito__distrito = distrito):
+                perfil = Perfil.objects.get(numero_de_trabajador = row[0], distrito__distrito = distrito)
+                if Status.objects.filter(perfil__numero_de_trabajador = row[0], perfil__distrito__distrito = distrito):
+                    messages.error(request,f'El status del empleado #{row[0]} ya existe dentro de la base de datos')
+                else:
+                    if RegistroPatronal.objects.filter(patronal = row[2]):
+                        registro_patronal = RegistroPatronal.objects.get(patronal = row[2])
+                        if Nivel.objects.filter(nivel = row[9]):
+                            if row[9] == 4.0:
+                                nivel = Nivel.objects.get(id = 23)
+                            else:
+                                nivel = Nivel.objects.get(nivel = row[9])
+                            if Contrato.objects.filter(contrato = row[10]):
+                                tipo_de_contrato = Contrato.objects.get(contrato = row[10])
+                                if Sangre.objects.filter(sangre = row[12]):
+                                    sangre = Sangre.objects.get(sangre = row[12])
+                                    if Sexo.objects.filter(sexo = row[13]):
+                                        genero = Sexo.objects.get(sexo = row[13])
+                                        if Civil.objects.filter(estado_civil = row[15]):
+                                            civil = Civil.objects.get(estado_civil = row[15])
+                                            if Puesto.objects.filter(puesto = row[19]):
+                                                puesto = Puesto.objects.get(puesto = row[19])
+                                                perfil.complete_status = True
+                                                perfil.save()
+                                                status = Status(perfil=perfil,registro_patronal= registro_patronal,nss=row[3],curp=row[4],rfc=row[5],telefono=row[6],profesion=row[7],fecha_alta_imss = fecha_alta_imss,
+                                                        no_cedula=row[8],nivel=nivel,tipo_de_contrato=tipo_de_contrato,ultimo_contrato_vence=ultimo_contrato,tipo_sangre=sangre,sexo=genero,domicilio=row[14],fecha_cedula = fecha_cedula,
+                                                        estado_civil=civil,fecha_planta_anterior=planta_anterior,fecha_planta=planta,fecha_ingreso=ingreso,puesto=puesto,lugar_nacimiento =row[20],numero_ine =row[21],escuela = row[22],complete=True,)
 
-        try:
-            with transaction.atomic():
-                try:
-                    for row in reader:
-                        ultimo_contrato = datetime.datetime.strptime(row[11], "%d/%m/%Y").date()
-                        ingreso = datetime.datetime.strptime(row[18], "%d/%m/%Y").date() if row[18] else None
-                        planta = datetime.datetime.strptime(row[17], "%d/%m/%Y").date() if row[17] else None
-                        planta_anterior = datetime.datetime.strptime(row[16], "%d/%m/%Y").date() if row[16] else None
-                        fecha_cedula = datetime.datetime.strptime(row[23], "%d/%m/%Y").date() if row[23] else None
-                        fecha_alta_imss = datetime.datetime.strptime(row[24], "%d/%m/%Y").date() if row[24] else None
-                        distrito = None
-                        if row[1] in ["MOTOS", "PETROLERA"]:
-                            distrito = Distrito.objects.get(distrito="Planta Veracruz")
-                        elif Distrito.objects.filter(distrito=row[1]).exists():
-                            distrito = Distrito.objects.get(distrito=row[1])
+                                                status.save()
+                                            else:
+                                                messages.error(request,f'El puesto no existe dentro de la base de datos, empleado #{row[0]}')
+                                        else:
+                                            messages.error(request,f'El estado civil no existe dentro de la base de datos, empleado #{row[0]}')
+                                    else:
+                                        messages.error(request,f'El genero no existe dentro de la base de datos, empleado #{row[0]}')
+                                else:
+                                    messages.error(request,f'El tipo de sangre no existe dentro de la base de datos, empleado #{row[0]}')
+                            else:
+                                messages.error(request,f'El tipo de contrato no existe dentro de la base de datos, empleado #{row[0]}')
                         else:
-                            messages.error(request, f'El distrito no existe dentro de la base de datos, empleado #{row[0]}')
-                            continue
+                            messages.error(request,f'El nivel no existe dentro de la base de datos, empleado #{row[0]}')
 
-                        if not Perfil.objects.filter(numero_de_trabajador=row[0], distrito__distrito=distrito).exists():
-                            messages.error(request, f'El perfil del empleado #{row[0]} no existe dentro de la base de datos')
-                            continue
+                    else:
+                        messages.error(request,f'El registro patronal no existe dentro de la base de datos, empleado #{row[0]}')
+            else:
+                messages.error(request,f'El perfil del empleado #{row[0]} no existe dentro de la base de datos')
+        status_list.activated = True
+        status_list.save()
 
-                        perfil = Perfil.objects.get(numero_de_trabajador=row[0], distrito__distrito=distrito)
 
-                        if Status.objects.filter(perfil__numero_de_trabajador=row[0], perfil__distrito__distrito=distrito).exists():
-                            messages.error(request, f'El status del empleado #{row[0]} ya existe dentro de la base de datos')
-                            continue
-
-                        if not RegistroPatronal.objects.filter(patronal=row[2]).exists():
-                            messages.error(request, f'El registro patronal no existe dentro de la base de datos, empleado #{row[0]}')
-                            continue
-
-                        registro_patronal = RegistroPatronal.objects.get(patronal=row[2])
-
-                        if not Nivel.objects.filter(id=row[9]).exists():
-                            messages.error(request, f'El nivel no existe dentro de la base de datos, empleado #{row[0]}')
-                            continue
-                        if row[9] == 4.0:
-                            nivel = Nivel.objects.get(id=23)
-                        else:
-                            nivel = Nivel.objects.get(nivel=row[9])
-
-                        if not Contrato.objects.filter(contrato=row[10]).exists():
-                            messages.error(request, f'El tipo de contrato no existe dentro de la base de datos, empleado #{row[0]}')
-                            continue
-
-                        tipo_de_contrato = Contrato.objects.get(contrato=row[10])
-
-                        if not Sangre.objects.filter(sangre=row[12]).exists():
-                            messages.error(request, f'El tipo de sangre no existe dentro de la base de datos, empleado #{row[0]}')
-                            continue
-
-                        sangre = Sangre.objects.get(sangre=row[12])
-
-                        if not Sexo.objects.filter(sexo=row[13]).exists():
-                            messages.error(request, f'El genero no existe dentro de la base de datos, empleado #{row[0]}')
-                            continue
-
-                        genero = Sexo.objects.get(sexo=row[13])
-
-                        if not Civil.objects.filter(estado_civil=row[15]).exists():
-                            messages.error(request, f'El estado civil no existe dentro de la base de datos, empleado #{row[0]}')
-                            continue
-
-                        civil = Civil.objects.get(estado_civil=row[15])
-
-                        if not Puesto.objects.filter(puesto=row[19]).exists():
-                            messages.error(request, f'El puesto no existe dentro de la base de datos, empleado #{row[0]}')
-                            continue
-
-                        puesto = Puesto.objects.get(puesto=row[19])
-
-                        perfil.complete_status = True
-                        perfil.save()
-
-                        status = Status(
-                            perfil=perfil,
-                            registro_patronal=registro_patronal,
-                            nss=row[3],
-                            curp=row[4],
-                            rfc=row[5],
-                            telefono=row[6],
-                            profesion=row[7],
-                            no_cedula=row[8],
-                            nivel=nivel,
-                            tipo_de_contrato=tipo_de_contrato,
-                            ultimo_contrato_vence=ultimo_contrato,
-                            tipo_sangre=sangre,
-                            sexo=genero,
-                            domicilio=row[14],
-                            estado_civil=civil,
-                            fecha_planta_anterior=planta_anterior,
-                            fecha_planta=planta,
-                            fecha_ingreso=ingreso,
-                            puesto=puesto,
-                            lugar_nacimiento =row[20],
-                            numero_ine =row[21],
-                            escuela = row[22],
-                            fecha_cedula = fecha_cedula,
-                            fecha_alta_imss = fecha_alta_imss,
-                            complete=True,
-                        )
-                        status_a_guardar.append(status)
-
-                except Exception as e:
-                    columna_error = next((i for i, v in enumerate(row) if not v.strip()), None)
-                    print(f"Error en la columna {columna_error}, empleado #{row[0]}: {str(e)}")
-                    messages.error(request, f"Error al procesar el empleado #{row[0]}: {str(e)} en la columna {columna_error}")
-
-                # Guardar todos los estados al mismo tiempo
-                Status.objects.bulk_create(status_a_guardar)
-                
-
-            status_list.activated = True
-            status_list.save()
-
-        except Exception as e:
-            print(f"Error en transacción: {str(e)}")
-            messages.error(request, "Error al procesar la carga, ningún dato fue guardado.")
 
     context = {
         'form': form,
-    }
+        }
 
-    return render(request, 'proyecto/upload_batch_status.html', context)
+    return render(request,'proyecto/upload_batch_status.html', context)
+    
+
+
 
 @login_required(login_url='user-login')
 def upload_batch_costos(request):

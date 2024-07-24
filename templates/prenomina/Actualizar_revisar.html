@@ -163,13 +163,19 @@
                                 {% if prenomina_form.soporte.value %}
                                     <small><a title="click para ver el soporte" class="btn btn-success btn-sm" href="{{ prenomina_form.soporte.value.url }}" target="_blank"><i class="fas fa-download"></i></a> Ver Soporte</small>
                                 {% elif prenomina_form.incidencia.value == 15 %}
+                                    <span class="text-muted">Sin soporte</span>
+                                    {% comment %}    
                                     <button type="submit" name="vacaciones_pdf" class="btn btn-outline-danger btn-sm" value="{{ prenomina_form.fecha.value }}">
                                         <i class="fa-solid fa-file-pdf fa-2xl"></i>
                                     </button>
+                                    {% endcomment %}
                                 {% elif prenomina_form.incidencia.value == 14 %}
-                                    <button type="submit" name="economico_pdf" class="btn btn-outline-danger btn-sm" value="{{ prenomina_form.fecha.value }}">
+                                    <span class="text-muted">Sin soporte</span>
+                                    {% comment %}
+                                     <button type="submit" name="economico_pdf" class="btn btn-outline-danger btn-sm" value="{{ prenomina_form.fecha.value }}">
                                         <i class="fa-solid fa-file-pdf fa-2xl"></i>
                                     </button>
+                                    {% endcomment %}
                                 {% else %}
                                     <span class="text-muted">Sin soporte</span>
                                 {% endif %}

@@ -102,14 +102,14 @@ document.addEventListener("DOMContentLoaded", function() {
         //se enumeran y empieza con 1 en la lista del despegable
         select.options[2].disabled = true
         select.options[3].disabled = true
-        select.options[7].disabled = true
+        //select.options[7].disabled = true
         select.options[9].disabled = true
         select.options[11].disabled = true
         select.options[12].disabled = true
         select.options[13].disabled = true
         select.options[14].disabled = true
         select.options[15].disabled = true
-        select.options[17].disabled = true
+        //select.options[17].disabled = true
       
     }
 
@@ -120,14 +120,14 @@ document.addEventListener("DOMContentLoaded", function() {
             var select = document.getElementById("id_form-"+i+"-incidencia")
             select.options[2].disabled = false
             select.options[3].disabled = false
-            select.options[7].disabled = false
+            //select.options[7].disabled = false
             select.options[9].disabled = false
             select.options[11].disabled = false
             select.options[12].disabled = false
             select.options[13].disabled = false
             select.options[14].disabled = false
             select.options[15].disabled = false
-            select.options[17].disabled = false
+            //select.options[17].disabled = false
         }
     })
     

@@ -49,7 +49,11 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
+                            <p class="h4 text-center">Módulos</p>
+                            <p class="h1 text-center"> <i class="fa-solid fa-boxes-stacked"></i></p>
+                            {% comment %}    
                             <img src="{% static 'images/SAVIA_Logo1.png' %}" alt="SAVIA" width="150" height="150" >
+                            {% endcomment %}
                         </div>
                     </div>
                 </div>
@@ -65,7 +69,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             {% if status_fijo.id != None %}        
                             <a class="text-decoration-none text-dark" href="{% url 'Vacaciones_revisar' status_fijo.id %}">
                                 <div class="card my-card shadow text-center p-3">
@@ -76,13 +80,13 @@
                             {% else%}
                             <a class="text-decoration-none text-dark" href="#">
                                 <div class="card my-card shadow text-center p-3">
-                                    <h4>No tiene vacaciones <i class="fa-solid fa-calendar-days"></i></h4>
+                                    <h4>vacaciones 0 <i class="fa-solid fa-calendar-days"></i></h4>
                                    
                                 </div>
                             </a>
                             {% endif %}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             {% if status_fijo.id != None %} 
                             <a class="text-decoration-none text-dark" href="{% url 'Economicos_revisar' status_fijo.id %}">
                                 <div class="card my-card shadow text-center p-3">
@@ -93,12 +97,17 @@
                             {% else%}
                             <a class="text-decoration-none text-dark" href="#">
                                 <div class="card my-card shadow text-center p-3">
-                                    <h4> No tiene días economicos <i class="fa-solid fa-calendar-days"></i></h4>
+                                    <h4>días economicos 0 <i class="fa-solid fa-calendar-days"></i></h4>
                                 </div>
                             </a>
                             {% endif %}
 
                         </div>
+                        
+                        {% comment %}
+                            
+                       
+                            
                         <div class="col-md-4">
                             {% if status_fijo.id != None %} 
                             <a class="text-decoration-none text-dark" href="{% url 'Uniformes_completados_revisar' status_fijo.id %}">
@@ -120,6 +129,7 @@
                             {% endif %}
                             
                         </div>
+                         {% endcomment %}
                     </div>
                 </div>
             </div>
