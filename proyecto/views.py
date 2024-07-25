@@ -1447,7 +1447,7 @@ def TablaCosto(request):
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id in [4,8,9,10,11,12]: #Perfil RH
             
-        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
         if user_filter.tipo.id in [9,10,11]:
             costos= Costo.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
         else:
@@ -1971,7 +1971,7 @@ def Tabla_Economicos(request): #Ya esta
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id in [4,9,8,10,11,12]:#Perfil RH o observador
-        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
+        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
 
         #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
         fecha_actual = date.today()
@@ -2054,7 +2054,7 @@ def Tabla_Datosbancarios(request):
     ids = [9,10,11]
     user_filter = UserDatos.objects.get(user=request.user)
     if user_filter.tipo.id in [4,8,9,10,11,12] or user_filter.tipo.id == 3: #Perfil RH o observador
-        revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
+        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
         if user_filter.tipo.id in [9,10,11]:
             bancarios= DatosBancarios.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
         else:
@@ -2333,7 +2333,7 @@ def convert_excel_bancarios(request, bancarios):
     money_resumen_style.font = Font(name ='Calibri', size = 14, bold = True)
     wb.add_named_style(money_resumen_style)
 
-    columns = ['Empresa','Distrito','Nombre','No. de cuenta','No. de tarjeta','Clabe interbancaria','Banco','Bono de la catorcena']
+    columns = ['Empresa','Distrito','Nombre','No. de cuenta','No. de tarjeta','Clabe interbancaria','Banco','Bono de la catorcena', '#Trabajador']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
@@ -2355,13 +2355,13 @@ def convert_excel_bancarios(request, bancarios):
     ws.column_dimensions[get_column_letter(columna_max + 1)].width = 20
 
     rows = bancarios.values_list('status__perfil__empresa__empresa','status__perfil__distrito__distrito',Concat('status__perfil__nombres',Value(' '),
-                                'status__perfil__apellidos'),'no_de_cuenta','numero_de_tarjeta','clabe_interbancaria','banco__banco')
+                                'status__perfil__apellidos'),'no_de_cuenta','numero_de_tarjeta','clabe_interbancaria','banco__banco','status__perfil__numero_de_trabajador')
 
 
     for row in rows:
         row_num += 1
         for col_num in range(len(row)):
-            if col_num <= 8:
+            if col_num <= 9:
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
 
     sheet = wb['Sheet']
@@ -2404,7 +2404,7 @@ def convert_excel_bonos(bonos):
     wb.add_named_style(money_resumen_style)
 
     columns = ['Empresa','Distrito','Nombre','No. de cuenta','No. de tarjeta','Clabe interbancaria',
-                'Banco','Fecha del bono','Bono total',]
+                'Banco','Fecha del bono','Bono total','#Trabajador']
 
     for col_num in range(len(columns)):
         (ws.cell(row = row_num, column = col_num+1, value=columns[col_num])).style = head_style
@@ -2427,7 +2427,7 @@ def convert_excel_bonos(bonos):
 
     rows = bonos.values_list('costo__status__perfil__empresa__empresa','costo__status__perfil__distrito__distrito',Concat('costo__status__perfil__nombres',Value(' '),
                             'costo__status__perfil__apellidos'),'datosbancarios__no_de_cuenta','datosbancarios__numero_de_tarjeta',
-                            'datosbancarios__clabe_interbancaria','datosbancarios__banco','fecha_bono','monto',)
+                            'datosbancarios__clabe_interbancaria','datosbancarios__banco','fecha_bono','monto','costo__status__perfil__numero_de_trabajador')
 
 
     for row in rows:
@@ -2439,6 +2439,9 @@ def convert_excel_bonos(bonos):
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = date_style
             if col_num == 8:
                 (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = money_style
+            if col_num > 8:
+                (ws.cell(row = row_num, column = col_num+1, value=row[col_num])).style = body_style
+        
 
     sheet = wb['Sheet']
     wb.remove(sheet)
@@ -3117,7 +3120,6 @@ def upload_batch_status(request):
         }
 
     return render(request,'proyecto/upload_batch_status.html', context)
-    
 
 
 
@@ -6186,6 +6188,7 @@ def upload_batch_vacaciones_anteriores(request):
                     vacacion3.save()
                     vacacion3._meta.get_field('created_at').auto_now = True
 
+                
                 if row[6] != 0:
                     vacacion4 = Vacaciones(status=status, periodo='2024', dias_de_vacaciones=None, dia_inhabil=dia,
                                            fecha_inicio=None, fecha_fin=None, dias_disfrutados=None,
