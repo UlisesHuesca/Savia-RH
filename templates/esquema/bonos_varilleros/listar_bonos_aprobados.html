@@ -72,11 +72,11 @@
                     <form method="get">
                         <div class="row g-3 align-items-center">
                             <div class="row g-3 align-items-center">
-                                <div class="col-auto">
+                                <div class="col-12 col-md-2">
                                     <label for="" class="fw-bold">Folio</label>
                                     {% render_field  bonosolicitado_filter.form.folio class="form-control text-capitalize"%}
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-2">
                                     <label for="" class="fw-bold">Nombre</label>
                                     {% render_field  bonosolicitado_filter.form.nombres_apellidos class="form-control text-capitalize"%}
                                 </div>
@@ -87,35 +87,35 @@
                                     {% render_field  bonosolicitado_filter.form.distrito class="form-control text-capitalize"%}
                                     </div>
                                 {% endif %}
-                                <div class="col-auto">
+                                <div class="col-12 col-md-auto">
                                     <label for="" class="fw-bold">Bono</label>
                                     {% render_field  bonosolicitado_filter.form.bono class="form-control text-capitalize"%}
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-auto">
                                     <label for="" class="fw-bold">Puesto</label>
                                     {% render_field  bonosolicitado_filter.form.puesto class="form-control text-capitalize"%}
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-2">
                                     <label for="" class="fw-bold">No. Trabajador</label>
                                     {% render_field  bonosolicitado_filter.form.no_trabajador class="form-control text-capitalize"%}
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-2">
                                     <label for="" class="fw-bold">Fecha Inicio - Emisión</label>
                                     {% render_field  bonosolicitado_filter.form.fecha_inicio type="date" class="form-control"%}
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-2">
                                     <label for="" class="fw-bold">Fecha Fin - Emisión</label>
                                     {% render_field  bonosolicitado_filter.form.fecha_fin type="date" class="form-control"%}
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-2">
                                     <label for="" class="fw-bold">Fecha Inicio - Aprobación</label>
                                     {% render_field  bonosolicitado_filter.form.fecha_inicio_a type="date" class="form-control"%}
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-2">
                                     <label for="" class="fw-bold">Fecha Fin - Aprobación</label>
                                     {% render_field bonosolicitado_filter.form.fecha_fin_a type="date" class="form-control"%}
                                 </div>
-                                <div class="col-auto">
+                                <div class="col-12 col-md-2">
                                     <br>
                                     <button type="search" class="btn btn-success"><i class="fas fa-search"></i></button>
                                 </div>

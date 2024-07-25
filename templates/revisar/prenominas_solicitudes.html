@@ -47,15 +47,15 @@
                     <h5>Filtro de empleados</h5>
                     <form method="GET" class="row g-3">
                         {% csrf_token %}
-                        <div class="col-auto">
+                        <div class="col-12 col-md-2">
                             <label for="prenomina_filter.form.id" class="col-sm-auto col-form-label text-right"><strong>ID Prenomina:</strong></label>
                             {% render_field prenomina_filter.form.id class="form-control" %}
                         </div>
-                        <div class="col-auto">
+                        <div class="col-12 col-md-2">
                             <label for="prenomina_filter.form.numero_de_trabajador" class="col-sm-auto col-form-label text-right"><strong>No. Trabajador:</strong></label>
                             {% render_field prenomina_filter.form.numero_de_trabajador class="form-control" %}
                         </div>
-                        <div class="col-auto">
+                        <div class="col-12 col-md-2">
                             <label for="prenomina_filter.form.nombres" class="col-sm-auto col-form-label text-right"><strong>Nombre:</strong></label>
                             {% render_field prenomina_filter.form.nombres_apellidos class="form-control" %}
                         </div>
@@ -72,7 +72,7 @@
                             {% render_field prenomina_filter.form.distrito class="form-control" %}
                         </div>
                         {% endif %}-->
-                        <div class="col-auto mt-5">
+                        <div class="col-12 col-md-2 mt-3 mt-md-5">
                             <button class="btn btn-outline-success" type="submit" value="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
                         </div>
                     </div>
@@ -83,25 +83,22 @@
                     <div class="col-12">
                         <div class="card card-body">
                             <h5>Excel</h5>
-                            <h6 style="text-align: right;">{{mensaje_gerencia}}</h6>
-                            <ul class="nav nav-pills">
-                                <li class="nav-item mx-2">
-                                    <button type="submit" name="Excel" class="btn btn-outline-success" value='Reporte Excel'>
-                                        <i class="fa-solid fa-file-excel fa-2xl"></i>
-                                    </button>
-                                </li>
-                            </ul>
-                                {% if user_filter.tipo.nombre == "Gerencia" or user_filter.tipo.nombre == "Control Tecnico" %}
-                                <ul class="nav d-flex justify-content-end"><h6>Autorización rapida</h6>
-                                    <!-- Utiliza la clase 'ml-auto' en el elemento li para alinear a la derecha -->
-                                    <li class="nav-item mx-4 ml-auto">
-                                        <!-- Cambia la clase 'btn-outline-success' a 'btn-primary' para tener el color azul -->
-                                        <button type="submit" name="Autorizar" class="btn btn-primary">
-                                            <i class="fa-solid fa-file-circle-check"></i>
-                                        </button>
-                                    </li>
-                                </ul>
-                                {% endif %}
+                            <h6 class="text-right">{{mensaje_gerencia}}</h6>
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-3">
+                              <div class="mb-2 mb-md-0">
+                                <button type="submit" name="Excel" class="btn btn-outline-success" value="Reporte Excel">
+                                  <i class="fa-solid fa-file-excel fa-2xl"></i>
+                                </button>
+                              </div>
+                              {% if user_filter.tipo.nombre == "Gerencia" or user_filter.tipo.nombre == "Control Tecnico" %}
+                              <div class="d-flex flex-column flex-md-row align-items-start">
+                                <h6 class="mb-2 mb-md-0">Autorización rápida</h6>
+                                <button type="submit" name="Autorizar" class="btn btn-primary ml-md-2">
+                                  <i class="fa-solid fa-file-circle-check"></i>
+                                </button>
+                              </div>
+                              {% endif %}
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -110,7 +107,7 @@
     </div>
 <!-- Aquí empieza la generación de la tabla -->
 <div class="row mt-2">
-    <div class="col-md-12">
+    <div class="col-md-12 table-responsive">
         <table class="table table-striped table-hover bg-white">
             <thead class="text-black" style="background-color: #F5F5F5;">
                 <tr style="background-color:#2A628F;color:#ffffff;">

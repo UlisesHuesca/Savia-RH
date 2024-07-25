@@ -22,29 +22,38 @@
         {% comment %}Solicitud{% endcomment %}
         <div class="col-12">
             <div class="card">
-                <div class="card-body">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Detalles de la solicitud</th>                                
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><span class="fw-bold"><i class="fas fa-bookmark"></i> Folio: </span> {{autorizaciones.solicitud.folio}}</td>
-                                <td><span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha emisión: </span> {{autorizaciones.solicitud.fecha|date:'d/m/Y H:i'}}</td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td><span class="fw-bold"><i class="fas fa-user"></i> {{rol}}: </span> {{autorizaciones.solicitud.solicitante}}</td>
-                                <td><span class="fw-bold"><i class="fas fa-location-dot"></i> Distrito: </span> {{autorizaciones.solicitud.solicitante.distrito}}</td>
-                                <td><span class="fw-bold"><i class="fas fa-sack-dollar"></i> Bono: </span> {{autorizaciones.solicitud.bono}}</td>                                
-                            </tr>
-                        </tbody>
-                    </table>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-12">
+                    <h5>Detalles de la solicitud</h5>
+                  </div>
                 </div>
+                <div class="d-flex flex-column flex-md-row justify-content-between mb-3">
+                  <div class="">
+                    <span class="fw-bold"><i class="fas fa-bookmark"></i> Folio: </span> {{autorizaciones.solicitud.folio}}
+                  </div>
+                  <div class="">
+                    <span class="fw-bold"><i class="fas fa-calendar-alt"></i> Fecha emisión: </span> {{autorizaciones.solicitud.fecha|date:'d/m/Y H:i'}}
+                  </div>
+                  <div class="">
+                  
+                  </div>
+                </div>
+                <hr>
+                <div class="d-flex flex-column flex-md-row justify-content-between mb-3">
+                  <div class="">
+                    <span class="fw-bold"><i class="fas fa-user"></i> {{rol}}: </span> {{autorizaciones.solicitud.solicitante}}
+                  </div>
+                  <div class="">
+                    <span class="fw-bold"><i class="fas fa-location-dot"></i> Distrito: </span> {{autorizaciones.solicitud.solicitante.distrito}}
+                  </div>
+                  <div class="">
+                    <span class="fw-bold"><i class="fas fa-sack-dollar"></i> Bono: </span> {{autorizaciones.solicitud.bono}}
+                  </div>
+                </div>
+              </div>
             </div>
-        </div>
+          </div>
        
         {% comment %}Tabla bonos{% endcomment %}
         <div class="col-12 mt-3">
