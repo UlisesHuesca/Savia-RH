@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -117,15 +120,26 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 #        },
 #    }
 #}
+#DATABASES = {
+#    'default': {
+#        'ENGINE': 'django.db.backends.mysql',
+#        'NAME': 'demo',
+#        'USER': 'root',
+#        'PASSWORD': '12345678',
+#        'HOST': 'localhost',
+#        'PORT': '',
+#    }
+#}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'demo',
-        'USER': 'root',
-        'PASSWORD': '12345678',
+        'NAME': os.getenv('DATABASE_NAME'),
+	    'USER': os.getenv('DATABASE_USER'),
+        'PASSWORD': os.getenv('DATABASE_PASSWORD'),
         'HOST': 'localhost',
-        'PORT': '',
-    }
+        'PORT': '3306',
+	}
 }
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

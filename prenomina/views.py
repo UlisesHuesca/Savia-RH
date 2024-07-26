@@ -214,7 +214,10 @@ def Tabla_prenomina(request):
         #    costo = Costo.objects.filter(complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
            
         #else:
-        costo = Costo.objects.filter(status__perfil__distrito=user_filter.distrito, complete=True,  status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
+        costo = Costo.objects.filter(
+            Q(status__perfil__distrito=user_filter.distrito, status__perfil__cargo_distrito__isnull=True) | Q(status__perfil__cargo_distrito=user_filter.distrito),
+            complete=True,  status__perfil__baja=False
+            ).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
         #print(costo)
         prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena=catorcena_actual.id).order_by("empleado__status__perfil__apellidos")
     
