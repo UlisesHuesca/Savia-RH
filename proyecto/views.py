@@ -32,7 +32,7 @@ from dateutil.relativedelta import relativedelta #Años entre 2 fechas con años
 from django.db.models.functions import Concat
 #PDF generator
 from django.db.models import Q, Max
-from .forms import CostoForm, BonosForm, VacacionesForm, EconomicosForm, UniformesForm, DatosBancariosForm, PerfilForm, StatusForm, IsrForm,PerfilUpdateForm
+from .forms import CostoForm, BonosForm, VacacionesForm, EconomicosForm, UniformesForm, DatosBancariosForm, PerfilForm, StatusForm, IsrForm,PerfilUpdateForm, TablaFestivosForm
 from .forms import CostoUpdateForm, BancariosUpdateForm, BonosUpdateForm, VacacionesUpdateForm, EconomicosUpdateForm, StatusUpdateForm, CatorcenasForm, Registro_patronal_form
 from .forms import Dias_VacacionesForm, Empleados_BatchForm, Status_BatchForm, PerfilDistritoForm, UniformeForm, Costos_BatchForm, Bancarios_BatchForm, BajaEmpleadoForm
 from .forms import SolicitudEconomicosForm, SolicitudEconomicosUpdateForm, SolicitudVacacionesForm, SolicitudVacacionesUpdateForm, Vacaciones_anteriores_BatchForm, CvAgregar
@@ -7211,3 +7211,30 @@ def listar_tabulador_bonos(request):
     }
     
     return render(request, 'proyecto/tabulador_bonos.html',context)
+
+@login_required(login_url='user-login')
+@perfil_session_seleccionado
+def tabla_festivos(request):
+    datos = TablaFestivos.objects.all()
+
+    #Set up pagination
+    p = Paginator(datos, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
+
+    if request.method == 'POST':
+        form = TablaFestivosForm(request.POST)
+        if form.is_valid():
+            form.save()  # Guardar el nuevo día festivo
+            messages.success(request, 'Día festivo agregado correctamente.')
+            return redirect('tabla_festivos')  # Redirigir a la misma página
+    else:
+        form = TablaFestivosForm()
+
+    context= {
+        'datos':datos,
+        'salidas_list':salidas_list,
+        'form': form,
+        }
+
+    return render(request, 'proyecto/tabla_festivos.html',context)

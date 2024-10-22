@@ -28,6 +28,7 @@ urlpatterns = [
 
     path('Administrar', views.Administrar_tablas, name='Administrar_tablas'),
     path('Tabla_catorcenas', views.Tabla_catorcenas, name='Tabla_catorcenas'),
+    path('tabla_festivos', views.tabla_festivos, name='tabla_festivos'),
 
     path('Tabla_ISR', views.Tabla_isr, name='Tabla_isr'),
     path('Tabla_dias_vacaciones', views.Tabla_dias_vacaciones, name='Tabla_dias_vacaciones'),

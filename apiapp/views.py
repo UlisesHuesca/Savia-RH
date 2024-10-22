@@ -1,8 +1,8 @@
 from django.shortcuts import render
 # views.py
 from rest_framework import generics
-from proyecto.models import Perfil
-from .serializers import PerfilSerializer, PerfilIngenieriaSerializer
+from proyecto.models import Perfil, TablaFestivos
+from .serializers import PerfilSerializer, PerfilIngenieriaSerializer, TablaFestivosSerializer
 from rest_framework.decorators import api_view, renderer_classes, throttle_classes
 from rest_framework.response import Response 
 from rest_framework import status
@@ -12,6 +12,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.throttling import UserRateThrottle
 from .throttles import TenCallsPerMinute
 from django.core.paginator import Paginator, EmptyPage
+from datetime import datetime
 
 # Create your views here.
     #Vista basada en clases Vista para listar todos los perfiles
@@ -44,6 +45,16 @@ def perfil_list_ingenieria(request):
     perfiles = Perfil.objects.filter(complete = True).order_by('numero_de_trabajador')  # Ordena por numero_de_trabajador
     serializer = PerfilIngenieriaSerializer(perfiles, many=True)
     return Response(serializer.data) 
+
+@api_view(['GET'])  # Vista para obtener días festivos del año actual
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def tabla_festivos_actual(request):
+    current_year = datetime.now().year
+    # Filtramos los días festivos del año actual
+    festivos = TablaFestivos.objects.filter(dia_festivo__year=current_year)
+    serializer = TablaFestivosSerializer(festivos, many=True)
+    return Response(serializer.data)
 
     #Con paginación
 """@api_view(['GET'])

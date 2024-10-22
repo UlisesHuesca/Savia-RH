@@ -1,7 +1,7 @@
 from django import forms
 from proyecto.models import Perfil, Status, Costo, DatosBancarios, Bonos, Uniformes, Vacaciones, Economicos, DatosISR, TablaVacaciones, Empleados_Batch, Catorcenas
 from proyecto.models import Status_Batch, Uniforme, Costos_Batch, Bancarios_Batch, Solicitud_economicos, Solicitud_vacaciones, Vacaciones_anteriores_Batch, Datos_baja
-from proyecto.models import Empleado_cv, RegistroPatronal, UserDatos
+from proyecto.models import Empleado_cv, RegistroPatronal, UserDatos, TablaFestivos
 class PerfilForm(forms.ModelForm): #Matriz
     class Meta:
         model = Perfil
@@ -217,3 +217,7 @@ class Registro_patronal_form(forms.ModelForm):
         model = RegistroPatronal
         fields = ['prima_anterior', 'prima']
         
+class TablaFestivosForm(forms.ModelForm):
+    class Meta:
+        model = TablaFestivos
+        fields = ['dia_festivo']

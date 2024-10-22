@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from proyecto.models import Perfil, Empresa, Proyecto, SubProyecto, Distrito, Status, Nivel
+from proyecto.models import Perfil, Empresa, Proyecto, SubProyecto, Distrito, Status, Nivel, TablaFestivos
 
 class EmpresaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,3 +62,7 @@ class PerfilIngenieriaSerializer(serializers.ModelSerializer):
         model = Perfil
         fields = ['id','correo_vordcab','baja','numero_de_trabajador', 'empresa', 'distrito','nombres', 'apellidos', 'fecha_nacimiento', 'correo_electronico',]
 
+class TablaFestivosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TablaFestivos
+        fields = ['id', 'dia_festivo',]  
