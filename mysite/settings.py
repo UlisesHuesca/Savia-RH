@@ -239,7 +239,20 @@ REST_FRAMEWORK = {
 
 }
 
-#DJOSER = {
-#    "USER_ID_FIELD": "username"
+# Utilizar el backend por defecto que almacena las sesiones en la base de datos
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
-#}
+# Nombre de la cookie de sesión
+SESSION_COOKIE_NAME = 'sessionid'
+
+# Duración de la cookie de sesión en segundos (2 semanas)
+SESSION_COOKIE_AGE = 1209600  # 2 semanas
+
+# Guardar la sesión en cada solicitud (asegura que se persista cualquier cambio)
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Si quieres que la sesión expire al cerrar el navegador, cambia esto a True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Opcional: Cookies seguras (recomendado para producción con HTTPS)
+SESSION_COOKIE_SECURE = False  # Cambia a True si usas HTTPS

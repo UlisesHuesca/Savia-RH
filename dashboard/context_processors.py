@@ -129,4 +129,6 @@ def contadores_processor(request):
         }
         
     except Exception as e:
+        print(f"❌ Error en contadores_processor: {e}")  # Debug
         logout(request)
+        return {}  # 🔹 Siempre retorna un diccionario válido
