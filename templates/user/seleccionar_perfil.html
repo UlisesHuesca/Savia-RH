@@ -47,7 +47,7 @@
                     <p>BIENVENIDO - {{request.user.perfil}}</p>
                 </div>
                 <div class="card-body">
-                    <form action="{% url 'seleccionar_perfil' %}" method="post">
+                    <form action="{% url 'seleccionar-perfil' %}" method="POST">
                         {% csrf_token %}
                         <div class="col-lg-12 col-sm-12">
                             <div class="input-group mb-3">
@@ -58,7 +58,7 @@
                                 </div>
                             </div>
                             <div class="input-group mt-4">
-                                <button type="submit" class="btn btn-primary" name="btn_seleccionar">seleccionar</button>
+                                <button type="submit" class="btn btn-primary" name="btn_seleccionar">Seleccionar</button>
                             </div>
                         </div>   
                     </form>

@@ -30,38 +30,29 @@ def profile(request):
 @login_required(login_url='user-login')
 def seleccionar_perfil(request):
     #obtener los perfiles del usuario
-    user = request.user
-    roles = UserDatos.objects.filter(perfil_id = user.perfil.id,activo=True)
-    
-    if not roles.exists():  # Si no tiene roles activos
-        logout(request)   # Cerrar session
-        messages.success(request, 'You have been logged out successfully.')
-        return redirect('user-login')
-    
-    #cargar el formulario con sus perfiles        
-    form = UserDatosForm()
-    form.fields['user_datos'].queryset = roles
-        
+    user = request.user.id
+    print('user:',user)
+    roles = UserDatos.objects.filter(perfil_id = user, activo=True)
+    print('roles:', roles)
+      
     if request.method == 'POST': 
-        
-        rol = request.POST.get('user_datos')
-        
+        print('request:',request)
+        rol_id = request.POST.get('user_datos')
+        print('view_rol_id:',rol_id)
         try:
-            rol = UserDatos.objects.get(pk = rol)
+            rol = UserDatos.objects.get(id = rol_id)
             
             # Se crea la sesión y se almacena los datos en la sesión
-            request.session['usuario_datos'] = {
-                'usuario_id': rol.id,
-                'perfil_id': rol.perfil.id,
-                'distrito_id': rol.distrito.id,
-                'tipo_id': rol.tipo.id,
-            }
+            request.session['selected_rol_id'] = rol.id
             
             return redirect('index')
         
         except Exception as e:
             messages.error(request, 'El perfil seleccionado no es válido')
-            return redirect('seleccionar_perfil')
+            return redirect('seleccionar-perfil')
+    else:
+        form = UserDatosForm()
+        form.fields['user_datos'].queryset = roles
             
     context = {
         'form':form,

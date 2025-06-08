@@ -149,9 +149,10 @@ def Tabla_dias_vacaciones(request):
 def Perfil_vista(request):
     ids = [9,10,11]
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    rol_id = request.session.get('selected_rol_id')        
+    #usuario_id = userdato.get('usuario_id')
+    
+    user_filter = UserDatos.objects.get(pk = rol_id)
     #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
     try:
         if user_filter.tipo.id in [9,10,11]:
