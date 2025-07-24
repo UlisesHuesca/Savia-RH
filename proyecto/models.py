@@ -150,6 +150,8 @@ class TipoPerfil(models.Model): #Boleanos para filtrar lo que puede hacer cada u
     solicitudes = models.BooleanField(null=True, default=False)
     esquema_bono = models.BooleanField(null=True, default=False)
     prenomina = models.BooleanField(null=True, default=False)
+    crear_bonos = models.BooleanField(default=False)
+    superintendente = models.BooleanField(default=False) #Superintendente operativo, administrativo
     
     def __str__(self):
         return f'{self.nombre}'
@@ -204,7 +206,9 @@ class UserDatos(models.Model):
     tipo = models.ForeignKey(TipoPerfil, on_delete = models.CASCADE, null=True)
     #cargo_distrito = models.ForeignKey(Distrito, on_delete = models.CASCADE, null=True, related_name='cargo_distrito')#quitar
     #numero_de_trabajador = models.IntegerField(null=True,blank=True)#quitar
+    vis_distritos = models.ManyToManyField(Distrito, blank=True, related_name='vis_distritos') #Distritos que puede ver
     activo = models.BooleanField(default=False)
+
 
     def __str__(self):
         return f'{self.tipo} - {self.distrito}'

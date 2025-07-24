@@ -343,139 +343,123 @@ def PerfilUpdate(request, pk):
 @login_required(login_url='user-login')
 @perfil_session_seleccionado
 def Perfil_revisar(request, pk):
-    #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)   
-    #if user_filter.tipo.id in [4,9,10,11] or (user_filter.numero_de_trabajador == empleado.numero_de_trabajador and user_filter.distrito == empleado.distrito) or user_filter.tipo.id == 3:
-    try:
+    empleado = Perfil.objects.get(id=pk)     
         
-        if user_filter.tipo.id in [9,10,11]:
-            empleado = Perfil.objects.get(id=pk)     
-        elif user_filter.tipo.id in [4,12,8]:
-            empleado = Perfil.objects.get(id=pk, distrito_id = user_filter.distrito.id)  
-        elif user_filter.tipo.id in [2,5,6,7]:
-            empleado = Perfil.objects.get(pk = user_filter.perfil.id, distrito_id = user_filter.distrito.id) 
-        else:
-            return render(request, 'revisar/403.html')
+    context = {
+        'empleado': empleado,
+    }
         
-        context = {
-            'empleado': empleado,
-        }
-        
-        return render(request, 'proyecto/Perfil_revisar.html', context)
-    
-    except Perfil.DoesNotExist:
-        return render(request, 'revisar/403.html')
+    return render(request, 'proyecto/Perfil_revisar.html', context)
 
 @login_required(login_url='user-login')
 @perfil_session_seleccionado
 def Status_vista(request):
-    ids = [9,10,11]
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    #usuario_id = userdatos.get('usuario_id')
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
+    visual_distritos = set(user_datos.vis_distritos.values_list('id', flat=True))
+    conteo_distritos = len(visual_distritos)
     
-    if user_filter.tipo.id in [4,9,10,11,12,8]: #Perfil RH o observador
-        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-        if user_filter.tipo.id in [9,10,11]:
-            status= Status.objects.filter(complete=True).order_by("perfil__numero_de_trabajador")
-        else:
-            status = Status.objects.filter(perfil__distrito_id = user_filter.distrito.id, complete=True).order_by("perfil__numero_de_trabajador")
+    status= Status.objects.filter(perfil__distrito__id__in = visual_distritos, complete=True).order_by("perfil__numero_de_trabajador")
+    #else:
+    #    status = Status.objects.filter(perfil__distrito_id = user_filter.distrito.id, complete=True).order_by("perfil__numero_de_trabajador")
         
-        status_filter = StatusFilter(request.GET, queryset=status)
+    status_filter = StatusFilter(request.GET, queryset=status)
 
-        status = status_filter.qs
+    status = status_filter.qs
 
-        if request.method =='POST' and 'Excel' in request.POST:
-            return convert_excel_status(request,status)
+    if request.method =='POST' and 'Excel' in request.POST:
+        return convert_excel_status(request,status)
 
-                        #Set up pagination
-        p = Paginator(status, 50)
-        page = request.GET.get('page')
-        salidas_list = p.get_page(page)
+    #Set up pagination
+    p = Paginator(status, 50)
+    page = request.GET.get('page')
+    salidas_list = p.get_page(page)
 
-        context= {
-            'status':status,
-            'status_filter':status_filter,
-            'salidas_list':salidas_list,
-            'baja': request.GET.get('baja', False),
-            'ids':ids,
-            }
+    context= {
+        'conteo_distritos':conteo_distritos,
+        'visual_distritos': visual_distritos,
+        'status':status,
+        'status_filter':status_filter,
+        'salidas_list':salidas_list,
+        'baja': request.GET.get('baja', False),
+        }
 
-        return render(request, 'proyecto/Status.html',context)
-    else:
-        return render(request, 'revisar/403.html')
+    return render(request, 'proyecto/Status.html',context)
+  
     
 @login_required(login_url='user-login')
 @perfil_session_seleccionado
 def FormularioStatus(request):
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    #usuario_id = userdatos.get('usuario_id')
+    rol_id = request.session.get('selected_rol_id')  
+    user_datos = UserDatos.objects.get(pk = rol_id)
+    visual_distritos = set(user_datos.vis_distritos.values_list('id', flat=True))
     
-    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
+    #if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
         #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-        if user_filter.tipo.id in [9,10,11]:
-            empleados = Perfil.objects.filter(complete=True, complete_status=False, baja=False)
-        else:
-            empleados = Perfil.objects.filter(distrito_id=user_filter.distrito.id,complete=True, complete_status=False, baja=False)
+        #if user_filter.tipo.id in [9,10,11]:
+    empleados = Perfil.objects.filter(distrito__id__in = visual_distritos,complete=True, complete_status=False, baja=False)
+        #else:
+            #empleados = Perfil.objects.filter(distrito_id=user_filter.distrito.id,complete=True, complete_status=False, baja=False)
 
-        estado,created=Status.objects.get_or_create(complete=False)
-        form = StatusForm()
-        ahora = datetime.date.today()
-        registro_patronal = RegistroPatronal.objects.all()
-        puestos = Puesto.objects.all()
-        valido = False
-        if request.method == 'POST' and 'btnSend' in request.POST:
-            form = StatusForm(request.POST,instance=estado)
-            form.save(commit=False)
-            if estado.fecha_planta_anterior == None and estado.fecha_planta == None:
+    estado,created=Status.objects.get_or_create(complete=False)
+    form = StatusForm()
+    ahora = datetime.date.today()
+    registro_patronal = RegistroPatronal.objects.all()
+    puestos = Puesto.objects.all()
+    valido = False
+    if request.method == 'POST' and 'btnSend' in request.POST:
+        form = StatusForm(request.POST,instance=estado)
+        form.save(commit=False)
+        if estado.fecha_planta_anterior == None and estado.fecha_planta == None:
+            valido=True
+        elif estado.fecha_planta_anterior == None:
+            if estado.fecha_planta > ahora:
+                messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
+            else:
                 valido=True
-            elif estado.fecha_planta_anterior == None:
+        elif estado.fecha_planta == None:
+            if estado.fecha_planta_anterior > ahora:
+                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
+            else:
+                valido=True
+        else:
+            if estado.fecha_planta_anterior > ahora:
+                messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
+            else:
                 if estado.fecha_planta > ahora:
                     messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
                 else:
-                    valido=True
-            elif estado.fecha_planta == None:
-                if estado.fecha_planta_anterior > ahora:
-                    messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
-                else:
-                    valido=True
-            else:
-                if estado.fecha_planta_anterior > ahora:
-                    messages.error(request, '(Fecha planta anterior) La fecha no puede ser posterior a hoy')
-                else:
-                    if estado.fecha_planta > ahora:
-                        messages.error(request, '(Fecha planta) La fecha no puede ser posterior a hoy')
+                    if estado.fecha_planta < estado.fecha_planta_anterior:
+                        messages.error(request, '(Fechas) La fecha de planta anterior no puede ser posterior a la fecha de planta')
                     else:
-                        if estado.fecha_planta < estado.fecha_planta_anterior:
-                            messages.error(request, '(Fechas) La fecha de planta anterior no puede ser posterior a la fecha de planta')
-                        else:
-                            valido=True
-            empleado = Perfil.objects.get(id = estado.perfil.id)
-            if form.is_valid() and valido  == True:
-                nombre = user_filter.perfil
-                estado.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
-                messages.success(request, 'Información capturada con éxito')
-                estado.complete=True
-                form.save()
-                estado.save()
-                empleado.complete_status=True
-                empleado.save()
-                return redirect('Status')
-        context = {
-            'form':form,
-            'empleados':empleados,
-            'registro_patronal': registro_patronal,
-            'puestos':puestos,
-            }
+                        valido=True
+        empleado = Perfil.objects.get(id = estado.perfil.id)
+        if form.is_valid() and valido  == True:
+            nombre = user_datos.perfil
+            estado.editado = str("C:"+nombre.nombres+" "+nombre.apellidos)
+            messages.success(request, 'Información capturada con éxito')
+            estado.complete=True
+            form.save()
+            estado.save()
+            empleado.complete_status=True
+            empleado.save()
+            return redirect('Status')
+        
+    context = {
+        'form':form,
+        'empleados':empleados,
+        'registro_patronal': registro_patronal,
+        'puestos':puestos,
+        }
 
-        return render(request, 'proyecto/StatusForm.html',context)
-    else:
-        return render(request, 'revisar/403.html')
+    return render(request, 'proyecto/StatusForm.html',context)
+
     
 @login_required(login_url='user-login')
 @perfil_session_seleccionado
@@ -561,9 +545,9 @@ def StatusUpdate(request, pk):
 @perfil_session_seleccionado
 def Status_revisar(request, pk):
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    rol_id = request.session.get('selected_rol_id')  
+    user_filter = UserDatos.objects.get(pk = rol_id)
     try:
         if user_filter.tipo.id in [9,10,11]:
             estado = Status.objects.get(id=pk)
@@ -591,10 +575,11 @@ def Status_revisar(request, pk):
 @perfil_session_seleccionado
 def Administrar_tablas(request):
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
-    if user_filter.tipo.id in [4,8,9,10,11,12]: #Perfil RH
+    #userdatos = request.session.get('usuario_datos')        
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
+
+    if user_datos.tipo.id in [4,8,9,10,11,12]: #Perfil RH
         puestos = Puesto.objects.all()
         salario = SalarioDatos.objects.get()
         distritos = Distrito.objects.filter(complete = True)
@@ -852,13 +837,13 @@ def BancariosUpdate(request, pk):
 @perfil_session_seleccionado
 def FormularioCosto(request):
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
     
-    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
-        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
-        perfil = Perfil.objects.filter(distrito = user_filter.distrito, baja=False).values_list('id', flat=True)
+    if user_datos.tipo.id in [4,9,10,11]: #Perfil RH
+        #revisar_perfil = Perfil.objects.get(distrito=user_datos.distrito,numero_de_trabajador=user_datos.numero_de_trabajador)
+        perfil = Perfil.objects.filter(distrito = user_datos.distrito, baja=False).values_list('id', flat=True)
         empleados= Status.objects.filter(~Q(fecha_ingreso=None), perfil__id__in=perfil,complete = True, complete_costo = False)
         tablas = DatosISR.objects.all()
         tabla_subsidio = TablaSubsidio.objects.all()
@@ -1090,7 +1075,7 @@ def FormularioCosto(request):
                                                                                     #total_carga_social = costo.impuesto_estatal + costo.imms_obrero_patronal + costo.sar + costo.cesantia + costo.infonavit + costo.isr
 
                                                                                     if form.is_valid():
-                                                                                        nombre = user_filter.perfil
+                                                                                        nombre = user_datos.perfil
                                                                                         costo.editado = str("U:"+nombre.nombres+" "+nombre.apellidos)
                                                                                         messages.success(request, f'Cambios guardados con éxito los costos de {costo.status.perfil.nombres} {costo.status.perfil.apellidos}')
                                                                                         costo = form.save(commit=False)
@@ -1530,15 +1515,16 @@ def Empleado_Costo(request, pk):
 @perfil_session_seleccionado
 def TablaCosto(request):
     ids = [9,10,11]
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    usuario = UserDatos.objects.get(pk = usuario_id)
-    if usuario.tipo.id in [4,8,9,10,11,12]: #Perfil RH
-        if usuario.tipo.id in [9,10,11]:
+    #userdatos = request.session.get('usuario_datos')        
+    #usuario_id = userdatos.get('usuario_id')
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
+    if user_datos.tipo.id in [4,8,9,10,11,12]: #Perfil RH
+        if user_datos.tipo.id in [9,10,11]:
             costos= Costo.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
         else:
             costos = Costo.objects.select_related('status__perfil').filter(
-                status__perfil__distrito_id=usuario.distrito.id,
+                status__perfil__distrito_id=user_datos.distrito.id,
                     complete=True
                 ).order_by("status__perfil__numero_de_trabajador")
             
@@ -1817,12 +1803,12 @@ def VacacionesRevisar(request, pk):
 def Tabla_Vacaciones(request): #Ya esta
     ids = [9,10,11]
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
     
-    if user_filter.tipo.id in [4,9,10,11,12,8]: #Perfil RH
-        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja=False)
+    if user_datos.tipo.id in [4,9,10,11,12,8]: #Perfil RH
+        #revisar_perfil = Perfil.objects.get(distrito=user_datos.distrito,numero_de_trabajador=user_datos.numero_de_trabajador,baja=False)
 
         #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
         fecha_actual = date.today()
@@ -1874,7 +1860,7 @@ def Tabla_Vacaciones(request): #Ya esta
                 empleado.complete_vacaciones = True #Para confirmar que ya tiene vacacion actual
                 empleado.save()
         
-        if user_filter.tipo.id in [9,10,11]:
+        if user_datos.tipo.id in [9,10,11]:
             perfil = Perfil.objects.all().values_list('id',flat=True);
 
             #descansos= Vacaciones.objects.filter(complete=True,periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
@@ -1894,12 +1880,12 @@ def Tabla_Vacaciones(request): #Ya esta
 
            
 
-        #elif user_filter.distrito.distrito == 'Poza Rica':
-        #    perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True, baja=False)
+        #elif user_datos.distrito.distrito == 'Poza Rica':
+        #    perfil = Perfil.objects.filter(distrito = user_datos.distrito,complete=True, baja=False)
         #    descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo__in=["2022", "2023"]).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
         else:
 
-            perfil = Perfil.objects.filter(distrito_id = user_filter.distrito.id,complete=True).values_list('id',flat=True)
+            perfil = Perfil.objects.filter(distrito_id = user_datos.distrito.id,complete=True).values_list('id',flat=True)
             #descansos = Vacaciones.objects.filter(status__perfil__id__in=perfil.all(), complete=True, periodo=año_actual).annotate(Sum('dias_disfrutados')).order_by("status__perfil__numero_de_trabajador")
             periodo = Vacaciones.objects.filter(
                 Q(periodo=año_actual) | Q(periodo=str(fecha_hace_un_año.year)),
@@ -2091,12 +2077,12 @@ def EconomicosUpdate(request, pk):
 def Tabla_Economicos(request): #Ya esta
     ids = [9,10,11]
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
     
-    if user_filter.tipo.id in [4,9,8,10,11,12]:#Perfil RH o observador
-        #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
+    if user_datos.tipo.id in [4,9,8,10,11,12]:#Perfil RH o observador
+        #revisar_perfil = Perfil.objects.get(distrito=user_datos.distrito,numero_de_trabajador=user_datos.numero_de_trabajador,baja = False)
 
         #Se reinician las vacaciones para los empleados que ya cumplan otro año de antiguedad con su planta anterior o actual
         fecha_actual = date.today()
@@ -2117,16 +2103,16 @@ def Tabla_Economicos(request): #Ya esta
                 empleado.complete_economicos = True #Para confirmar que ya tiene economico actual
                 empleado.save()
         
-        if user_filter.tipo.id in [9,10,11] :
+        if user_datos.tipo.id in [9,10,11] :
             economicos= Economicos.objects.filter(complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
             #economicost= economicos.last()
             economicoss= Economicos.objects.filter(dias_pendientes=0,complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
         
         else:
             
-            economicos = Economicos.objects.select_related('status__perfil').filter(status__perfil__distrito_id = user_filter.distrito.id,complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+            economicos = Economicos.objects.select_related('status__perfil').filter(status__perfil__distrito_id = user_datos.distrito.id,complete=True,complete_dias=False,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
            
-            economicoss = Economicos.objects.select_related('status__perfil').filter(status__perfil__distrito_id = user_filter.distrito.id,complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
+            economicoss = Economicos.objects.select_related('status__perfil').filter(status__perfil__distrito_id = user_datos.distrito.id,complete=True,complete_dias=True,created_at__year=año_actual).order_by("status__perfil__numero_de_trabajador")
         
         #economicos= Economicos.objects.filter(complete=True).annotate(Sum('dias_disfrutados'))
         economico_filter = EconomicosFilter(request.GET, queryset=economicos)
@@ -2187,16 +2173,16 @@ def EconomicosRevisar(request, pk):
 def Tabla_Datosbancarios(request):
     ids = [9,10,11]
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
     
-    if user_filter.tipo.id in [4,8,9,10,11,12] or user_filter.tipo.id == 3: #Perfil RH o observador
+    if user_datos.tipo.id in [4,8,9,10,11,12] or user_datos.tipo.id == 3: #Perfil RH o observador
         #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador,baja = False)
-        if user_filter.tipo.id in [9,10,11]:
+        if user_datos.tipo.id in [9,10,11]:
             bancarios= DatosBancarios.objects.filter(complete=True).order_by("status__perfil__numero_de_trabajador")
         else:
-            perfil = Perfil.objects.filter(distrito = user_filter.distrito,complete=True).values_list('id',flat=True)
+            perfil = Perfil.objects.filter(distrito = user_datos.distrito,complete=True).values_list('id',flat=True)
             bancarios = DatosBancarios.objects.filter(status__perfil__id__in=perfil, complete=True).order_by("status__perfil__numero_de_trabajador")
         bancario_filter = BancariosFilter(request.GET, queryset=bancarios)
         bancarios = bancario_filter.qs
@@ -6217,36 +6203,36 @@ def reporte_pdf_especifico(distrito_seleccionado,perfill,statuss,bancarioss,cost
 def Tabla_solicitud_vacaciones(request):
     ids = [9,10,11]
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    #usuario_id = userdatos.get('usuario_id')
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
     #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)    
     
-    if user_filter.tipo.id in [9,10,11]:
+    if user_datos.tipo.id in [9,10,11]:
         perfiles= Perfil.objects.filter(complete=True, baja=False).order_by("numero_de_trabajador").values_list('id',flat=True)
     else:
-        perfiles= Perfil.objects.filter(distrito_id=user_filter.distrito.id,complete=True, baja=False).order_by("numero_de_trabajador").values_list('id',flat=True)
+        perfiles= Perfil.objects.filter(distrito_id=user_datos.distrito.id,complete=True, baja=False).order_by("numero_de_trabajador").values_list('id',flat=True)
 
     #solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None)
     #solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
 
     #RH solo puede ver solicitudes | Supervisor - Jefe inmediato puede autorizar solicitudes y ver solicitudes 
-    if user_filter.tipo_id == 4:
+    if user_datos.tipo_id == 4:
         #solicitudes pendientes
-        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True, autorizar=None, perfil_id = user_filter.perfil.id)
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True, autorizar=None, perfil_id = user_datos.perfil.id)
         #solicitudes aprobadas y rechazadas
         solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
-    elif user_filter.tipo_id == 8:
+    elif user_datos.tipo_id == 8:
         #solicitudes pendientes
-        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True, autorizar=None, perfil_gerente_id = user_filter.perfil.id)
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True, autorizar=None, perfil_gerente_id = user_datos.perfil.id)
         #solicitudes aprobadas y rechazadas
-        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True , perfil_gerente_id = user_filter.perfil.id).exclude(Q(autorizar=None)).order_by("-id")
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True , perfil_gerente_id = user_datos.perfil.id).exclude(Q(autorizar=None)).order_by("-id")
     else:
         #solicitudes pendientes
-        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True, autorizar_jefe=None, perfil_id = user_filter.perfil.id)
+        solicitudes = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True, autorizar_jefe=None, perfil_id = user_datos.perfil.id)
         #solicitudes aprobadas y rechazadas
-        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True, perfil_id = user_filter.perfil.id).exclude(Q(autorizar_jefe=None)).order_by("-id")
+        solicitudes_revisadas = Solicitud_vacaciones.objects.filter(status__perfil__id__in=perfiles, complete=True, perfil_id = user_datos.perfil.id).exclude(Q(autorizar_jefe=None)).order_by("-id")
     
     solicitud_filter = SolicitudesVacacionesFilter(request.GET, queryset=solicitudes)
     solicitudes = solicitud_filter.qs
@@ -6254,7 +6240,7 @@ def Tabla_solicitud_vacaciones(request):
     solicitudes_revisadas = solicitud2_filter.qs
 
     context= {
-        'user_filter': user_filter,
+        'user_datos': user_datos,
         'perfiles':perfiles,
         'solicitud_filter':solicitud_filter,
         'solicitudes':solicitudes,
@@ -6269,33 +6255,35 @@ def Tabla_solicitud_vacaciones(request):
 def Tabla_solicitud_economicos(request):
     ids = [9,10,11]
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    #usuario_id = userdatos.get('usuario_id')
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
     
-    #revisar_perfil = Perfil.objects.get(distrito=user_filter.distrito,numero_de_trabajador=user_filter.numero_de_trabajador)
+    #revisar_perfil = Perfil.objects.get(distrito=user_datos.distrito,numero_de_trabajador=user_datos.numero_de_trabajador)
     #print(revisar_perfil.id)
-    if user_filter.tipo.id in [9,10,11]:
+    if user_datos.tipo.id in [9,10,11]:
         perfiles= Perfil.objects.filter(complete=True,baja=False).order_by("numero_de_trabajador").values_list('id',flat=True)
     else:
-        perfiles= Perfil.objects.filter(distrito_id=user_filter.distrito.id,complete=True,baja=False).order_by("numero_de_trabajador").values_list('id',flat=True)
+        perfiles= Perfil.objects.filter(distrito_id=user_datos.distrito.id,complete=True,baja=False).order_by("numero_de_trabajador").values_list('id',flat=True)
 
     #RH solo puede ver solicitudes | Supervisor - Jefe inmediato puede autorizar solicitudes y ver solicitudes 
-    if user_filter.tipo_id == 4:
+    solicitud_economicos = Solicitud_economicos.objects.all()
+    if user_datos.tipo_id == 4:
         #solicitudes pendientes
-        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = user_filter.perfil.id)
+        solicitudes = solicitud_economicos.filter(status__perfil__in=perfiles, complete=True, autorizar=None, perfil_id = user_datos.perfil.id)
         #solicitudes aprobadas y rechazadas
-        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
-    elif user_filter.tipo_id == 8: # Gerente
+        solicitudes_revisadas = solicitud_economicos.filter(status__perfil__in=perfiles, complete=True).exclude(Q(autorizar=None)).order_by("-id")
+    elif user_datos.tipo_id == 8: # Gerente
         #solicitudes pendientes
-        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar= None, perfil_gerente_id = user_filter.perfil.id)
-        #solicitudes aprobadas y rechazadas
-        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, perfil_gerente_id = user_filter.perfil.id).exclude(Q(autorizar=None)).order_by("-id")
+        solicitudes = solicitud_economicos.filter(status__perfil__in=perfiles, complete=True, autorizar= None, perfil_gerente_id = user_datos.perfil.id)
+        #solicitudes aprobadas y rechazadass
+        solicitudes_revisadas = solicitud_economicos.filter(status__perfil__in=perfiles, complete=True, perfil_gerente_id = user_datos.perfil.id).exclude(Q(autorizar=None)).order_by("-id")
     else: 
         #solicitudes pendientes
-        solicitudes = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, autorizar_jefe=None, perfil_id = user_filter.perfil.id )
+        solicitudes = solicitud_economicos.filter(status__perfil__in=perfiles, complete=True, autorizar_jefe=None, perfil_id = user_datos.perfil.id )
         #solicitudes aprobadas y rechazadas
-        solicitudes_revisadas = Solicitud_economicos.objects.filter(status__perfil__in=perfiles, complete=True, perfil_id = user_filter.perfil.id).exclude(Q(autorizar_jefe=None)).order_by("-id")
+        solicitudes_revisadas = solicitud_economicos.filter(status__perfil__in=perfiles, complete=True, perfil_id = user_datos.perfil.id).exclude(Q(autorizar_jefe=None)).order_by("-id")
         
         
     solicitud_filter = SolicitudesEconomicosFilter(request.GET, queryset=solicitudes)
@@ -6304,7 +6292,7 @@ def Tabla_solicitud_economicos(request):
     solicitudes_revisadas = solicitud2_filter.qs
 
     context= {
-        'user_filter': user_filter,
+        'user_datos': user_datos,
         'perfiles':perfiles,
         'solicitud_filter':solicitud_filter,
         'solicitudes':solicitudes,

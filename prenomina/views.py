@@ -72,7 +72,7 @@ from user.decorators import perfil_session_seleccionado
 #funcion para obtener la catorcena actual
 def obtener_catorcena():
     fecha_actual = datetime.date.today()
-    fecha_actual = datetime.date.today() - datetime.timedelta(days=28) #cat 18 | 19 ago - 01 sep
+    #fecha_actual = datetime.date.today() - datetime.timedelta(days=28) #cat 18 | 19 ago - 01 sep
     #fecha_actual = datetime.date.today() - datetime.timedelta(days=16) #cat 02 sep | 02 sep - 15 sep
     print("fecha es: ", fecha_actual)
     #print("Esta es la fecha actual: ", fecha_actual)
@@ -208,17 +208,19 @@ def registrar_rango_incidencias(request,pk):
 @perfil_session_seleccionado
 def Tabla_prenomina(request):
     #obtener datos de la sesion y el usuario logeado
-    userdatos = request.session.get('usuario_datos')        
-    usuario_id = userdatos.get('usuario_id')
-    user_filter = UserDatos.objects.get(pk = usuario_id)
+    #userdatos = request.session.get('usuario_datos')        
+    #usuario_id = userdatos.get('usuario_id')
+    #user_filter = UserDatos.objects.get(pk = usuario_id)
+    pk = request.session.get('selected_rol_id')
+    user_datos = UserDatos.objects.get(id = pk)
 
-    if user_filter.tipo.id in [4,9,10,11]: #Perfil RH
+    if user_datos.tipo.id in [4,9,10,11]: #Perfil RH
 
         #llamar la fucion para obtener la catorcena actual
         catorcena_actual = obtener_catorcena()
         
-        costo = Costo.objects.filter(status__perfil__distrito_id=user_filter.distrito.id, complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
-        prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena_id=catorcena_actual.id, distrito_id = user_filter.distrito_id).order_by("empleado__status__perfil__apellidos")
+        costo = Costo.objects.filter(status__perfil__distrito_id=user_datos.distrito.id, complete=True, status__perfil__baja=False).order_by("status__perfil__numero_de_trabajador").values_list('id',flat=True)
+        prenominas = Prenomina.objects.filter(empleado__in=costo,catorcena_id=catorcena_actual.id, distrito_id = user_datos.distrito_id).order_by("empleado__status__perfil__apellidos")
         
         #crear las prenominas actuales si es que ya es nueva catorcena
         nuevas_prenominas = []
@@ -227,7 +229,7 @@ def Tabla_prenomina(request):
             prenomina_existente = prenominas.filter(empleado_id=empleado).exists()
             #si no existe crear una nueva prenomina
             if not prenomina_existente:
-                nueva_prenomina = Prenomina(empleado_id=empleado, catorcena_id=catorcena_actual.id, distrito_id = user_filter.distrito.id)
+                nueva_prenomina = Prenomina(empleado_id=empleado, catorcena_id=catorcena_actual.id, distrito_id = user_datos.distrito.id)
                 nuevas_prenominas.append(nueva_prenomina) 
         if nuevas_prenominas:
             Prenomina.objects.bulk_create(nuevas_prenominas)              
@@ -244,35 +246,35 @@ def Tabla_prenomina(request):
             prenomina.estado_general = determinar_estado_general(request,ultima_autorizacion)
 
         if request.method =='POST' and 'Autorizar' in request.POST:
-            if user_filter.tipo.id == 4: #RH
+            if user_datos.tipo.id == 4: #RH
                 prenominas_filtradas = [prenom for prenom in prenominas if prenom.estado_general == 'RH pendiente (rechazado por Controles técnicos)' or prenom.estado_general == 'RH pendiente (rechazado por Gerencia)' or prenom.estado_general == 'Sin autorizaciones']
                 if prenominas_filtradas:
                     # Llamar a la función Autorizar_gerencia con las prenominas filtradas
-                    return Autorizar_general(request,prenominas_filtradas, user_filter,catorcena_actual)
+                    return Autorizar_general(request,prenominas_filtradas, user_datos,catorcena_actual)
                 else:
                     # Si no hay prenominas que cumplan la condición, manejar según sea necesario
                     messages.error(request,'Ya se han autorizado todas las prenominas pendientes')
         
         if request.method =='POST' and 'Excel' in request.POST:
             filtro = False
-            return excel_estado_prenomina(request,prenominas,filtro,user_filter)
+            return excel_estado_prenomina(request,prenominas,filtro,user_datos)
         if request.method =='POST' and 'Excel2' in request.POST:
             reporte = False
-            return excel_estado_prenomina_formato(request,prenominas, user_filter, reporte)
+            return excel_estado_prenomina_formato(request,prenominas, user_datos, reporte)
         
         p = Paginator(prenominas, 50)
         page = request.GET.get('page')
         salidas_list = p.get_page(page)
 
         context = {
-            'user_filter':user_filter,
+            'user_datos':user_datos,
             'prenomina_filter':prenomina_filter,
             'salidas_list': salidas_list,
             'prenominas':prenominas
         }
         return render(request, 'prenomina/Tabla_prenomina.html', context)
-    else:
-        return render(request, 'revisar/403.html')
+    #else:
+    #    return render(request, 'revisar/403.html')
 
 @login_required(login_url='user-login')
 @perfil_session_seleccionado
